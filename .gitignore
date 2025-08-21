@@ -1,0 +1,60 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+.nyc_output
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Production
+*.production
+
+# Misc
+.DS_Store
+*.pem
+.vscode
+.idea
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Env files
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# Prisma
+*.db
+*.db-journal
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Capacitor
+ios/
+android/
+
+# Test files
+test-email-send.js
+nul
+
+# Backup files
+*.bak
+.env.local.bak

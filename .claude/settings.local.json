@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm install:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx prisma db push --schema=./prisma/schema-sqlite.prisma)",
+      "Bash(pnpm dev:*)",
+      "Bash(winget:*)",
+      "Bash(dir:*)",
+      "Bash(start \"\" \"C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe\")",
+      "Bash(timeout:*)",
+      "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" --version)",
+      "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" info)",
+      "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker-compose.exe\" up -d)",
+      "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" ps)",
+      "Bash(powershell:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx prisma:*)",
+      "Bash(pnpm add:*)",
+      "Bash(set DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dashboard?schema=public)",
+      "Bash(ren:*)",
+      "Bash(move .env.local .env.local.bak)",
+      "Bash(node:*)",
+      "Bash(pnpm store prune:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(rm:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "D:\\d\\dashboard_website\\apps",
+      "D:\\d"
+    ]
+  }
+}
