@@ -31,7 +31,9 @@
       "Bash(rm:*)",
       "WebFetch(domain:localhost)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": [],
