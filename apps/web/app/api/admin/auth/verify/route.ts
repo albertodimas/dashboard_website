@@ -1,39 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { prisma } from '@dashboard/db'
+import { cookies } from 'next/headers'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'admin-secret-key-change-in-production'
+// For now, we'll use a simple admin check
+const ADMIN_EMAILS = ['admin@dashboard.com']
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from cookie or header
-    const token = request.cookies.get('adminToken')?.value || 
-                  request.headers.get('authorization')?.replace('Bearer ', '')
+    const sessionToken = cookies().get('admin-session')?.value
 
-    if (!token) {
+    if (!sessionToken) {
       return NextResponse.json(
-        { error: 'No token provided' },
+        { error: 'Not authenticated' },
         { status: 401 }
       )
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as any
+    // Find session in database
+    const session = await prisma.session.findUnique({
+      where: { 
+        sessionToken
+      },
+      include: {
+        user: {
+          include: {
+            tenant: true
+          }
+        }
+      }
+    })
 
-    if (decoded.role !== 'admin') {
+    if (!session || session.expires < new Date()) {
+      // Session expired or not found
+      if (session) {
+        await prisma.session.delete({
+          where: { id: session.id }
+        })
+      }
+      
       return NextResponse.json(
-        { error: 'Invalid token' },
+        { error: 'Session expired' },
         { status: 401 }
       )
     }
 
-    return NextResponse.json({ 
+    // Check if user is admin
+    if (!ADMIN_EMAILS.includes(session.user.email)) {
+      return NextResponse.json(
+        { error: 'Not authorized' },
+        { status: 403 }
+      )
+    }
+
+    return NextResponse.json({
       valid: true,
-      email: decoded.email
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: 'admin'
+      }
     })
   } catch (error) {
+    console.error('Session verification error:', error)
     return NextResponse.json(
-      { error: 'Invalid or expired token' },
+      { error: 'Verification failed' },
       { status: 401 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const sessionToken = cookies().get('admin-session')?.value
+
+    if (sessionToken) {
+      // Delete session from database
+      await prisma.session.deleteMany({
+        where: { sessionToken }
+      })
+      
+      // Clear cookie
+      cookies().delete('admin-session')
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Logout error:', error)
+    return NextResponse.json(
+      { error: 'Logout failed' },
+      { status: 500 }
     )
   }
 }

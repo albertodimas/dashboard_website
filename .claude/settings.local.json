@@ -33,14 +33,29 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(set DATABASE_URL=postgresql://dashboard:dashboard@localhost:5432/dashboard?schema=public)",
+      "Bash(curl:*)",
+      "Bash(set PGPASSWORD=dashboard)",
+      "Bash(psql:*)",
+      "Bash(taskkill:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm prisma studio:*)",
+      "Bash(pnpm exec prisma:*)",
+      "Bash(move \"[...slug]\" \"pages\\[...slug]\")",
+      "Bash(mv:*)",
+      "Bash(copy:*)",
+      "Bash(cp:*)",
+      "Bash(pnpm list:*)"
     ],
     "deny": [],
     "ask": [],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
       "D:\\d\\dashboard_website\\apps",
-      "D:\\d"
+      "D:\\d",
+      "D:\\"
     ]
   }
 }

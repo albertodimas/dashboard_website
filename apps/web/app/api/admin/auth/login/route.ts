@@ -1,51 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
+import { prisma } from '@dashboard/db'
+import { cookies } from 'next/headers'
+import { randomBytes } from 'crypto'
 
-// Admin credentials (in production, store these securely)
-const ADMIN_EMAIL = 'admin@directory.com'
-const ADMIN_PASSWORD = 'Admin@2024!' // Change this password!
-
-const JWT_SECRET = process.env.JWT_SECRET || 'admin-secret-key-change-in-production'
+// For now, we'll use a simple admin check
+const ADMIN_EMAILS = ['admin@dashboard.com']
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { email, password } = body
 
-    // Validate credentials
-    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    // Check if email is in admin list
+    if (!ADMIN_EMAILS.includes(email)) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        email: ADMIN_EMAIL,
-        role: 'admin',
-        timestamp: Date.now()
+    // Find user in database
+    const user = await prisma.user.findFirst({
+      where: { 
+        email,
+        isActive: true
       },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    )
-
-    // Set cookie for better security
-    const response = NextResponse.json({ 
-      success: true,
-      token,
-      message: 'Login successful'
+      include: { tenant: true }
     })
 
-    response.cookies.set('adminToken', token, {
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      )
+    }
+
+    // Verify password
+    const passwordValid = await bcrypt.compare(password, user.passwordHash)
+    
+    if (!passwordValid) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      )
+    }
+
+    // Generate session token
+    const sessionToken = randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    // Create session in database (without isAdmin field for now)
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        sessionToken,
+        expires,
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '',
+        userAgent: request.headers.get('user-agent') || ''
+      }
+    })
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    })
+
+    // Set session cookie
+    cookies().set('admin-session', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 86400 // 24 hours
+      sameSite: 'lax',
+      path: '/',
+      expires
     })
 
-    return response
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: 'admin'
+      }
+    })
   } catch (error) {
     console.error('Admin login error:', error)
     return NextResponse.json(

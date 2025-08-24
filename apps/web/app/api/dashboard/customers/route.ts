@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 
 // GET all customers
 export async function GET() {
   try {
-    // Get default business
-    const business = await prisma.business.findFirst({
-      where: { slug: 'default-business' }
-    })
+    // Get current business
+    const business = await getCurrentBusiness()
 
     if (!business) {
-      return NextResponse.json({ customers: [] })
+      return createAuthResponse('Business not found', 404)
     }
 
     const customers = await prisma.customer.findMany({
@@ -47,16 +46,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Get default business
-    const business = await prisma.business.findFirst({
-      where: { slug: 'default-business' }
-    })
+    // Get current business
+    const business = await getCurrentBusiness()
 
     if (!business) {
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      )
+      return createAuthResponse('Business not found', 404)
     }
 
     const customer = await prisma.customer.create({

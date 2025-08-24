@@ -4,12 +4,20 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import BusinessSettings from '@/components/dashboard/BusinessSettings'
+import { countries, cities } from '@/lib/countries'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { t, language, setLanguage } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [userProfile, setUserProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    language: 'en'
+  })
   const [businessInfo, setBusinessInfo] = useState({
     name: '',
     email: '',
@@ -18,6 +26,7 @@ export default function SettingsPage() {
     city: '',
     state: '',
     postalCode: '',
+    country: '',
     website: '',
     description: ''
   })
@@ -27,11 +36,38 @@ export default function SettingsPage() {
     appointmentReminders: true
   })
   const [scheduleSettings, setScheduleSettings] = useState({
-    timeInterval: 60,
-    startTime: '09:00',
-    endTime: '18:00',
-    workingDays: [1, 2, 3, 4, 5]
+    timeInterval: 30,
+    startTime: '',
+    endTime: '',
+    workingDays: []
   })
+  const [businessData, setBusinessData] = useState<any>(null)
+  const [availableStates, setAvailableStates] = useState<any[]>([])
+  const [availableCities, setAvailableCities] = useState<string[]>([])
+
+  // Handle country change
+  const handleCountryChange = (countryCode: string) => {
+    setBusinessInfo({...businessInfo, country: countryCode, state: '', city: ''})
+    const country = countries.find(c => c.code === countryCode)
+    setAvailableStates(country?.states || [])
+    setAvailableCities(cities[countryCode as keyof typeof cities] || [])
+  }
+
+  // Handle state change  
+  const handleStateChange = (stateCode: string) => {
+    setBusinessInfo({...businessInfo, state: stateCode, city: ''})
+    
+    // Find the selected state and load its cities
+    const country = countries.find(c => c.code === businessInfo.country)
+    const state = country?.states.find(s => s.code === stateCode)
+    
+    if (state && 'cities' in state) {
+      setAvailableCities(state.cities)
+    } else {
+      // Fallback to general country cities if state doesn't have specific cities
+      setAvailableCities(cities[businessInfo.country as keyof typeof cities] || [])
+    }
+  }
 
   useEffect(() => {
     // Check authentication and load business info from API
@@ -40,11 +76,20 @@ export default function SettingsPage() {
         if (!res.ok) throw new Error('Not authenticated')
         return res.json()
       })
-      .then(async () => {
+      .then(async (authData) => {
+        // Set user profile from auth data
+        setUserProfile({
+          name: authData.user.name || '',
+          email: authData.user.email || '',
+          phone: authData.user.phone || '',
+          language: authData.user.language || 'en'
+        })
+        
         try {
           const response = await fetch('/api/dashboard/business')
           if (response.ok) {
             const data = await response.json()
+            setBusinessData(data)
             setBusinessInfo({
               name: data.name || '',
               email: data.email || '',
@@ -53,9 +98,28 @@ export default function SettingsPage() {
               city: data.city || '',
               state: data.state || '',
               postalCode: data.postalCode || '',
+              country: data.country || '',
               website: data.website || '',
               description: data.description || ''
             })
+
+            // Set available states and cities based on current country and state
+            if (data.country) {
+              const country = countries.find(c => c.code === data.country)
+              setAvailableStates(country?.states || [])
+              
+              // If there's also a state selected, load cities for that state
+              if (data.state && country) {
+                const state = country.states.find(s => s.code === data.state)
+                if (state && 'cities' in state) {
+                  setAvailableCities(state.cities)
+                } else {
+                  setAvailableCities(cities[data.country as keyof typeof cities] || [])
+                }
+              } else {
+                setAvailableCities(cities[data.country as keyof typeof cities] || [])
+              }
+            }
             
             // Load settings from the business settings field
             const settings = data.settings || {}
@@ -75,6 +139,31 @@ export default function SettingsPage() {
         router.push('/login')
       })
   }, [router])
+
+  const handleSaveUserProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const response = await fetch('/api/dashboard/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userProfile),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save profile')
+      }
+
+      alert(language === 'en' ? 'Profile saved successfully!' : '¡Perfil guardado exitosamente!')
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      alert(language === 'en' ? 'Failed to save profile' : 'Error al guardar el perfil')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSaveBusinessInfo = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -250,6 +339,66 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* User Profile */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {language === 'en' ? 'User Profile' : 'Perfil de Usuario'}
+            </h2>
+            <form onSubmit={handleSaveUserProfile} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {language === 'en' ? 'Name' : 'Nombre'}
+                </label>
+                <input
+                  type="text"
+                  className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  value={userProfile.name}
+                  onChange={(e) => setUserProfile({...userProfile, name: e.target.value})}
+                  placeholder={language === 'en' ? 'Your Name' : 'Tu Nombre'}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {language === 'en' ? 'Email' : 'Correo Electrónico'}
+                </label>
+                <input
+                  type="email"
+                  className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  value={userProfile.email}
+                  onChange={(e) => setUserProfile({...userProfile, email: e.target.value})}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {language === 'en' ? 'Phone (Optional)' : 'Teléfono (Opcional)'}
+                </label>
+                <input
+                  type="tel"
+                  className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  value={userProfile.phone}
+                  onChange={(e) => setUserProfile({...userProfile, phone: e.target.value})}
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className={`px-4 py-2 text-sm font-medium rounded-md text-white ${
+                  saving 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                }`}
+              >
+                {saving 
+                  ? (language === 'en' ? 'Saving...' : 'Guardando...') 
+                  : (language === 'en' ? 'Save Profile' : 'Guardar Perfil')}
+              </button>
+            </form>
+          </div>
+
           {/* Business Information */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -304,57 +453,74 @@ export default function SettingsPage() {
                   placeholder={language === 'en' ? '123 Main Street' : '123 Calle Principal'}
                 />
               </div>
+              {/* Country Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {language === 'en' ? 'Country' : 'País'}
+                </label>
+                <select
+                  className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  value={businessInfo.country}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                >
+                  <option value="">{language === 'en' ? 'Select Country' : 'Seleccionar País'}</option>
+                  {countries.map(country => (
+                    <option key={country.code} value={country.code}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {language === 'en' ? 'State/Province' : 'Estado/Provincia'}
+                  </label>
+                  <select
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={businessInfo.state}
+                    onChange={(e) => handleStateChange(e.target.value)}
+                    disabled={!businessInfo.country}
+                  >
+                    <option value="">{language === 'en' ? 'Select State/Province' : 'Seleccionar Estado/Provincia'}</option>
+                    {availableStates.map(state => (
+                      <option key={state.code} value={state.code}>
+                        {state.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     {language === 'en' ? 'City' : 'Ciudad'}
                   </label>
-                  <input
-                    type="text"
+                  <select
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     value={businessInfo.city}
                     onChange={(e) => setBusinessInfo({...businessInfo, city: e.target.value})}
-                    placeholder={language === 'en' ? 'New York' : 'Nueva York'}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'State' : 'Estado'}
-                  </label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    value={businessInfo.state}
-                    onChange={(e) => setBusinessInfo({...businessInfo, state: e.target.value})}
-                    placeholder="NY"
-                  />
+                    disabled={!businessInfo.country}
+                  >
+                    <option value="">{language === 'en' ? 'Select City' : 'Seleccionar Ciudad'}</option>
+                    {availableCities.map(city => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Postal Code' : 'Código Postal'}
-                  </label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    value={businessInfo.postalCode}
-                    onChange={(e) => setBusinessInfo({...businessInfo, postalCode: e.target.value})}
-                    placeholder="10001"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Website' : 'Sitio Web'}
-                  </label>
-                  <input
-                    type="url"
-                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    value={businessInfo.website}
-                    onChange={(e) => setBusinessInfo({...businessInfo, website: e.target.value})}
-                    placeholder="https://www.example.com"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {language === 'en' ? 'Postal Code' : 'Código Postal'}
+                </label>
+                <input
+                  type="text"
+                  className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  value={businessInfo.postalCode}
+                  onChange={(e) => setBusinessInfo({...businessInfo, postalCode: e.target.value})}
+                  placeholder="10001"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -515,6 +681,14 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+
+          {/* Website Settings */}
+          {businessData && (
+            <BusinessSettings 
+              business={businessData} 
+              onUpdate={(data) => setBusinessData({...businessData, ...data})}
+            />
+          )}
 
           {/* Email Configuration */}
           <div className="bg-white shadow rounded-lg p-6">

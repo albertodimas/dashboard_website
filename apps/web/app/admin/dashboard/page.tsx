@@ -39,27 +39,16 @@ export default function AdminDashboardPage() {
   const [blockReason, setBlockReason] = useState('payment')
 
   useEffect(() => {
-    // Verify admin token
-    const token = localStorage.getItem('adminToken')
-    if (!token) {
-      router.push('/admin/login')
-      return
-    }
-
-    fetch('/api/admin/auth/verify', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    // Verify admin session via cookie
+    fetch('/api/admin/auth/verify')
       .then(res => {
-        if (!res.ok) throw new Error('Invalid token')
+        if (!res.ok) throw new Error('Invalid session')
         return res.json()
       })
       .then(() => {
         loadBusinesses()
       })
       .catch(() => {
-        localStorage.removeItem('adminToken')
         router.push('/admin/login')
       })
   }, [router])
@@ -67,12 +56,7 @@ export default function AdminDashboardPage() {
   const loadBusinesses = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch('/api/admin/businesses', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await fetch('/api/admin/businesses')
       if (!response.ok) {
         throw new Error('Failed to load businesses')
       }
@@ -90,12 +74,10 @@ export default function AdminDashboardPage() {
 
     try {
       setSaving(true)
-      const token = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/businesses', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           id: selectedBusiness.id,
@@ -128,12 +110,10 @@ export default function AdminDashboardPage() {
       : `¿Desbloquear "${business.name}" y restaurar acceso?`)) {
       try {
         setSaving(true)
-        const token = localStorage.getItem('adminToken')
         const response = await fetch('/api/admin/businesses', {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             id: business.id,
@@ -163,12 +143,8 @@ export default function AdminDashboardPage() {
     if (confirm(confirmMsg)) {
       try {
         setSaving(true)
-        const token = localStorage.getItem('adminToken')
         const response = await fetch(`/api/admin/businesses?id=${business.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          method: 'DELETE'
         })
         if (!response.ok) {
           throw new Error('Failed to delete business')
@@ -183,8 +159,8 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken')
+  const handleLogout = async () => {
+    await fetch('/api/admin/auth/verify', { method: 'DELETE' })
     router.push('/admin/login')
   }
 

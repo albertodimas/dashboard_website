@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode } from 'react'
 import { translations, Language, TranslationKey } from '@/lib/translations'
 
 interface LanguageContextType {
@@ -14,17 +14,21 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
 
-  useEffect(() => {
-    // Load saved language preference
-    const savedLang = localStorage.getItem('language') as Language
-    if (savedLang && (savedLang === 'en' || savedLang === 'es')) {
-      setLanguageState(savedLang)
-    }
-  }, [])
-
-  const setLanguage = (lang: Language) => {
+  const setLanguage = async (lang: Language) => {
     setLanguageState(lang)
-    localStorage.setItem('language', lang)
+    
+    // Try to update language preference in database if user is logged in
+    try {
+      await fetch('/api/dashboard/business', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ language: lang })
+      })
+    } catch (error) {
+      // Ignore errors, language is already set locally
+    }
   }
 
   const t = (key: TranslationKey): string => {

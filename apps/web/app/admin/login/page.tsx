@@ -29,8 +29,7 @@ export default function AdminLoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Save admin token
-        localStorage.setItem('adminToken', data.token)
+        // Session is now managed by cookies, no localStorage needed
         router.push('/admin/dashboard')
       } else {
         setError(data.error || 'Invalid credentials')
@@ -43,23 +42,26 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-            {t('language') === 'en' ? 'Administrator Access' : 'Acceso de Administrador'}
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Admin Login
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            {t('language') === 'en' 
-              ? 'Sign in to manage the business directory' 
-              : 'Inicia sesión para gestionar el directorio de negocios'}
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Business Directory Admin Panel
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="text-sm text-red-800">{error}</div>
+            </div>
+          )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
-                Email
+                Email address
               </label>
               <input
                 id="email"
@@ -67,8 +69,8 @@ export default function AdminLoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-gray-100 bg-gray-800 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder={t('language') === 'en' ? 'Admin Email' : 'Email del Administrador'}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -83,38 +85,22 @@ export default function AdminLoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-gray-100 bg-gray-800 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder={t('language') === 'en' ? 'Password' : 'Contraseña'}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-900 p-4">
-              <p className="text-sm text-red-200">{error}</p>
-            </div>
-          )}
-
           <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading 
-                ? (t('language') === 'en' ? 'Signing in...' : 'Iniciando sesión...') 
-                : (t('language') === 'en' ? 'Sign in' : 'Iniciar sesión')}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              {t('language') === 'en' 
-                ? 'This area is for authorized administrators only' 
-                : 'Esta área es solo para administradores autorizados'}
-            </p>
           </div>
         </form>
       </div>

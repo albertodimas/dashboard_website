@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format } from 'date-fns'
 
 // GET business metrics and reports
@@ -10,13 +11,11 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     
-    // Get default business
-    const business = await prisma.business.findFirst({
-      where: { slug: 'default-business' }
-    })
+    // Get current business
+    const business = await getCurrentBusiness()
 
     if (!business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      return createAuthResponse('Business not found', 404)
     }
 
     // Calculate date ranges based on period

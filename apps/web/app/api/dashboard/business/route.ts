@@ -1,30 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { getCurrentUser, getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 
 // GET business information
 export async function GET() {
   try {
-    // Get default business
-    const business = await prisma.business.findFirst({
-      where: { slug: 'default-business' }
-    })
+    const business = await getCurrentBusiness()
 
     if (!business) {
-      return NextResponse.json({ 
-        error: 'Business not found',
-        business: null 
-      }, { status: 404 })
+      return createAuthResponse('Business not found', 404)
     }
 
     return NextResponse.json({
       id: business.id,
       name: business.name,
+      slug: business.slug,
+      customSlug: business.customSlug,
       email: business.email,
       phone: business.phone,
       address: business.address,
       city: business.city,
       state: business.state,
       postalCode: business.postalCode,
+      country: business.country,
       website: business.website,
       description: business.description,
       settings: business.settings,
@@ -32,10 +30,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching business:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch business information' },
-      { status: 500 }
-    )
+    return createAuthResponse('Failed to fetch business information', 500)
   }
 }
 
@@ -44,16 +39,10 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Get default business
-    const business = await prisma.business.findFirst({
-      where: { slug: 'default-business' }
-    })
+    const business = await getCurrentBusiness()
 
     if (!business) {
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      )
+      return createAuthResponse('Business not found', 404)
     }
 
     // Update business information
@@ -67,6 +56,7 @@ export async function PUT(request: NextRequest) {
         city: body.city || business.city,
         state: body.state || business.state,
         postalCode: body.postalCode || business.postalCode,
+        country: body.country || business.country,
         website: body.website,
         description: body.description,
         settings: body.settings || business.settings,
@@ -85,6 +75,7 @@ export async function PUT(request: NextRequest) {
         city: updatedBusiness.city,
         state: updatedBusiness.state,
         postalCode: updatedBusiness.postalCode,
+        country: updatedBusiness.country,
         website: updatedBusiness.website,
         description: updatedBusiness.description,
         settings: updatedBusiness.settings,
@@ -93,9 +84,75 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error updating business:', error)
-    return NextResponse.json(
-      { error: 'Failed to update business information' },
-      { status: 500 }
-    )
+    return createAuthResponse('Failed to update business information', 500)
+  }
+}
+
+// PATCH update specific business fields (including customSlug)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    
+    const business = await getCurrentBusiness()
+
+    if (!business) {
+      return createAuthResponse('Business not found', 404)
+    }
+
+    // If customSlug is being updated, check for uniqueness
+    if (body.customSlug !== undefined) {
+      if (body.customSlug) {
+        const existingBusiness = await prisma.business.findFirst({
+          where: {
+            customSlug: body.customSlug,
+            NOT: { id: business.id }
+          }
+        })
+
+        if (existingBusiness) {
+          return NextResponse.json({ 
+            error: 'This URL is already taken by another business',
+            message: 'Unique constraint: This URL is already taken'
+          }, { status: 400 })
+        }
+      }
+    }
+
+    // Update the business
+    const updatedBusiness = await prisma.business.update({
+      where: { id: business.id },
+      data: {
+        ...(body.customSlug !== undefined && { customSlug: body.customSlug || null }),
+        ...(body.websiteUrl !== undefined && { website: body.websiteUrl }),
+        ...((body.customDomain !== undefined || body.theme !== undefined) && { 
+          settings: {
+            ...(business.settings as any || {}),
+            ...(body.customDomain !== undefined && { customDomain: body.customDomain }),
+            ...(body.theme !== undefined && { theme: body.theme })
+          }
+        })
+      }
+    })
+
+    return NextResponse.json({
+      id: updatedBusiness.id,
+      name: updatedBusiness.name,
+      slug: updatedBusiness.slug,
+      customSlug: updatedBusiness.customSlug,
+      email: updatedBusiness.email,
+      phone: updatedBusiness.phone,
+      address: updatedBusiness.address,
+      city: updatedBusiness.city,
+      state: updatedBusiness.state,
+      postalCode: updatedBusiness.postalCode,
+      country: updatedBusiness.country,
+      website: updatedBusiness.website,
+      description: updatedBusiness.description,
+      settings: updatedBusiness.settings,
+      features: updatedBusiness.features
+    })
+  } catch (error) {
+    console.error('Error updating business customSlug:', error)
+    return createAuthResponse('Failed to update business settings', 500)
   }
 }
