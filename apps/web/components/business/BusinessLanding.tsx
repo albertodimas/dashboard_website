@@ -92,8 +92,10 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
 
   const fetchStaffForService = async (serviceId: string) => {
     try {
-      console.log('Fetching staff for service:', serviceId, 'business:', business.slug)
-      const response = await fetch(`/api/public/staff/${business.slug}?serviceId=${serviceId}`)
+      // Use customSlug if available, otherwise fall back to slug or id
+      const businessIdentifier = business.customSlug || business.slug || business.id
+      console.log('Fetching staff for service:', serviceId, 'business identifier:', businessIdentifier)
+      const response = await fetch(`/api/public/staff/${encodeURIComponent(businessIdentifier)}?serviceId=${serviceId}`)
       const data = await response.json()
       console.log('Staff data received:', data)
       setAvailableStaff(data.staff || [])

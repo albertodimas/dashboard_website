@@ -4,19 +4,23 @@ import { prisma } from '@dashboard/db'
 // GET available staff for a business/service
 export async function GET(
   request: NextRequest,
-  { params }: { params: { businessId: string } }
+  { params }: { params: { businessId: string[] } }
 ) {
   try {
     const { searchParams } = new URL(request.url)
     const serviceId = searchParams.get('serviceId')
     
+    // Join the businessId array to handle paths with slashes
+    const businessIdentifier = params.businessId.join('/')
+    console.log('Looking for business with identifier:', businessIdentifier)
+    
     // First check if the business has staff module enabled
     const business = await prisma.business.findUnique({
       where: { 
         OR: [
-          { id: params.businessId },
-          { slug: params.businessId },
-          { customSlug: params.businessId }
+          { id: businessIdentifier },
+          { slug: businessIdentifier },
+          { customSlug: businessIdentifier }
         ]
       },
       select: {
