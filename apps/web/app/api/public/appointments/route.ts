@@ -184,6 +184,7 @@ export async function POST(request: NextRequest) {
         customerName: validated.customerName,
         businessName: appointment.business.name,
         serviceName: appointment.service.name,
+        staffName: appointment.staff?.name,
         appointmentDate: startTime.toLocaleDateString('en-GB'), // Format as DD/MM/YYYY
         appointmentTime: validated.time,
         confirmationLink,

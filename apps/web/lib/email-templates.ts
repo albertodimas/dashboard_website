@@ -2,6 +2,7 @@ export function getAppointmentConfirmationEmailTemplate(data: {
   customerName: string
   businessName: string
   serviceName: string
+  staffName?: string
   appointmentDate: string
   appointmentTime: string
   confirmationLink: string
@@ -124,6 +125,12 @@ export function getAppointmentConfirmationEmailTemplate(data: {
                 <span class="detail-label">Service:&nbsp;</span>
                 <span>${data.serviceName}</span>
               </div>
+              ${data.staffName ? `
+              <div class="detail-row">
+                <span class="detail-label">Professional:&nbsp;</span>
+                <span>${data.staffName}</span>
+              </div>
+              ` : ''}
               <div class="detail-row">
                 <span class="detail-label">Date:&nbsp;</span>
                 <span>${data.appointmentDate}</span>
@@ -172,7 +179,8 @@ Hi ${data.customerName},
 Your appointment has been successfully booked!
 
 APPOINTMENT DETAILS:
-Service: ${data.serviceName}
+Service: ${data.serviceName}${data.staffName ? `
+Professional: ${data.staffName}` : ''}
 Date: ${data.appointmentDate}
 Time: ${data.appointmentTime}
 Location: ${data.businessAddress || data.businessName}

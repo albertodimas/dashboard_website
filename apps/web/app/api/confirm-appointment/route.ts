@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
       include: {
         service: true,
         customer: true,
-        business: true
+        business: true,
+        staff: true
       }
     })
 
@@ -46,10 +47,11 @@ export async function POST(request: NextRequest) {
       alreadyConfirmed,
       appointment: {
         id: appointment.id,
-        date: appointment.date,
-        time: appointment.startTime,
+        date: appointment.startTime.toISOString().split('T')[0],
+        time: appointment.startTime.toTimeString().slice(0, 5),
         serviceName: appointment.service?.name || 'Service',
-        customerName: appointment.customer?.name,
+        staffName: appointment.staff?.name,
+        customerName: appointment.customerName || appointment.customer?.name,
         businessName: appointment.business?.name,
         status: alreadyConfirmed ? 'CONFIRMED' : appointment.status
       }

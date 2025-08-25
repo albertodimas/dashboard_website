@@ -99,10 +99,22 @@ export default function ConfirmPage() {
             {appointmentDetails && (
               <div className="mt-6 text-left bg-gray-50 p-4 rounded">
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('date')}:</span> {appointmentDetails.date ? new Date(appointmentDetails.date).toLocaleDateString() : ''}
+                  <span className="font-semibold">{t('date')}:</span> {
+                    appointmentDetails.date 
+                      ? appointmentDetails.date.includes('T') 
+                        ? new Date(appointmentDetails.date).toLocaleDateString('en-GB')
+                        : appointmentDetails.date
+                      : ''
+                  }
                 </p>
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('time')}:</span> {appointmentDetails.time}
+                  <span className="font-semibold">{t('time')}:</span> {
+                    appointmentDetails.time
+                      ? appointmentDetails.time.includes('T')
+                        ? new Date(appointmentDetails.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                        : appointmentDetails.time
+                      : ''
+                  }
                 </p>
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName || appointmentDetails.service}
@@ -130,14 +142,26 @@ export default function ConfirmPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('appointmentConfirmed')}</h1>
-          <p className="text-gray-600 mb-4">{t('thankYouConfirmation')}</p>
+          <p className="text-gray-600 mb-4">Thanks for your confirmation!</p>
           {appointmentDetails && (
             <div className="mt-6 text-left bg-gray-50 p-4 rounded">
               <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('date')}:</span> {appointmentDetails.date ? new Date(appointmentDetails.date).toLocaleDateString() : ''}
+                <span className="font-semibold">{t('date')}:</span> {
+                  appointmentDetails.date 
+                    ? appointmentDetails.date.includes('T') 
+                      ? new Date(appointmentDetails.date).toLocaleDateString('en-GB')
+                      : appointmentDetails.date
+                    : ''
+                }
               </p>
               <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('time')}:</span> {appointmentDetails.time}
+                <span className="font-semibold">{t('time')}:</span> {
+                  appointmentDetails.time
+                    ? appointmentDetails.time.includes('T')
+                      ? new Date(appointmentDetails.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                      : appointmentDetails.time
+                    : ''
+                }
               </p>
               <p className="text-sm text-gray-600">
                 <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName || appointmentDetails.service}
