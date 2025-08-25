@@ -125,17 +125,6 @@ export async function POST(request: NextRequest) {
           tenantId: business.tenantId
         }
       })
-    } else {
-      // Update customer info if it has changed
-      if (customer.name !== validated.customerName || customer.phone !== validated.customerPhone) {
-        customer = await prisma.customer.update({
-          where: { id: customer.id },
-          data: {
-            name: validated.customerName,
-            phone: validated.customerPhone
-          }
-        })
-      }
     }
 
     // Ensure we have a staffId
@@ -153,6 +142,8 @@ export async function POST(request: NextRequest) {
         customerId: customer.id,
         serviceId: validated.serviceId,
         staffId: staffId, // Use the staffId we obtained earlier
+        customerName: validated.customerName,  // Store the name used for this appointment
+        customerPhone: validated.customerPhone, // Store the phone used for this appointment
         startTime,
         endTime,
         status: 'PENDING',

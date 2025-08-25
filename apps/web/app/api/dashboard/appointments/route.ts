@@ -27,9 +27,9 @@ export async function GET() {
     // Format appointments to match frontend structure
     const formattedAppointments = appointments.map(apt => ({
       id: apt.id,
-      customerName: apt.customer.name,
+      customerName: apt.customerName || apt.customer.name, // Use stored name or fallback to customer record
       customerEmail: apt.customer.email,
-      customerPhone: apt.customer.phone || '',
+      customerPhone: apt.customerPhone || apt.customer.phone || '',
       service: apt.service.name,
       date: apt.startTime.toISOString().split('T')[0],
       time: apt.startTime.toTimeString().slice(0, 5),
@@ -78,17 +78,6 @@ export async function POST(request: NextRequest) {
           phone: body.customerPhone
         }
       })
-    } else {
-      // Update customer info if it has changed
-      if (customer.name !== body.customerName || customer.phone !== body.customerPhone) {
-        customer = await prisma.customer.update({
-          where: { id: customer.id },
-          data: {
-            name: body.customerName,
-            phone: body.customerPhone || customer.phone
-          }
-        })
-      }
     }
 
     // Get service
@@ -153,6 +142,8 @@ export async function POST(request: NextRequest) {
         customerId: customer.id,
         serviceId: service.id,
         staffId: staff.id,
+        customerName: body.customerName,  // Store the name for this appointment
+        customerPhone: body.customerPhone, // Store the phone for this appointment
         startTime,
         endTime,
         status: body.status?.toUpperCase() || 'PENDING',
@@ -220,12 +211,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Handle customer name change (update customer record)
-    if (body.customerName && body.customerName !== existingAppointment.customer.name) {
-      await prisma.customer.update({
-        where: { id: existingAppointment.customerId },
-        data: { name: body.customerName }
-      })
+    // Handle customer name change (update appointment record)
+    if (body.customerName) {
+      updateData.customerName = body.customerName
     }
 
     // Handle service change

@@ -343,6 +343,8 @@ model Appointment {
   customerId        String        @db.Uuid
   serviceId         String        @db.Uuid
   staffId           String        @db.Uuid
+  customerName      String?       // Store the name used for this specific appointment
+  customerPhone     String?       // Store the phone used for this specific appointment
   startTime         DateTime
   endTime           DateTime
   status            AppointmentStatus @default(PENDING)
