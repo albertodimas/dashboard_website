@@ -14,6 +14,13 @@ interface Service {
   price: number
   category: string
   isActive: boolean
+  assignedStaff?: string[] // IDs of assigned staff members
+}
+
+interface Staff {
+  id: string
+  name: string
+  isActive: boolean
 }
 
 export default function ServicesPage() {
@@ -34,8 +41,11 @@ export default function ServicesPage() {
     duration: 30,
     price: 0,
     category: 'Hair',
-    isActive: true
+    isActive: true,
+    assignedStaff: [] as string[]
   })
+  const [availableStaff, setAvailableStaff] = useState<Staff[]>([])
+  const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
 
   const loadServices = async () => {
     try {
@@ -65,6 +75,26 @@ export default function ServicesPage() {
       .then(async () => {
         // Load services from API
         loadServices()
+        
+        // Check if staff module is enabled
+        try {
+          const businessRes = await fetch('/api/dashboard/business')
+          if (businessRes.ok) {
+            const businessData = await businessRes.json()
+            setStaffModuleEnabled(businessData.enableStaffModule === true)
+            
+            // If staff module is enabled, load staff
+            if (businessData.enableStaffModule) {
+              const staffRes = await fetch('/api/dashboard/staff')
+              if (staffRes.ok) {
+                const staffData = await staffRes.json()
+                setAvailableStaff(staffData.filter((s: any) => s.isActive))
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading business data:', error)
+        }
         
         // Load categories from API
         try {
@@ -96,7 +126,8 @@ export default function ServicesPage() {
       duration: 30,
       price: 0,
       category: availableCategories[0] || 'Other',
-      isActive: true
+      isActive: true,
+      assignedStaff: []
     })
     setShowAddModal(true)
   }
@@ -109,7 +140,8 @@ export default function ServicesPage() {
       duration: service.duration,
       price: service.price,
       category: service.category,
-      isActive: service.isActive
+      isActive: service.isActive,
+      assignedStaff: service.assignedStaff || []
     })
     setShowEditModal(true)
   }
@@ -306,6 +338,25 @@ export default function ServicesPage() {
                 
                 <p className="text-gray-600 text-sm mb-4">{service.description}</p>
                 
+                {/* Show assigned staff if module is enabled */}
+                {staffModuleEnabled && service.assignedStaff && service.assignedStaff.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500 mb-1">
+                      {t('language') === 'en' ? 'Assigned Staff:' : 'Trabajadores Asignados:'}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {service.assignedStaff.map((staffId) => {
+                        const staff = availableStaff.find(s => s.id === staffId)
+                        return staff ? (
+                          <span key={staffId} className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                            {staff.name}
+                          </span>
+                        ) : null
+                      })}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center text-gray-500">
                     <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -395,6 +446,33 @@ export default function ServicesPage() {
                     ))}
                   </select>
                 </div>
+                {/* Staff Assignment (if module is enabled) */}
+                {staffModuleEnabled && availableStaff.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('language') === 'en' ? 'Assigned Staff' : 'Trabajadores Asignados'}
+                    </label>
+                    <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                      {availableStaff.map(staff => (
+                        <label key={staff.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="mr-2"
+                            checked={formData.assignedStaff.includes(staff.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({...formData, assignedStaff: [...formData.assignedStaff, staff.id]})
+                              } else {
+                                setFormData({...formData, assignedStaff: formData.assignedStaff.filter(id => id !== staff.id)})
+                              }
+                            }}
+                          />
+                          <span className="text-sm">{staff.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2 pt-4">
                   <button
                     type="button"
@@ -478,6 +556,33 @@ export default function ServicesPage() {
                     ))}
                   </select>
                 </div>
+                {/* Staff Assignment (if module is enabled) */}
+                {staffModuleEnabled && availableStaff.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('language') === 'en' ? 'Assigned Staff' : 'Trabajadores Asignados'}
+                    </label>
+                    <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                      {availableStaff.map(staff => (
+                        <label key={staff.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="mr-2"
+                            checked={formData.assignedStaff.includes(staff.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({...formData, assignedStaff: [...formData.assignedStaff, staff.id]})
+                              } else {
+                                setFormData({...formData, assignedStaff: formData.assignedStaff.filter(id => id !== staff.id)})
+                              }
+                            }}
+                          />
+                          <span className="text-sm">{staff.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2 pt-4">
                   <button
                     type="button"

@@ -15,10 +15,23 @@ export async function GET() {
       where: {
         businessId: business.id
       },
+      include: {
+        serviceStaff: {
+          select: {
+            staffId: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     })
+    
+    // Format the response to include assignedStaff as an array of IDs
+    const formattedServices = services.map(service => ({
+      ...service,
+      assignedStaff: service.serviceStaff.map(ss => ss.staffId)
+    }))
 
-    return NextResponse.json(services)
+    return NextResponse.json(formattedServices)
   } catch (error) {
     console.error('Error fetching services:', error)
     return createAuthResponse('Failed to fetch services', 500)
@@ -51,6 +64,16 @@ export async function POST(request: NextRequest) {
         allowHomeService: body.allowHomeService !== undefined ? body.allowHomeService : false
       }
     })
+    
+    // If staff are assigned, create the relationships
+    if (body.assignedStaff && body.assignedStaff.length > 0) {
+      await prisma.serviceStaff.createMany({
+        data: body.assignedStaff.map((staffId: string) => ({
+          serviceId: service.id,
+          staffId: staffId
+        }))
+      })
+    }
 
     return NextResponse.json(service)
   } catch (error) {
@@ -63,7 +86,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, ...updateData } = body
+    const { id, assignedStaff, ...updateData } = body
 
     if (!id) {
       return createAuthResponse('Service ID is required', 400)
@@ -92,6 +115,24 @@ export async function PUT(request: NextRequest) {
       where: { id },
       data: updateData
     })
+    
+    // Update staff assignments if provided
+    if (assignedStaff !== undefined) {
+      // Delete existing assignments
+      await prisma.serviceStaff.deleteMany({
+        where: { serviceId: id }
+      })
+      
+      // Create new assignments
+      if (assignedStaff.length > 0) {
+        await prisma.serviceStaff.createMany({
+          data: assignedStaff.map((staffId: string) => ({
+            serviceId: id,
+            staffId: staffId
+          }))
+        })
+      }
+    }
 
     return NextResponse.json(service)
   } catch (error) {
@@ -128,6 +169,11 @@ export async function DELETE(request: NextRequest) {
       return createAuthResponse('Service not found', 404)
     }
 
+    // Delete related ServiceStaff records first
+    await prisma.serviceStaff.deleteMany({
+      where: { serviceId: id }
+    })
+    
     // Delete the service
     await prisma.service.delete({
       where: { id }

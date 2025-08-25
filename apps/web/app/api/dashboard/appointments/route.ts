@@ -34,7 +34,9 @@ export async function GET() {
       date: apt.startTime.toISOString().split('T')[0],
       time: apt.startTime.toTimeString().slice(0, 5),
       status: apt.status.toLowerCase(),
-      price: apt.totalAmount
+      price: apt.totalAmount,
+      staffId: apt.staffId,
+      staffName: apt.staff?.name
     }))
 
     return NextResponse.json(formattedAppointments)
@@ -93,19 +95,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get default staff or create one
-    let staff = await prisma.staff.findFirst({
-      where: { businessId: business.id }
-    })
-
-    if (!staff) {
-      staff = await prisma.staff.create({
-        data: {
-          businessId: business.id,
-          name: 'Default Staff',
-          email: 'staff@dashboard.com'
+    // Get staff - either specific staff if provided, or default
+    let staff
+    if (body.staffId) {
+      // If staffId is provided, use that specific staff member
+      staff = await prisma.staff.findFirst({
+        where: { 
+          id: body.staffId,
+          businessId: business.id 
         }
       })
+      
+      if (!staff) {
+        return NextResponse.json(
+          { error: 'Selected staff member not found' },
+          { status: 404 }
+        )
+      }
+    } else {
+      // Otherwise get default staff or create one
+      staff = await prisma.staff.findFirst({
+        where: { businessId: business.id }
+      })
+
+      if (!staff) {
+        staff = await prisma.staff.create({
+          data: {
+            businessId: business.id,
+            name: 'Default Staff',
+            email: 'staff@dashboard.com'
+          }
+        })
+      }
     }
 
     // Parse date and time

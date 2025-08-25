@@ -26,7 +26,8 @@ export async function GET() {
       website: business.website,
       description: business.description,
       settings: business.settings,
-      features: business.features
+      features: business.features,
+      enableStaffModule: business.enableStaffModule
     })
   } catch (error) {
     console.error('Error fetching business:', error)
@@ -79,7 +80,8 @@ export async function PUT(request: NextRequest) {
         website: updatedBusiness.website,
         description: updatedBusiness.description,
         settings: updatedBusiness.settings,
-        features: updatedBusiness.features
+        features: updatedBusiness.features,
+        enableStaffModule: updatedBusiness.enableStaffModule
       }
     })
   } catch (error) {
@@ -149,7 +151,8 @@ export async function PATCH(request: NextRequest) {
       website: updatedBusiness.website,
       description: updatedBusiness.description,
       settings: updatedBusiness.settings,
-      features: updatedBusiness.features
+      features: updatedBusiness.features,
+      enableStaffModule: updatedBusiness.enableStaffModule
     })
   } catch (error) {
     console.error('Error updating business customSlug:', error)

@@ -7,8 +7,12 @@ const staffSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   phone: z.string().optional(),
+  photo: z.string().optional(),
+  bio: z.string().optional(),
+  specialties: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
-  canAcceptBookings: z.boolean().optional()
+  canAcceptBookings: z.boolean().optional(),
+  displayOrder: z.number().optional()
 })
 
 // GET all staff members for the business
@@ -22,7 +26,16 @@ export async function GET() {
 
     const staff = await prisma.staff.findMany({
       where: { businessId: business.id },
-      orderBy: { createdAt: 'asc' }
+      include: {
+        workingHours: true,
+        _count: {
+          select: {
+            appointments: true,
+            staffReviews: true
+          }
+        }
+      },
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
     })
 
     return NextResponse.json(staff)
@@ -47,14 +60,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validated = staffSchema.parse(body)
 
+    // Get max display order
+    const maxOrder = await prisma.staff.findFirst({
+      where: { businessId: business.id },
+      orderBy: { displayOrder: 'desc' },
+      select: { displayOrder: true }
+    })
+
     const staff = await prisma.staff.create({
       data: {
         businessId: business.id,
         name: validated.name,
         email: validated.email,
         phone: validated.phone || '',
+        photo: validated.photo,
+        bio: validated.bio,
+        specialties: validated.specialties || [],
         isActive: validated.isActive !== false,
-        canAcceptBookings: validated.canAcceptBookings !== false
+        canAcceptBookings: validated.canAcceptBookings !== false,
+        displayOrder: validated.displayOrder ?? ((maxOrder?.displayOrder ?? 0) + 1)
+      },
+      include: {
+        workingHours: true
       }
     })
 

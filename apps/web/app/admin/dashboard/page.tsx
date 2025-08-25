@@ -16,6 +16,7 @@ interface Business {
   isPremium: boolean
   isBlocked?: boolean
   blockedReason?: string
+  enableStaffModule: boolean
   tenantName: string
   tenantEmail: string
   subdomain: string
@@ -353,10 +354,50 @@ export default function AdminDashboardPage() {
                           Premium
                         </span>
                       )}
+                      {business.enableStaffModule && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {t('language') === 'en' ? 'Staff Module' : 'Módulo Staff'}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            setSaving(true)
+                            const newValue = !business.enableStaffModule
+                            const response = await fetch('/api/admin/businesses', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                id: business.id,
+                                enableStaffModule: newValue
+                              })
+                            })
+                            if (!response.ok) throw new Error('Failed to toggle staff module')
+                            await loadBusinesses()
+                            // Show success message
+                            alert(
+                              newValue 
+                                ? (t('language') === 'en' ? 'Staff module enabled successfully' : 'Módulo de staff habilitado exitosamente')
+                                : (t('language') === 'en' ? 'Staff module disabled successfully' : 'Módulo de staff deshabilitado exitosamente')
+                            )
+                          } catch (error) {
+                            console.error('Error toggling staff module:', error)
+                            alert(t('language') === 'en' ? 'Failed to toggle staff module' : 'Error al cambiar el módulo de staff')
+                          } finally {
+                            setSaving(false)
+                          }
+                        }}
+                        disabled={saving}
+                        className={`text-sm ${business.enableStaffModule ? 'text-blue-600 hover:text-blue-900' : 'text-gray-600 hover:text-gray-900'}`}
+                      >
+                        {business.enableStaffModule 
+                          ? (t('language') === 'en' ? 'Disable Staff' : 'Desactivar Staff')
+                          : (t('language') === 'en' ? 'Enable Staff' : 'Activar Staff')}
+                      </button>
                       {business.isBlocked ? (
                         <button 
                           onClick={() => handleUnblockBusiness(business)}

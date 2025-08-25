@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
     const endTime = addMinutes(startTime, service.duration)
 
     // Check for existing appointments at this time
+    // Use the staffId we determined (either provided or default)
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         businessId: validated.businessId,
-        staffId: validated.staffId,
+        staffId: staffId, // Use the staffId variable, not validated.staffId
         status: { notIn: ['CANCELLED'] },
         OR: [
           {
@@ -300,18 +301,34 @@ export async function GET(request: NextRequest) {
     // Use UTC day to avoid timezone issues with date-only strings
     const dayOfWeek = new Date(date + 'T00:00:00').getDay()
     
-    // First check if this day is in the business's working days
-    if (!scheduleSettings.workingDays || !scheduleSettings.workingDays.includes(dayOfWeek)) {
-      return NextResponse.json({ availableSlots: [] })
+    // Try to get specific working hours for this day
+    // If staffId is provided, prioritize staff-specific hours
+    let workingHours = null
+    if (staffId) {
+      workingHours = await prisma.workingHour.findFirst({
+        where: {
+          businessId,
+          staffId,
+          dayOfWeek
+        }
+      })
     }
     
-    // Try to get specific working hours for this day
-    const workingHours = await prisma.workingHour.findFirst({
-      where: {
-        businessId,
-        dayOfWeek
-      }
-    })
+    // If no staff-specific hours, try business-wide hours
+    if (!workingHours) {
+      workingHours = await prisma.workingHour.findFirst({
+        where: {
+          businessId,
+          staffId: null,
+          dayOfWeek
+        }
+      })
+    }
+    
+    // If no working hours found and no schedule settings working days, return empty
+    if (!workingHours && (!scheduleSettings.workingDays || !scheduleSettings.workingDays.includes(dayOfWeek))) {
+      return NextResponse.json({ availableSlots: [] })
+    }
 
     // If no specific working hours, use schedule settings from database
     const startTimeStr = workingHours?.startTime || scheduleSettings.startTime

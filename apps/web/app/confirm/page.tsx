@@ -11,6 +11,21 @@ export default function ConfirmPage() {
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null)
 
   useEffect(() => {
+    // Check if we have booking confirmation data (from booking page)
+    const dataParam = searchParams.get('data')
+    if (dataParam) {
+      try {
+        const bookingData = JSON.parse(decodeURIComponent(dataParam))
+        setAppointmentDetails(bookingData)
+        setStatus('success')
+      } catch (error) {
+        console.error('Error parsing booking data:', error)
+        setStatus('error')
+      }
+      return
+    }
+    
+    // Otherwise check for appointment ID (from email confirmation)
     const appointmentId = searchParams.get('id')
     
     if (!appointmentId) {
@@ -84,14 +99,19 @@ export default function ConfirmPage() {
             {appointmentDetails && (
               <div className="mt-6 text-left bg-gray-50 p-4 rounded">
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('date')}:</span> {new Date(appointmentDetails.date).toLocaleDateString()}
+                  <span className="font-semibold">{t('date')}:</span> {appointmentDetails.date ? new Date(appointmentDetails.date).toLocaleDateString() : ''}
                 </p>
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold">{t('time')}:</span> {appointmentDetails.time}
                 </p>
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName}
+                  <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName || appointmentDetails.service}
                 </p>
+                {appointmentDetails.staffName && (
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">{t('language') === 'en' ? 'Staff' : 'Trabajador'}:</span> {appointmentDetails.staffName}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -114,14 +134,19 @@ export default function ConfirmPage() {
           {appointmentDetails && (
             <div className="mt-6 text-left bg-gray-50 p-4 rounded">
               <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('date')}:</span> {new Date(appointmentDetails.date).toLocaleDateString()}
+                <span className="font-semibold">{t('date')}:</span> {appointmentDetails.date ? new Date(appointmentDetails.date).toLocaleDateString() : ''}
               </p>
               <p className="text-sm text-gray-600">
                 <span className="font-semibold">{t('time')}:</span> {appointmentDetails.time}
               </p>
               <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName}
+                <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName || appointmentDetails.service}
               </p>
+              {appointmentDetails.staffName && (
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">{t('language') === 'en' ? 'Staff' : 'Trabajador'}:</span> {appointmentDetails.staffName}
+                </p>
+              )}
             </div>
           )}
         </div>

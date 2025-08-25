@@ -39,6 +39,8 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [bookingStep, setBookingStep] = useState(1)
   const [selectedService, setSelectedService] = useState<any>(null)
+  const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [availableStaff, setAvailableStaff] = useState<any[]>([])
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
@@ -67,12 +69,12 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     fetchReviews()
   }, [business.id])
 
-  // Fetch available time slots when date and service are selected
+  // Fetch available time slots when date, service, and staff are selected
   useEffect(() => {
     if (selectedDate && selectedService) {
       fetchAvailableSlots()
     }
-  }, [selectedDate, selectedService])
+  }, [selectedDate, selectedService, selectedStaff])
 
   const fetchReviews = async () => {
     setIsLoadingReviews(true)
@@ -88,12 +90,34 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     }
   }
 
+  const fetchStaffForService = async (serviceId: string) => {
+    try {
+      console.log('Fetching staff for service:', serviceId, 'business:', business.slug)
+      const response = await fetch(`/api/public/staff/${business.slug}?serviceId=${serviceId}`)
+      const data = await response.json()
+      console.log('Staff data received:', data)
+      setAvailableStaff(data.staff || [])
+    } catch (error) {
+      console.error('Error fetching staff:', error)
+      setAvailableStaff([])
+    }
+  }
+
   const fetchAvailableSlots = async () => {
     setIsLoadingSlots(true)
     try {
-      const response = await fetch(
-        `/api/public/appointments?businessId=${business.id}&serviceId=${selectedService.id}&date=${selectedDate}`
-      )
+      const params = new URLSearchParams({
+        businessId: business.id,
+        serviceId: selectedService.id,
+        date: selectedDate
+      })
+      
+      // Add staffId if staff is selected
+      if (selectedStaff) {
+        params.append('staffId', selectedStaff.id)
+      }
+      
+      const response = await fetch(`/api/public/appointments?${params}`)
       const data = await response.json()
       setAvailableSlots(data.availableSlots || [])
     } catch (error) {
@@ -109,21 +133,28 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     setIsSubmitting(true)
 
     try {
+      const appointmentData: any = {
+        businessId: business.id,
+        serviceId: selectedService.id,
+        date: selectedDate,
+        time: selectedTime,
+        ...bookingData
+      }
+      
+      // Add staffId if staff is selected
+      if (selectedStaff) {
+        appointmentData.staffId = selectedStaff.id
+      }
+      
       const response = await fetch('/api/public/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId: business.id,
-          serviceId: selectedService.id,
-          date: selectedDate,
-          time: selectedTime,
-          ...bookingData
-        })
+        body: JSON.stringify(appointmentData)
       })
 
       if (response.ok) {
         setBookingSuccess(true)
-        setBookingStep(4) // Success step
+        setBookingStep(5) // Success step
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to create booking')
@@ -191,12 +222,12 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#services" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Services</a>
+              <a href="#booking" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Services</a>
               <a href="#gallery" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Gallery</a>
               <a href="#reviews" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Reviews</a>
               <a href="#contact" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Contact</a>
               <a 
-                href="#booking" 
+                href={`/book/${business.slug}`} 
                 className="text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition duration-300"
                 style={{ 
                   background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` 
@@ -220,12 +251,12 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4 bg-white/95 backdrop-blur-sm rounded-b-xl">
               <div className="flex flex-col space-y-4">
-                <a href="#services" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Services</a>
+                <a href="#booking" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Services</a>
                 <a href="#gallery" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Gallery</a>
                 <a href="#reviews" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Reviews</a>
                 <a href="#contact" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Contact</a>
                 <a 
-                  href="#booking" 
+                  href={`/book/${business.slug}`} 
                   className="text-white px-6 py-3 rounded-full text-center font-semibold shadow-lg"
                   style={{ 
                     background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` 
@@ -276,7 +307,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <a 
-                href="#booking"
+                href={`/book/${business.slug}`}
                 className="group relative text-white px-10 py-5 rounded-2xl text-lg font-bold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition duration-300"
                 style={{ 
                   background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` 
@@ -286,7 +317,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                 <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-300"></div>
               </a>
               <a 
-                href="#services"
+                href="#booking"
                 className="group border-2 text-white px-10 py-5 rounded-2xl text-lg font-bold backdrop-blur-sm bg-white/10 hover:bg-white/20 transform hover:-translate-y-1 transition duration-300"
                 style={{ borderColor: 'rgba(255,255,255,0.3)' }}
               >
@@ -453,15 +484,26 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                       </div>
                       
                       {/* Smaller Book Button */}
-                      <a 
-                        href="#booking"
-                        onClick={() => setSelectedService(service)}
+                      <button 
+                        onClick={() => {
+                          setSelectedService(service)
+                          // Check if staff module is enabled
+                          if (business.enableStaffModule) {
+                            // Load staff for this service
+                            fetchStaffForService(service.id)
+                            setBookingStep(2) // Go to staff selection
+                          } else {
+                            setBookingStep(3) // Go directly to date/time selection
+                          }
+                          // Scroll to booking section
+                          document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })
+                        }}
                         className="group/btn relative block w-full text-white text-center py-2.5 rounded-xl text-sm font-bold overflow-hidden shadow hover:shadow-lg transform hover:-translate-y-0.5 transition duration-300"
                         style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}
                       >
                         <span className="relative z-10">Book Now</span>
                         <div className="absolute inset-0 bg-white/20 scale-x-0 group-hover/btn:scale-x-100 transition-transform duration-300 origin-left"></div>
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -672,7 +714,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                   Like what you see? Book your appointment today!
                 </p>
                 <a 
-                  href="#booking" 
+                  href={`/book/${business.slug}`} 
                   className="inline-block text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition"
                   style={{ backgroundColor: colors.primary }}
                 >
@@ -884,7 +926,14 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                                   key={service.id}
                                   onClick={() => {
                                     setSelectedService(service)
-                                    setBookingStep(2)
+                                    // Check if staff module is enabled
+                                    if (business.enableStaffModule) {
+                                      // Load staff for this service
+                                      fetchStaffForService(service.id)
+                                      setBookingStep(2) // Go to staff selection
+                                    } else {
+                                      setBookingStep(3) // Go directly to date/time selection
+                                    }
                                   }}
                                   className={`border-2 rounded-xl p-4 cursor-pointer transition duration-200 hover:shadow-md ${
                                     selectedService?.id === service.id 
@@ -975,13 +1024,109 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                 </div>
               )}
 
-              {/* Step 2: Select Date & Time */}
-              {bookingStep === 2 && (
+              {/* Step 2: Select Staff (if module is enabled) */}
+              {bookingStep === 2 && business.enableStaffModule && (
                 <div>
                   <div className="flex items-center mb-8">
                     <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
                     <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
                       2
+                    </div>
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
+                  </div>
+                  
+                  <h3 className="text-3xl font-black mb-6" style={{ color: colors.secondary }}>Select Professional</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {availableStaff.map((staff: any) => (
+                      <div
+                        key={staff.id}
+                        onClick={() => {
+                          setSelectedStaff(staff)
+                          setBookingStep(3) // Go to date/time selection
+                        }}
+                        className={`border-2 rounded-xl p-4 cursor-pointer transition duration-200 hover:shadow-md ${
+                          selectedStaff?.id === staff.id
+                            ? 'shadow-lg transform scale-[1.02]'
+                            : 'hover:border-gray-300'
+                        }`}
+                        style={{
+                          borderColor: selectedStaff?.id === staff.id ? colors.primary : '#e5e7eb',
+                          backgroundColor: selectedStaff?.id === staff.id ? colors.primary + '08' : 'white',
+                        }}
+                      >
+                        <div className="flex items-start gap-4">
+                          {staff.photo ? (
+                            <img
+                              src={staff.photo}
+                              alt={staff.name}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div 
+                              className="w-16 h-16 rounded-lg flex items-center justify-center"
+                              style={{ backgroundColor: colors.primary + '20', color: colors.primary }}
+                            >
+                              <span className="text-xl font-bold">{staff.name.charAt(0)}</span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg" style={{ color: colors.secondary }}>
+                              {staff.name}
+                            </h4>
+                            {staff.bio && (
+                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{staff.bio}</p>
+                            )}
+                            {staff.rating && staff.totalReviews > 0 && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <Star size={16} className="text-yellow-400 fill-current" />
+                                <span className="text-sm font-medium">{staff.rating.toFixed(1)}</span>
+                                <span className="text-xs text-gray-500">({staff.totalReviews} reviews)</span>
+                              </div>
+                            )}
+                            {staff.specialties && staff.specialties.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {staff.specialties.slice(0, 2).map((specialty: string, idx: number) => (
+                                  <span 
+                                    key={idx}
+                                    className="text-xs px-2 py-1 rounded-full"
+                                    style={{ backgroundColor: colors.primary + '15', color: colors.primary }}
+                                  >
+                                    {specialty}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {availableStaff.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <p>No professionals available for this service</p>
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex justify-between">
+                    <button
+                      onClick={() => setBookingStep(1)}
+                      className="px-6 py-3 border-2 border-gray-200 rounded-xl font-semibold hover:bg-gray-50 transition"
+                    >
+                      Back
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Select Date & Time */}
+              {bookingStep === 3 && (
+                <div>
+                  <div className="flex items-center mb-8">
+                    <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
+                    <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
+                      {business.enableStaffModule ? 3 : 2}
                     </div>
                     <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
                   </div>
@@ -1042,7 +1187,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                     <div className="flex gap-4">
                       <button 
                         type="button"
-                        onClick={() => setBookingStep(1)}
+                        onClick={() => setBookingStep(business.enableStaffModule ? 2 : 1)}
                         className="flex-1 border-2 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-50 transition duration-200"
                         style={{ borderColor: colors.primary, color: colors.primary }}
                       >
@@ -1050,7 +1195,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                       </button>
                       <button 
                         type="button"
-                        onClick={() => setBookingStep(3)}
+                        onClick={() => setBookingStep(4)}
                         disabled={!selectedDate || !selectedTime}
                         className="flex-1 text-white py-4 rounded-xl font-bold hover:opacity-90 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: colors.primary }}
@@ -1062,13 +1207,13 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                 </div>
               )}
 
-              {/* Step 3: Contact Information */}
-              {bookingStep === 3 && (
+              {/* Step 4: Contact Information */}
+              {bookingStep === 4 && (
                 <div>
                   <div className="flex items-center mb-8">
                     <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
                     <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
-                      3
+                      {business.enableStaffModule ? 4 : 3}
                     </div>
                     <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
                   </div>
@@ -1140,6 +1285,12 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                           <span className="text-gray-600">Service:</span>
                           <span className="font-medium">{selectedService?.name}</span>
                         </div>
+                        {selectedStaff && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Professional:</span>
+                            <span className="font-medium">{selectedStaff.name}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span className="text-gray-600">Date:</span>
                           <span className="font-medium">{new Date(selectedDate).toLocaleDateString()}</span>
@@ -1162,7 +1313,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                     <div className="flex gap-4">
                       <button 
                         type="button"
-                        onClick={() => setBookingStep(2)}
+                        onClick={() => setBookingStep(3)}
                         className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
                       >
                         Back
@@ -1180,7 +1331,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
               )}
 
               {/* Success Step */}
-              {bookingStep === 4 && bookingSuccess && (
+              {bookingStep === 5 && bookingSuccess && (
                 <div className="text-center py-12">
                   <div className="mb-6">
                     <div className="mx-auto bg-green-100 rounded-full w-20 h-20 flex items-center justify-center">
@@ -1200,6 +1351,12 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                         <span className="text-gray-600">Service:</span>
                         <span className="font-medium">{selectedService?.name}</span>
                       </div>
+                      {selectedStaff && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Professional:</span>
+                          <span className="font-medium">{selectedStaff.name}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-gray-600">Date:</span>
                         <span className="font-medium">{new Date(selectedDate).toLocaleDateString()}</span>
@@ -1223,6 +1380,8 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                     onClick={() => {
                       setBookingStep(1)
                       setSelectedService(null)
+                      setSelectedStaff(null)
+                      setAvailableStaff([])
                       setSelectedDate('')
                       setSelectedTime('')
                       setBookingData({ customerName: '', customerEmail: '', customerPhone: '', notes: '' })
@@ -1455,7 +1614,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
               {/* Action buttons */}
               <div className="flex gap-3 mt-6">
                 <a 
-                  href="#booking" 
+                  href={`/book/${business.slug}`} 
                   className="flex-1 text-center text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition"
                   style={{ backgroundColor: colors.primary }}
                   onClick={() => setSelectedImageModal(null)}

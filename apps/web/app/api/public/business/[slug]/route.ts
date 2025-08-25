@@ -38,7 +38,8 @@ export async function GET(
       website: business.website,
       description: business.description,
       settings: business.settings,
-      features: business.features
+      features: business.features,
+      enableStaffModule: business.enableStaffModule
     })
   } catch (error) {
     console.error('Error fetching business:', error)

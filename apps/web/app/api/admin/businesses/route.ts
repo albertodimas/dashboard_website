@@ -38,6 +38,7 @@ export async function GET() {
       isBlocked: business.isBlocked,
       blockedReason: business.blockedReason,
       blockedAt: business.blockedAt,
+      enableStaffModule: business.enableStaffModule,
       tenantName: business.tenant.name,
       tenantEmail: business.tenant.email,
       subdomain: business.tenant.subdomain,
@@ -74,6 +75,7 @@ export async function PUT(request: NextRequest) {
     
     if (body.isActive !== undefined) updateData.isActive = body.isActive
     if (body.isPremium !== undefined) updateData.isPremium = body.isPremium
+    if (body.enableStaffModule !== undefined) updateData.enableStaffModule = body.enableStaffModule
     if (body.isBlocked !== undefined) {
       updateData.isBlocked = body.isBlocked
       if (body.isBlocked) {

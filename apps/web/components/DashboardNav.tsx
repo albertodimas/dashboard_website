@@ -11,6 +11,7 @@ export default function DashboardNav() {
   const router = useRouter()
   const { t } = useLanguage()
   const [businessName, setBusinessName] = useState('')
+  const [enableStaffModule, setEnableStaffModule] = useState(false)
   
   useEffect(() => {
     // Load business name from database
@@ -19,9 +20,13 @@ export default function DashboardNav() {
         const response = await fetch('/api/dashboard/business')
         if (response.ok) {
           const data = await response.json()
+          console.log('Business data received:', data) // Debug log
           if (data.name) {
             setBusinessName(data.name)
           }
+          // Check for enableStaffModule explicitly
+          setEnableStaffModule(data.enableStaffModule === true)
+          console.log('Staff module enabled:', data.enableStaffModule) // Debug log
         }
       } catch (error) {
         console.error('Error loading business name:', error)
@@ -38,6 +43,11 @@ export default function DashboardNav() {
   const navItems = [
     { href: '/dashboard/appointments', label: t('appointments') },
     { href: '/dashboard/services', label: t('services') },
+    ...(enableStaffModule ? [{ 
+      href: '/dashboard/staff', 
+      label: t('language') === 'en' ? '👥 Staff' : '👥 Trabajadores',
+      highlight: true 
+    }] : []),
     { href: '/dashboard/gallery', label: t('gallery') },
     { href: '/dashboard/customers', label: t('customers') },
     { href: '/dashboard/categories', label: t('categories') },
@@ -68,6 +78,7 @@ export default function DashboardNav() {
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
+                const isHighlight = 'highlight' in item && item.highlight
                 return (
                   <Link
                     key={item.href}
@@ -75,6 +86,8 @@ export default function DashboardNav() {
                     className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
                       isActive
                         ? 'border-indigo-500 text-gray-900'
+                        : isHighlight
+                        ? 'border-transparent text-blue-600 hover:border-blue-300 hover:text-blue-700'
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                     }`}
                   >
