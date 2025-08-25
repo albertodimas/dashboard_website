@@ -78,6 +78,17 @@ export async function POST(request: NextRequest) {
           phone: body.customerPhone
         }
       })
+    } else {
+      // Update customer info if it has changed
+      if (customer.name !== body.customerName || customer.phone !== body.customerPhone) {
+        customer = await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            name: body.customerName,
+            phone: body.customerPhone || customer.phone
+          }
+        })
+      }
     }
 
     // Get service

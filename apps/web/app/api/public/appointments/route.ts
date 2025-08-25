@@ -125,6 +125,17 @@ export async function POST(request: NextRequest) {
           tenantId: business.tenantId
         }
       })
+    } else {
+      // Update customer info if it has changed
+      if (customer.name !== validated.customerName || customer.phone !== validated.customerPhone) {
+        customer = await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            name: validated.customerName,
+            phone: validated.customerPhone
+          }
+        })
+      }
     }
 
     // Ensure we have a staffId
