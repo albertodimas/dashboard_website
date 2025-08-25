@@ -288,7 +288,9 @@ export async function PUT(request: NextRequest) {
       date: appointment.startTime.toISOString().split('T')[0],
       time: appointment.startTime.toTimeString().slice(0, 5),
       status: appointment.status.toLowerCase(),
-      price: appointment.totalAmount
+      price: appointment.totalAmount,
+      staffId: appointment.staffId,
+      staffName: appointment.staff?.name
     }
 
     return NextResponse.json(formattedAppointment)

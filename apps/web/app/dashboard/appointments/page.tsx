@@ -13,6 +13,8 @@ interface Appointment {
   time: string
   status: 'confirmed' | 'pending' | 'cancelled'
   price: number
+  staffId?: string
+  staffName?: string
 }
 
 interface Service {
@@ -36,6 +38,7 @@ export default function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
+  const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
   const [formData, setFormData] = useState({
     customerName: '',
     service: '',
@@ -87,6 +90,14 @@ export default function AppointmentsPage() {
         // Load appointments and services from API
         loadAppointments()
         loadServices()
+        
+        // Check if staff module is enabled
+        fetch('/api/dashboard/business')
+          .then(res => res.json())
+          .then(data => {
+            setStaffModuleEnabled(data.enableStaffModule || false)
+          })
+          .catch(err => console.error('Failed to load business settings:', err))
       })
       .catch(() => {
         router.push('/login')
@@ -367,6 +378,11 @@ export default function AppointmentsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('service')}
                 </th>
+                {staffModuleEnabled && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Professional
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('dateTime')}
                 </th>
@@ -392,6 +408,13 @@ export default function AppointmentsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{appointment.service}</div>
                   </td>
+                  {staffModuleEnabled && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {appointment.staffName || '-'}
+                      </div>
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {appointment.date} {t('at')} {appointment.time}
