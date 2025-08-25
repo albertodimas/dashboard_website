@@ -134,6 +134,7 @@ model Business {
   name              String
   slug              String
   customSlug        String?       @unique
+  businessType      String?       // 'barbershop', 'hair_salon', 'nail_salon', 'gym', 'spa', 'clinic', etc
   description       String?
   logo              String?
   coverImage        String?

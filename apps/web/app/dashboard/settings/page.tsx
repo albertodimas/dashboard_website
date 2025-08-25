@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
@@ -9,9 +9,11 @@ import { countries, cities } from '@/lib/countries'
 
 export default function SettingsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t, language, setLanguage } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showModulesSuccess, setShowModulesSuccess] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: '',
     email: '',
@@ -70,6 +72,18 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
+    // Check if coming from modules page with success
+    if (searchParams.get('modules') === 'updated') {
+      setShowModulesSuccess(true);
+      // Hide message after 5 seconds
+      setTimeout(() => setShowModulesSuccess(false), 5000);
+      
+      // Clean URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('modules');
+      window.history.replaceState({}, '', url);
+    }
+    
     // Check authentication and load business info from API
     fetch('/api/auth/me')
       .then(res => {
@@ -308,6 +322,22 @@ export default function SettingsPage() {
             {language === 'en' ? 'Manage your account and application settings' : 'Administra tu cuenta y configuración de la aplicación'}
           </p>
         </div>
+
+        {/* Success message for modules update */}
+        {showModulesSuccess && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex">
+              <svg className="w-5 h-5 text-green-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p className="text-green-800">
+                {language === 'en' 
+                  ? 'Business modules have been updated successfully!'
+                  : '¡Los módulos del negocio se han actualizado correctamente!'}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-6">
           {/* Language Settings */}
@@ -680,6 +710,45 @@ export default function SettingsPage() {
                 {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
               </button>
             </div>
+          </div>
+
+          {/* Modules Configuration */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {language === 'en' ? 'Business Modules' : 'Módulos del Negocio'}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  {language === 'en' 
+                    ? 'Configure specialized features for your business type'
+                    : 'Configura funciones especializadas para tu tipo de negocio'}
+                </p>
+              </div>
+              <a
+                href="/dashboard/settings/modules"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              >
+                {language === 'en' ? 'Configure Modules' : 'Configurar Módulos'}
+              </a>
+            </div>
+            {businessData?.businessType && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  {language === 'en' ? 'Business Type: ' : 'Tipo de Negocio: '}
+                  <span className="font-semibold">
+                    {businessData.businessType === 'personal_trainer' ? 'Personal Trainer' :
+                     businessData.businessType === 'gym' ? 'Gym' :
+                     businessData.businessType === 'barbershop' ? language === 'en' ? 'Barbershop' : 'Barbería' :
+                     businessData.businessType === 'hair_salon' ? language === 'en' ? 'Hair Salon' : 'Peluquería' :
+                     businessData.businessType === 'nail_salon' ? language === 'en' ? 'Nail Salon' : 'Salón de Uñas' :
+                     businessData.businessType === 'spa' ? 'Spa' :
+                     businessData.businessType === 'clinic' ? language === 'en' ? 'Clinic' : 'Clínica' :
+                     language === 'en' ? 'Other' : 'Otro'}
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Website Settings */}

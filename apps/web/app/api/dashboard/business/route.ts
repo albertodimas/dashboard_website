@@ -16,6 +16,7 @@ export async function GET() {
       name: business.name,
       slug: business.slug,
       customSlug: business.customSlug,
+      businessType: business.businessType,
       email: business.email,
       phone: business.phone,
       address: business.address,

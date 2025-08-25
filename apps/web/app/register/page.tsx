@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { BusinessTypeSelector } from '@/components/business-type-selector'
+import { BusinessType } from '@/lib/business-types'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -12,6 +14,7 @@ export default function RegisterPage() {
     name: '',
     tenantName: '',
     subdomain: '',
+    businessType: BusinessType.OTHER as string,
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -159,6 +162,17 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-gray-500">
                 Only lowercase letters, numbers, and hyphens
               </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Business Type
+              </label>
+              <BusinessTypeSelector 
+                value={formData.businessType}
+                onChange={(type) => setFormData({ ...formData, businessType: type })}
+                showDescription={false}
+              />
             </div>
           </div>
 
