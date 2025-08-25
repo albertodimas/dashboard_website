@@ -121,7 +121,7 @@ export default function ConfirmPage() {
                 </p>
                 {appointmentDetails.staffName && (
                   <p className="text-sm text-gray-600">
-                    <span className="font-semibold">{t('language') === 'en' ? 'Staff' : 'Trabajador'}:</span> {appointmentDetails.staffName}
+                    <span className="font-semibold">Professional:</span> {appointmentDetails.staffName}
                   </p>
                 )}
               </div>
@@ -168,7 +168,7 @@ export default function ConfirmPage() {
               </p>
               {appointmentDetails.staffName && (
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('language') === 'en' ? 'Staff' : 'Trabajador'}:</span> {appointmentDetails.staffName}
+                  <span className="font-semibold">Professional:</span> {appointmentDetails.staffName}
                 </p>
               )}
             </div>
