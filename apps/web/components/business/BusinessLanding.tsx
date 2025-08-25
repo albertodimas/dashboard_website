@@ -95,9 +95,17 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       // Use customSlug if available, otherwise fall back to slug or id
       const businessIdentifier = business.customSlug || business.slug || business.id
       console.log('Fetching staff for service:', serviceId, 'business identifier:', businessIdentifier)
-      const response = await fetch(`/api/public/staff/${encodeURIComponent(businessIdentifier)}?serviceId=${serviceId}`)
+      const url = `/api/public/staff/${encodeURIComponent(businessIdentifier)}?serviceId=${serviceId}`
+      console.log('Fetching from URL:', url)
+      
+      const response = await fetch(url)
+      if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText)
+      }
+      
       const data = await response.json()
       console.log('Staff data received:', data)
+      console.log('Setting availableStaff to:', data.staff)
       setAvailableStaff(data.staff || [])
     } catch (error) {
       console.error('Error fetching staff:', error)
@@ -1039,6 +1047,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
                   
                   <h3 className="text-3xl font-black mb-6" style={{ color: colors.secondary }}>Select Professional</h3>
                   
+                  {console.log('Rendering staff selection. Available staff:', availableStaff)}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {availableStaff.map((staff: any) => (
                       <div

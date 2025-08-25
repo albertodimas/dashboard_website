@@ -14,15 +14,32 @@ export async function GET(
     const businessIdentifier = params.businessId.join('/')
     console.log('Looking for business with identifier:', businessIdentifier)
     
-    // First check if the business has staff module enabled
-    const business = await prisma.business.findUnique({
-      where: { 
+    // Check if the identifier is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(businessIdentifier)
+    
+    // Build the where clause based on identifier type
+    let whereClause: any = {}
+    if (isUUID) {
+      whereClause = {
         OR: [
           { id: businessIdentifier },
           { slug: businessIdentifier },
           { customSlug: businessIdentifier }
         ]
-      },
+      }
+    } else {
+      // If not a UUID, only search by slug or customSlug
+      whereClause = {
+        OR: [
+          { slug: businessIdentifier },
+          { customSlug: businessIdentifier }
+        ]
+      }
+    }
+    
+    // First check if the business has staff module enabled
+    const business = await prisma.business.findFirst({
+      where: whereClause,
       select: {
         id: true,
         enableStaffModule: true
