@@ -28,7 +28,8 @@ export async function GET() {
       description: business.description,
       settings: business.settings,
       features: business.features,
-      enableStaffModule: business.enableStaffModule
+      enableStaffModule: business.enableStaffModule,
+      enablePackagesModule: business.enablePackagesModule
     })
   } catch (error) {
     console.error('Error fetching business:', error)
@@ -82,7 +83,8 @@ export async function PUT(request: NextRequest) {
         description: updatedBusiness.description,
         settings: updatedBusiness.settings,
         features: updatedBusiness.features,
-        enableStaffModule: updatedBusiness.enableStaffModule
+        enableStaffModule: updatedBusiness.enableStaffModule,
+        enablePackagesModule: updatedBusiness.enablePackagesModule
       }
     })
   } catch (error) {

@@ -22,6 +22,24 @@ async function getBusinessByCustomSlug(customSlug: string) {
           where: { isActive: true },
           orderBy: { createdAt: 'asc' }
         },
+        packages: {
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            services: {
+              include: {
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    duration: true,
+                    price: true
+                  }
+                }
+              }
+            }
+          }
+        },
         staff: {
           where: { isActive: true }
         },
@@ -94,7 +112,7 @@ export default async function CustomBusinessPage({ params }: CustomPageProps) {
   const fullSlug = params.slug.join('/')
   
   // Exclude API routes and other system routes - these should never reach this component
-  if (fullSlug.startsWith('api/') || fullSlug.startsWith('_next/') || fullSlug.startsWith('dashboard/') || fullSlug.startsWith('login') || fullSlug.startsWith('register') || fullSlug.startsWith('admin/')) {
+  if (fullSlug.startsWith('api/') || fullSlug.startsWith('_next/') || fullSlug.startsWith('dashboard/') || fullSlug.startsWith('login') || fullSlug.startsWith('register') || fullSlug.startsWith('admin/') || fullSlug.startsWith('client/')) {
     notFound()
   }
   
@@ -106,6 +124,19 @@ export default async function CustomBusinessPage({ params }: CustomPageProps) {
     notFound()
   }
 
+  // Debug log
+  console.log('[SERVER CUSTOM PAGE] Business data for', fullSlug, {
+    enablePackagesModule: business.enablePackagesModule,
+    packagesCount: business.packages?.length || 0,
+    packages: business.packages?.map((p: any) => ({ name: p.name, isActive: p.isActive })),
+    reviewsCount: business.reviews?.length || 0,
+    galleryItemsCount: business.galleryItems?.length || 0,
+    staffCount: business.staff?.length || 0,
+    workingHoursCount: business.workingHours?.length || 0,
+    reviews: business.reviews?.slice(0, 2),
+    galleryItems: business.galleryItems?.slice(0, 2)
+  })
+
   return <BusinessLanding business={business} />
 }
 
@@ -113,7 +144,7 @@ export async function generateMetadata({ params }: CustomPageProps) {
   const fullSlug = params.slug.join('/')
   
   // Exclude API routes and other system routes
-  if (fullSlug.startsWith('api/') || fullSlug.startsWith('_next/') || fullSlug.startsWith('dashboard/') || fullSlug.startsWith('login') || fullSlug.startsWith('register')) {
+  if (fullSlug.startsWith('api/') || fullSlug.startsWith('_next/') || fullSlug.startsWith('dashboard/') || fullSlug.startsWith('login') || fullSlug.startsWith('register') || fullSlug.startsWith('client/')) {
     return {
       title: 'Page Not Found',
       description: 'The requested page could not be found.'

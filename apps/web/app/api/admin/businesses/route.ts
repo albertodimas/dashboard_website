@@ -39,6 +39,7 @@ export async function GET() {
       blockedReason: business.blockedReason,
       blockedAt: business.blockedAt,
       enableStaffModule: business.enableStaffModule,
+      enablePackagesModule: business.enablePackagesModule,
       tenantName: business.tenant.name,
       tenantEmail: business.tenant.email,
       subdomain: business.tenant.subdomain,
@@ -64,6 +65,8 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     
+    console.log('PUT request body:', body)
+    
     if (!body.id) {
       return NextResponse.json(
         { error: 'Business ID is required' },
@@ -76,6 +79,10 @@ export async function PUT(request: NextRequest) {
     if (body.isActive !== undefined) updateData.isActive = body.isActive
     if (body.isPremium !== undefined) updateData.isPremium = body.isPremium
     if (body.enableStaffModule !== undefined) updateData.enableStaffModule = body.enableStaffModule
+    if (body.enablePackagesModule !== undefined) {
+      console.log('Setting enablePackagesModule to:', body.enablePackagesModule)
+      updateData.enablePackagesModule = body.enablePackagesModule
+    }
     if (body.isBlocked !== undefined) {
       updateData.isBlocked = body.isBlocked
       if (body.isBlocked) {
@@ -89,6 +96,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    console.log('Update data:', updateData)
+    console.log('Business ID:', body.id)
+    
     const business = await prisma.business.update({
       where: { id: body.id },
       data: updateData
@@ -100,8 +110,12 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error updating business:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
-      { error: 'Failed to update business' },
+      { error: error instanceof Error ? error.message : 'Failed to update business' },
       { status: 500 }
     )
   }

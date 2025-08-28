@@ -50,15 +50,29 @@
       "Bash(pnpm list:*)",
       "Bash(pnpm prisma:*)",
       "Bash(npx tsc:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(move:*)",
+      "Bash(grep:*)",
+      "Bash(npx eslint:*)",
+      "Bash(od:*)",
+      "Bash(sed:*)",
+      "mcp__puppeteer__playwright_navigate",
+      "Bash(npx playwright install:*)",
+      "mcp__puppeteer__playwright_screenshot",
+      "mcp__puppeteer__playwright_evaluate",
+      "mcp__puppeteer__playwright_get_visible_html",
+      "mcp__puppeteer__playwright_get_visible_text",
+      "mcp__puppeteer__playwright_console_logs",
+      "mcp__puppeteer__playwright_press_key",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": [],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
-      "D:\\d\\dashboard_website\\apps",
-      "D:\\d",
-      "D:\\"
+      "D:\\dashboard_website\\apps",
+      "D:\\",
+      "C:\\Users\\alber\\AppData\\Local\\ms-playwright"
     ]
   }
 }

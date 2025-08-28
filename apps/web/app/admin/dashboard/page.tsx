@@ -359,6 +359,11 @@ export default function AdminDashboardPage() {
                           {t('language') === 'en' ? 'Staff Module' : 'Módulo Staff'}
                         </span>
                       )}
+                      {business.enablePackagesModule && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          {t('language') === 'en' ? 'Packages Module' : 'Módulo Paquetes'}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -397,6 +402,41 @@ export default function AdminDashboardPage() {
                         {business.enableStaffModule 
                           ? (t('language') === 'en' ? 'Disable Staff' : 'Desactivar Staff')
                           : (t('language') === 'en' ? 'Enable Staff' : 'Activar Staff')}
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          try {
+                            setSaving(true)
+                            const newValue = !business.enablePackagesModule
+                            const response = await fetch('/api/admin/businesses', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                id: business.id,
+                                enablePackagesModule: newValue
+                              })
+                            })
+                            if (!response.ok) throw new Error('Failed to toggle packages module')
+                            await loadBusinesses()
+                            // Show success message
+                            alert(
+                              newValue 
+                                ? (t('language') === 'en' ? 'Packages module enabled successfully' : 'Módulo de paquetes habilitado exitosamente')
+                                : (t('language') === 'en' ? 'Packages module disabled successfully' : 'Módulo de paquetes deshabilitado exitosamente')
+                            )
+                          } catch (error) {
+                            console.error('Error toggling packages module:', error)
+                            alert(t('language') === 'en' ? 'Failed to toggle packages module' : 'Error al cambiar el módulo de paquetes')
+                          } finally {
+                            setSaving(false)
+                          }
+                        }}
+                        disabled={saving}
+                        className={`text-sm ${business.enablePackagesModule ? 'text-indigo-600 hover:text-indigo-900' : 'text-gray-600 hover:text-gray-900'}`}
+                      >
+                        {business.enablePackagesModule 
+                          ? (t('language') === 'en' ? 'Disable Packages' : 'Desactivar Paquetes')
+                          : (t('language') === 'en' ? 'Enable Packages' : 'Activar Paquetes')}
                       </button>
                       {business.isBlocked ? (
                         <button 

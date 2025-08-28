@@ -9,12 +9,63 @@ export async function GET(
   try {
     const { slug } = await context.params
     
-    // Get business by slug
+    // Get business by slug with all relations
     const business = await prisma.business.findFirst({
       where: { 
         slug: slug,
         isActive: true,
         isBlocked: false
+      },
+      include: {
+        services: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' }
+        },
+        packages: {
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            services: {
+              include: {
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    duration: true,
+                    price: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        staff: {
+          where: { isActive: true }
+        },
+        galleryItems: {
+          where: { isActive: true },
+          orderBy: { order: 'asc' }
+        },
+        workingHours: {
+          orderBy: { dayOfWeek: 'asc' }
+        },
+        reviews: {
+          where: { isPublished: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            customer: {
+              select: {
+                name: true
+              }
+            }
+          }
+        },
+        tenant: {
+          select: {
+            settings: true
+          }
+        }
       }
     })
 
@@ -25,21 +76,35 @@ export async function GET(
       }, { status: 404 })
     }
 
-    // Return public business information
+    // Get stats
+    const appointmentCount = await prisma.appointment.count({
+      where: {
+        businessId: business.id,
+        status: 'COMPLETED'
+      }
+    })
+
+    const reviewStats = await prisma.review.aggregate({
+      where: {
+        businessId: business.id,
+        isPublished: true
+      },
+      _avg: {
+        rating: true
+      },
+      _count: {
+        rating: true
+      }
+    })
+
+    // Return complete business information
     return NextResponse.json({
-      id: business.id,
-      name: business.name,
-      email: business.email,
-      phone: business.phone,
-      address: business.address,
-      city: business.city,
-      state: business.state,
-      postalCode: business.postalCode,
-      website: business.website,
-      description: business.description,
-      settings: business.settings,
-      features: business.features,
-      enableStaffModule: business.enableStaffModule
+      ...business,
+      stats: {
+        completedAppointments: appointmentCount,
+        averageRating: reviewStats._avg.rating || 0,
+        totalReviews: reviewStats._count.rating || 0
+      }
     })
   } catch (error) {
     console.error('Error fetching business:', error)

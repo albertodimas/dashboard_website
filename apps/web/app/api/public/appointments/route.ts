@@ -8,6 +8,9 @@ import { getAppointmentConfirmationEmailTemplate } from '@/lib/email-templates'
 const appointmentSchema = z.object({
   businessId: z.string().uuid(),
   serviceId: z.string().uuid(),
+  packageId: z.string().uuid().optional(), // Add packageId for package bookings
+  packagePurchaseId: z.string().uuid().optional(), // Add packagePurchaseId for using sessions
+  usePackageSession: z.boolean().optional(), // Flag to indicate using package session
   staffId: z.string().uuid().optional(),
   date: z.string(),
   time: z.string(),
@@ -127,6 +130,96 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Check for package booking and validate sessions
+    let activePurchase = null
+    
+    // If using package session with packagePurchaseId
+    if (validated.packagePurchaseId && validated.usePackageSession) {
+      activePurchase = await prisma.packagePurchase.findUnique({
+        where: { id: validated.packagePurchaseId },
+        include: { package: true }
+      })
+
+      if (!activePurchase) {
+        return NextResponse.json(
+          { error: 'Package purchase not found' },
+          { status: 404 }
+        )
+      }
+
+      // Verify ownership
+      if (activePurchase.customerId !== customer.id) {
+        return NextResponse.json(
+          { error: 'This package does not belong to you' },
+          { status: 403 }
+        )
+      }
+
+      // Check status and sessions
+      if (activePurchase.status !== 'ACTIVE' || activePurchase.remainingSessions <= 0) {
+        return NextResponse.json(
+          { 
+            error: 'No remaining sessions in this package',
+            remainingSessions: activePurchase.remainingSessions
+          },
+          { status: 400 }
+        )
+      }
+
+      // Check if expired
+      if (activePurchase.expiryDate && new Date(activePurchase.expiryDate) < new Date()) {
+        await prisma.packagePurchase.update({
+          where: { id: activePurchase.id },
+          data: { status: 'EXPIRED' }
+        })
+
+        return NextResponse.json(
+          { error: 'Your package has expired' },
+          { status: 400 }
+        )
+      }
+    }
+    // Legacy: If packageId is provided (old flow)
+    else if (validated.packageId) {
+      // Check if customer has an active package purchase
+      activePurchase = await prisma.packagePurchase.findFirst({
+        where: {
+          customerId: customer.id,
+          packageId: validated.packageId,
+          businessId: validated.businessId,
+          status: 'ACTIVE',
+          remainingSessions: { gt: 0 }
+        }
+      })
+
+      if (!activePurchase) {
+        return NextResponse.json(
+          { 
+            error: 'No active package found or no remaining sessions. Please purchase a package first.',
+            requiresPurchase: true
+          },
+          { status: 400 }
+        )
+      }
+
+      // Check if the package has expired
+      if (activePurchase.expiryDate && new Date(activePurchase.expiryDate) < new Date()) {
+        // Mark as expired
+        await prisma.packagePurchase.update({
+          where: { id: activePurchase.id },
+          data: { status: 'EXPIRED' }
+        })
+
+        return NextResponse.json(
+          { 
+            error: 'Your package has expired. Please purchase a new package.',
+            requiresPurchase: true
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     // Ensure we have a staffId
     if (!staffId) {
       return NextResponse.json(
@@ -141,14 +234,16 @@ export async function POST(request: NextRequest) {
         businessId: validated.businessId,
         customerId: customer.id,
         serviceId: validated.serviceId,
+        packageId: validated.packageId || null,
+        packagePurchaseId: activePurchase?.id || null,
         staffId: staffId, // Use the staffId we obtained earlier
         customerName: validated.customerName,  // Store the name used for this appointment
         customerPhone: validated.customerPhone, // Store the phone used for this appointment
         startTime,
         endTime,
         status: 'PENDING',
-        price: service.price,
-        totalAmount: service.price, // Fixed: using totalAmount instead of totalPrice
+        price: (validated.packagePurchaseId && validated.usePackageSession) || validated.packageId ? 0 : service.price, // No price for package bookings
+        totalAmount: (validated.packagePurchaseId && validated.usePackageSession) || validated.packageId ? 0 : service.price, // No total for package bookings
         notes: validated.notes,
         tenantId: business.tenantId
       },
@@ -205,6 +300,39 @@ export async function POST(request: NextRequest) {
       // Don't fail the appointment creation if email fails
     }
 
+    // If this is a package booking, consume a session
+    if (activePurchase && (validated.usePackageSession || validated.packageId)) {
+      try {
+        // Use Prisma transaction to consume the session
+        await prisma.$transaction(async (tx) => {
+          // Create session usage record
+          await tx.sessionUsage.create({
+            data: {
+              purchaseId: activePurchase.id,
+              appointmentId: appointment.id,
+              sessionNumber: activePurchase.usedSessions + 1,
+              usedAt: new Date()
+            }
+          })
+
+          // Update the purchase
+          await tx.packagePurchase.update({
+            where: { id: activePurchase.id },
+            data: {
+              usedSessions: activePurchase.usedSessions + 1,
+              remainingSessions: activePurchase.remainingSessions - 1,
+              status: activePurchase.remainingSessions - 1 === 0 ? 'COMPLETED' : 'ACTIVE'
+            }
+          })
+        })
+      } catch (sessionError) {
+        console.error('Failed to consume session:', sessionError)
+        // Consider whether to rollback the appointment or not
+      }
+    }
+
+    // Customer stats fields don't exist in schema, skip this update
+
     return NextResponse.json({
       success: true,
       appointment: {
@@ -213,8 +341,12 @@ export async function POST(request: NextRequest) {
         time: validated.time,
         service: appointment.service.name,
         staff: appointment.staff?.name,
-        status: appointment.status
-      }
+        status: appointment.status,
+        remainingSessions: activePurchase ? activePurchase.remainingSessions - 1 : undefined
+      },
+      message: validated.packageId && activePurchase
+        ? `Appointment booked successfully! ${activePurchase.remainingSessions - 1} sessions remaining.`
+        : 'Appointment booked successfully!'
     })
   } catch (error) {
     console.error('Error creating appointment:', error)

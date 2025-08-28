@@ -10,16 +10,17 @@ import {
   Star, 
   Calendar,
   Check,
+  CheckCircle,
   ChevronRight,
   Menu,
   X,
-  Facebook,
-  Instagram,
-  Twitter,
-  MessageCircle,
-  Search,
+  Package,
+  User,
+  ChevronLeft,
   Grid3X3,
-  Filter
+  Search,
+  Filter,
+  AlertCircle
 } from 'lucide-react'
 
 interface BusinessLandingProps {
@@ -27,7 +28,18 @@ interface BusinessLandingProps {
 }
 
 export default function BusinessLanding({ business }: BusinessLandingProps) {
-  // Extract theme colors from business settings
+  // Debug log
+  console.log('[CLIENT BusinessLanding] Received business data:', {
+    hasReviews: !!business.reviews,
+    reviewsLength: business.reviews?.length || 0,
+    hasGalleryItems: !!business.galleryItems,
+    galleryItemsLength: business.galleryItems?.length || 0,
+    hasStaff: !!business.staff,
+    staffLength: business.staff?.length || 0,
+    hasWorkingHours: !!business.workingHours,
+    workingHoursLength: business.workingHours?.length || 0
+  })
+  
   const theme = business.settings?.theme || {}
   const colors = {
     primary: theme.primaryColor || '#3B82F6',
@@ -37,10 +49,14 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   }
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [showPackageReserveModal, setShowPackageReserveModal] = useState(false)
   const [bookingStep, setBookingStep] = useState(1)
   const [selectedService, setSelectedService] = useState<any>(null)
+  const [selectedPackage, setSelectedPackage] = useState<any>(null)
+  const [selectedPackageForPurchase, setSelectedPackageForPurchase] = useState<any>(null)
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
-  const [availableStaff, setAvailableStaff] = useState<any[]>([])
+  const [availableStaff, setAvailableStaff] = useState<any[]>(business.staff || [])
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
@@ -54,29 +70,55 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [selectedImageModal, setSelectedImageModal] = useState<any>(null)
-  const [activeGalleryTab, setActiveGalleryTab] = useState('')
-  const [currentServicePage, setCurrentServicePage] = useState(1)
-  const servicesPerPage = 6
-  const [serviceSearchTerm, setServiceSearchTerm] = useState('')
-  const [selectedServiceCategory, setSelectedServiceCategory] = useState('all')
-  const [reviews, setReviews] = useState<any[]>([])
+  const [activeGalleryTab, setActiveGalleryTab] = useState('All')
+  const [reviews, setReviews] = useState<any[]>(business.reviews || [])
   const [isLoadingReviews, setIsLoadingReviews] = useState(false)
-  const [selectedServicesCategory, setSelectedServicesCategory] = useState('all')
-  const [serviceSearchTermMain, setServiceSearchTermMain] = useState('')
+  const [reservationData, setReservationData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    paymentMethod: 'TRANSFER',
+    notes: ''
+  })
+  const [customerPackages, setCustomerPackages] = useState<any[]>([])
+  const [customerSession, setCustomerSession] = useState<any>(null)
 
-  // Fetch reviews on component mount
+  // Check for customer session on mount
   useEffect(() => {
-    fetchReviews()
-  }, [business.id])
+    checkCustomerSession()
+    // fetchReviews() - Reviews ya vienen con los datos del business
+    if (business.galleryItems?.length > 0) {
+      const categories = ['All', ...new Set(business.galleryItems.map((item: any) => item.category || 'General'))]
+      setActiveGalleryTab(categories[0] || 'All')
+    }
+  }, [])
 
-  // Fetch available time slots when date, service, and staff are selected
+  // Fetch slots when date and service change
   useEffect(() => {
     if (selectedDate && selectedService) {
       fetchAvailableSlots()
     }
   }, [selectedDate, selectedService, selectedStaff])
 
+  const checkCustomerSession = async () => {
+    try {
+      const response = await fetch('/api/client/packages')
+      if (response.ok) {
+        const data = await response.json()
+        setCustomerSession(data.customer)
+        // Filter packages for this business
+        const businessPackages = data.packages?.filter(
+          (pkg: any) => pkg.businessId === business.id && pkg.status === 'ACTIVE' && pkg.remainingSessions > 0
+        ) || []
+        setCustomerPackages(businessPackages)
+      }
+    } catch (error) {
+      console.error('Error checking customer session:', error)
+    }
+  }
+
   const fetchReviews = async () => {
+    if (!business?.id) return
     setIsLoadingReviews(true)
     try {
       const response = await fetch(`/api/public/reviews?businessId=${business.id}`)
@@ -90,29 +132,6 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     }
   }
 
-  const fetchStaffForService = async (serviceId: string) => {
-    try {
-      // Use customSlug if available, otherwise fall back to slug or id
-      const businessIdentifier = business.customSlug || business.slug || business.id
-      console.log('Fetching staff for service:', serviceId, 'business identifier:', businessIdentifier)
-      const url = `/api/public/staff/${encodeURIComponent(businessIdentifier)}?serviceId=${serviceId}`
-      console.log('Fetching from URL:', url)
-      
-      const response = await fetch(url)
-      if (!response.ok) {
-        console.error('Response not OK:', response.status, response.statusText)
-      }
-      
-      const data = await response.json()
-      console.log('Staff data received:', data)
-      console.log('Setting availableStaff to:', data.staff)
-      setAvailableStaff(data.staff || [])
-    } catch (error) {
-      console.error('Error fetching staff:', error)
-      setAvailableStaff([])
-    }
-  }
-
   const fetchAvailableSlots = async () => {
     setIsLoadingSlots(true)
     try {
@@ -121,13 +140,11 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         serviceId: selectedService.id,
         date: selectedDate
       })
-      
-      // Add staffId if staff is selected
       if (selectedStaff) {
         params.append('staffId', selectedStaff.id)
       }
       
-      const response = await fetch(`/api/public/appointments?${params}`)
+      const response = await fetch(`/api/public/appointments/slots?${params.toString()}`)
       const data = await response.json()
       setAvailableSlots(data.availableSlots || [])
     } catch (error) {
@@ -135,6 +152,22 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       setAvailableSlots([])
     } finally {
       setIsLoadingSlots(false)
+    }
+  }
+
+  const fetchStaffForService = async (serviceId: string) => {
+    try {
+      const businessIdentifier = business.customSlug || business.slug || business.id
+      const url = `/api/public/staff/${encodeURIComponent(businessIdentifier)}?serviceId=${serviceId}`
+      
+      const response = await fetch(url)
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableStaff(data.staff || [])
+      }
+    } catch (error) {
+      console.error('Error fetching staff:', error)
+      setAvailableStaff([])
     }
   }
 
@@ -151,7 +184,12 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         ...bookingData
       }
       
-      // Add staffId if staff is selected
+      // If customer has a package selected, include it
+      if (selectedPackage) {
+        appointmentData.packagePurchaseId = selectedPackage.id
+        appointmentData.usePackageSession = true
+      }
+      
       if (selectedStaff) {
         appointmentData.staffId = selectedStaff.id
       }
@@ -163,8 +201,13 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       })
 
       if (response.ok) {
+        const result = await response.json()
         setBookingSuccess(true)
         setBookingStep(5) // Success step
+        // Refresh customer packages if a session was used
+        if (selectedPackage) {
+          await checkCustomerSession()
+        }
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to create booking')
@@ -177,11 +220,51 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     }
   }
 
-  // Format working hours using correct field names and business settings
-  const formatWorkingHours = (hours: any[], settings: any) => {
+  const handlePackageReserve = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/public/packages/reserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packageId: selectedPackageForPurchase?.id,
+          customerName: reservationData.name,
+          customerEmail: reservationData.email,
+          customerPhone: reservationData.phone,
+          paymentMethod: reservationData.paymentMethod,
+          notes: reservationData.notes
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        alert(`Package reserved successfully! ${result.purchase.paymentInstructions?.message || 'Please complete payment to activate.'}`)
+        setReservationData({
+          name: '',
+          email: '',
+          phone: '',
+          paymentMethod: 'TRANSFER',
+          notes: ''
+        })
+        setShowPackageReserveModal(false)
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to reserve package')
+      }
+    } catch (error) {
+      console.error('Reservation error:', error)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const formatWorkingHours = (hours: any[]) => {
     const daysMap: any = {
       0: 'Sunday',
-      1: 'Monday', 
+      1: 'Monday',
       2: 'Tuesday',
       3: 'Wednesday',
       4: 'Thursday',
@@ -189,36 +272,17 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       6: 'Saturday'
     }
     
-    // Get schedule settings for default hours
-    const scheduleSettings = settings?.scheduleSettings || {
-      startTime: '09:00',
-      endTime: '17:00'
+    if (!hours || hours.length === 0) {
+      return [{ days: 'Monday - Friday', time: '09:00 - 17:00' }]
     }
     
-    // Create a complete week schedule
-    const weekSchedule = []
-    for (let day = 0; day <= 6; day++) {
-      const dayHours = hours.find(h => h.dayOfWeek === day)
-      
-      if (dayHours) {
-        weekSchedule.push({
-          day: daysMap[day],
-          hours: !dayHours.isActive ? 'Closed' : `${dayHours.startTime || scheduleSettings.startTime} - ${dayHours.endTime || scheduleSettings.endTime}`
-        })
-      } else {
-        // Use schedule settings to determine if this day should be open
-        const isWorkingDay = settings?.scheduleSettings?.workingDays?.includes(day)
-        weekSchedule.push({
-          day: daysMap[day],
-          hours: isWorkingDay ? `${scheduleSettings.startTime} - ${scheduleSettings.endTime}` : 'Closed'
-        })
-      }
-    }
-    
-    return weekSchedule
+    return hours.map(h => ({
+      days: daysMap[h.dayOfWeek] || 'Day',
+      time: h.isActive ? `${h.startTime || '09:00'} - ${h.endTime || '17:00'}` : 'Closed'
+    }))
   }
 
-  const workingHours = formatWorkingHours(business.workingHours || [], business.settings || {})
+  const workingHours = formatWorkingHours(business.workingHours || [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -231,1416 +295,844 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
             </Link>
             
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#booking" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Services</a>
-              <a href="#gallery" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Gallery</a>
-              <a href="#reviews" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Reviews</a>
-              <a href="#contact" className="text-gray-700 hover:text-gray-900 font-medium transition duration-300 hover:scale-105">Contact</a>
-              <a 
-                href={`/book/${business.slug}`} 
-                className="text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition duration-300"
-                style={{ 
-                  background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` 
-                }}
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#services" className="text-gray-700 hover:text-gray-900 font-medium transition">Services</a>
+              {business.packages?.length > 0 && (
+                <a href="#packages" className="text-gray-700 hover:text-gray-900 font-medium transition">Packages</a>
+              )}
+              {business.galleryItems?.length > 0 && (
+                <a href="#gallery" className="text-gray-700 hover:text-gray-900 font-medium transition">Gallery</a>
+              )}
+              {reviews.length > 0 && (
+                <a href="#reviews" className="text-gray-700 hover:text-gray-900 font-medium transition">Reviews</a>
+              )}
+              <a href="#contact" className="text-gray-700 hover:text-gray-900 font-medium transition">Contact</a>
+              {customerSession && customerPackages.length > 0 && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  {customerPackages.reduce((sum, pkg) => sum + pkg.remainingSessions, 0)} sessions
+                </span>
+              )}
+              {customerSession && (
+                <Link href="/client/portal" className="text-sm text-blue-600 hover:text-blue-700">
+                  My Portal
+                </Link>
+              )}
+              <button
+                onClick={() => setShowBookingModal(true)}
+                className="px-6 py-2.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition"
+                style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}
               >
                 Book Now
-              </a>
+              </button>
             </div>
-
+            
             {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{ color: colors.primary }}
+              className="md:hidden p-2"
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
-
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4 bg-white/95 backdrop-blur-sm rounded-b-xl">
-              <div className="flex flex-col space-y-4">
-                <a href="#booking" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Services</a>
-                <a href="#gallery" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Gallery</a>
-                <a href="#reviews" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Reviews</a>
-                <a href="#contact" className="text-gray-700 hover:text-gray-900 font-medium transition py-2">Contact</a>
-                <a 
-                  href={`/book/${business.slug}`} 
-                  className="text-white px-6 py-3 rounded-full text-center font-semibold shadow-lg"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` 
-                  }}
-                >
-                  Book Now
-                </a>
-              </div>
-            </div>
-          )}
         </nav>
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background with gradient overlay */}
-        <div className="absolute inset-0">
-          <div 
-            className="absolute inset-0 bg-cover bg-center scale-105"
-            style={{
-              backgroundImage: business.coverImage 
-                ? `url(${business.coverImage})`
-                : `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.accent}40 50%, ${colors.primary}30 100%), linear-gradient(45deg, #667eea 0%, #764ba2 100%)`
-            }}
-          ></div>
-          <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-black/60"></div>
-          
-          {/* Floating elements */}
-          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/3 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
         
-        <div className="relative container mx-auto px-6 text-center text-white z-10">
-          <div className="animate-fade-in-up">
-            <h1 className="text-6xl md:text-7xl font-black mb-6 leading-tight">
-              Welcome to{' '}
-              <span 
-                className="bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent"
-                style={{ 
-                  backgroundImage: `linear-gradient(135deg, #ffffff 0%, ${colors.accent} 100%)` 
-                }}
-              >
-                {business.name}
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-10 max-w-4xl mx-auto leading-relaxed text-gray-100">
-              {business.description || 'Experience premium services with our professional team dedicated to excellence'}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <a 
-                href={`/book/${business.slug}`}
-                className="group relative text-white px-10 py-5 rounded-2xl text-lg font-bold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition duration-300"
-                style={{ 
-                  background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` 
-                }}
-              >
-                <span className="relative z-10">Book Appointment</span>
-                <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-300"></div>
-              </a>
-              <a 
-                href="#booking"
-                className="group border-2 text-white px-10 py-5 rounded-2xl text-lg font-bold backdrop-blur-sm bg-white/10 hover:bg-white/20 transform hover:-translate-y-1 transition duration-300"
-                style={{ borderColor: 'rgba(255,255,255,0.3)' }}
-              >
-                Our Services
-              </a>
-            </div>
-          </div>
-          
-          {/* Stats */}
-          {business.stats && (
-            <div className="grid grid-cols-3 gap-8 max-w-4xl mx-auto mt-20">
-              {[
-                { value: business.stats.completedAppointments + '+', label: 'Happy Customers', icon: '👥' },
-                { value: business.services?.length || 0, label: 'Services', icon: '⚡' },
-                { value: business.stats.averageRating?.toFixed(1) || '5.0', label: 'Average Rating', icon: '⭐' }
-              ].map((stat, index) => (
-                <div key={index} className="text-center group">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 group-hover:bg-white/20 transition duration-300">
-                    <div className="text-3xl mb-2">{stat.icon}</div>
-                    <div className="text-4xl md:text-5xl font-black mb-2 text-white">
-                      {stat.value}
-                    </div>
-                    <div className="text-sm uppercase tracking-wider text-gray-200 font-medium">
-                      {stat.label}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Services Section with Pagination */}
-      <section id="services" className="py-16 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black mb-4 text-gray-900">Our Services</h2>
-            <div className="w-20 h-1 bg-gradient-to-r mx-auto rounded-full mb-4" style={{ backgroundImage: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}></div>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Professional services tailored to meet your needs
-            </p>
-          </div>
-
-          {(() => {
-            // Get unique categories for services
-            const serviceCategories = Array.from(new Set(business.services?.map((s: any) => s.category || 'General'))) as string[]
-            
-            // Filter services based on search and category
-            const filteredMainServices = business.services?.filter((service: any) => {
-              const matchesSearch = service.name.toLowerCase().includes(serviceSearchTermMain.toLowerCase()) ||
-                                  service.description?.toLowerCase().includes(serviceSearchTermMain.toLowerCase())
-              const matchesCategory = selectedServicesCategory === 'all' || 
-                                    (service.category || 'General') === selectedServicesCategory
-              return matchesSearch && matchesCategory
-            }) || []
-            
-            const totalServices = filteredMainServices.length
-            const totalPages = Math.ceil(totalServices / servicesPerPage)
-            const startIndex = (currentServicePage - 1) * servicesPerPage
-            const endIndex = startIndex + servicesPerPage
-            const currentServices = filteredMainServices.slice(startIndex, endIndex)
-
-            return (
-              <>
-                {/* Search and Category Filter */}
-                <div className="mb-8 space-y-4 max-w-4xl mx-auto">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      placeholder="Search services..."
-                      value={serviceSearchTermMain}
-                      onChange={(e) => {
-                        setServiceSearchTermMain(e.target.value)
-                        setCurrentServicePage(1) // Reset to first page on search
-                      }}
-                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                      style={{ focusBorderColor: colors.primary }}
-                    />
-                  </div>
-                  
-                  {/* Category Filters */}
-                  {serviceCategories.length > 1 && (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedServicesCategory('all')
-                          setCurrentServicePage(1)
-                        }}
-                        className={`px-5 py-2.5 rounded-full font-medium transition duration-200 ${
-                          selectedServicesCategory === 'all'
-                            ? 'text-white shadow-lg transform scale-105'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                        style={{
-                          backgroundColor: selectedServicesCategory === 'all' ? colors.primary : undefined
-                        }}
-                      >
-                        All Services
-                        <span className="ml-2 text-sm opacity-75">
-                          ({business.services?.length || 0})
-                        </span>
-                      </button>
-                      {serviceCategories.map(category => {
-                        const count = business.services?.filter((s: any) => (s.category || 'General') === category).length || 0
-                        return (
-                          <button
-                            key={category}
-                            onClick={() => {
-                              setSelectedServicesCategory(category)
-                              setCurrentServicePage(1)
-                            }}
-                            className={`px-5 py-2.5 rounded-full font-medium transition duration-200 ${
-                              selectedServicesCategory === category
-                                ? 'text-white shadow-lg transform scale-105'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                            style={{
-                              backgroundColor: selectedServicesCategory === category ? colors.primary : undefined
-                            }}
-                          >
-                            {category}
-                            <span className="ml-2 text-sm opacity-75">
-                              ({count})
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-                  {currentServices.map((service: any, index: number) => (
-                    <div 
-                      key={service.id} 
-                      className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl p-6 border border-gray-100 hover:border-gray-200 transform hover:-translate-y-1 transition duration-300"
-                    >
-                      {/* Compact Service Badge */}
-                      <div className="flex items-start mb-4">
-                        <div 
-                          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}
-                        >
-                          <span className="text-lg text-white font-bold">{service.name.charAt(0)}</span>
-                        </div>
-                        <div className="ml-4 flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 group-hover:text-gray-800">{service.name}</h3>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Price and Duration Row */}
-                      <div className="flex items-center justify-between mb-4 py-3 px-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center text-gray-600">
-                          <Clock size={16} className="mr-1" style={{ color: colors.primary }} />
-                          <span className="text-sm font-medium">{service.duration} min</span>
-                        </div>
-                        <div className="text-2xl font-black" style={{ color: colors.primary }}>
-                          ${service.price}
-                        </div>
-                      </div>
-                      
-                      {/* Smaller Book Button */}
-                      <button 
-                        onClick={() => {
-                          setSelectedService(service)
-                          // Check if staff module is enabled
-                          if (business.enableStaffModule) {
-                            // Load staff for this service
-                            fetchStaffForService(service.id)
-                            setBookingStep(2) // Go to staff selection
-                          } else {
-                            setBookingStep(3) // Go directly to date/time selection
-                          }
-                          // Scroll to booking section
-                          document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })
-                        }}
-                        className="group/btn relative block w-full text-white text-center py-2.5 rounded-xl text-sm font-bold overflow-hidden shadow hover:shadow-lg transform hover:-translate-y-0.5 transition duration-300"
-                        style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}
-                      >
-                        <span className="relative z-10">Book Now</span>
-                        <div className="absolute inset-0 bg-white/20 scale-x-0 group-hover/btn:scale-x-100 transition-transform duration-300 origin-left"></div>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center mt-10 space-x-2">
-                    <button
-                      onClick={() => setCurrentServicePage(Math.max(1, currentServicePage - 1))}
-                      disabled={currentServicePage === 1}
-                      className="px-4 py-2 rounded-lg font-medium transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                      style={{ color: colors.primary }}
-                    >
-                      Previous
-                    </button>
-                    
-                    <div className="flex space-x-1">
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i + 1}
-                          onClick={() => setCurrentServicePage(i + 1)}
-                          className={`w-10 h-10 rounded-lg font-medium transition duration-200 ${
-                            currentServicePage === i + 1
-                              ? 'text-white shadow-lg'
-                              : 'text-gray-600 hover:bg-gray-100'
-                          }`}
-                          style={{
-                            backgroundColor: currentServicePage === i + 1 ? colors.primary : 'transparent'
-                          }}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <button
-                      onClick={() => setCurrentServicePage(Math.min(totalPages, currentServicePage + 1))}
-                      disabled={currentServicePage === totalPages}
-                      className="px-4 py-2 rounded-lg font-medium transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                      style={{ color: colors.primary }}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-
-                {/* Service Counter */}
-                {totalServices > 0 && (
-                  <div className="text-center mt-4 text-sm text-gray-500">
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalServices)} of {totalServices} 
-                    {selectedServicesCategory !== 'all' ? `"${selectedServicesCategory}" ` : ''}
-                    services
-                    {serviceSearchTermMain && ` matching "${serviceSearchTermMain}"`}
-                  </div>
-                )}
-                
-                {totalServices === 0 && (
-                  <div className="text-center py-12 text-gray-500">
-                    <Grid3X3 size={48} className="mx-auto mb-4 opacity-30" />
-                    <p>No services found</p>
-                  </div>
-                )}
-              </>
-            )
-          })()}
-        </div>
-      </section>
-
-      {/* Gallery Section - Service Tabs with Modal */}
-      {business.features?.gallery && business.features.gallery.length > 0 && (() => {
-        // Group gallery items by category (service)
-        const groupedItems = business.features.gallery.reduce((acc: any, item: any) => {
-          const category = item.category || 'General'
-          if (!acc[category]) {
-            acc[category] = []
-          }
-          acc[category].push(item)
-          return acc
-        }, {})
-
-        const categories = Object.keys(groupedItems)
-        const totalGalleryItems = business.features.gallery.length
-        
-        // Set default active tab if not set
-        const currentActiveTab = activeGalleryTab || 'all'
-        if (!activeGalleryTab) {
-          setTimeout(() => setActiveGalleryTab('all'), 0)
-        }
-        
-        // Get items based on selected category
-        const displayItems = currentActiveTab === 'all' 
-          ? business.features.gallery 
-          : (groupedItems[currentActiveTab] || [])
-
-        return (
-          <section id="gallery" className="py-24 bg-gradient-to-br from-gray-50 to-gray-100">
-            <div className="container mx-auto px-6">
-              <div className="text-center mb-16">
-                <h2 className="text-5xl font-black mb-6 text-gray-900">
-                  Portfolio & Work Examples
-                </h2>
-                <div className="w-24 h-1 bg-gradient-to-r mx-auto rounded-full mb-6" style={{ backgroundImage: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}></div>
-                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                  Explore our previous work by service category and see the quality that defines us
-                </p>
-              </div>
-
-              {/* Service Navigation Tabs */}
-              <div className="flex flex-wrap justify-center gap-4 mb-12">
-                {/* All Items Tab */}
-                <button
-                  onClick={() => setActiveGalleryTab('all')}
-                  className={`px-6 py-3 rounded-full font-semibold transition duration-300 ${
-                    currentActiveTab === 'all' 
-                      ? 'text-white shadow-lg transform scale-105' 
-                      : 'text-gray-600 hover:text-gray-800 bg-white hover:shadow-md'
-                  }`}
-                  style={{
-                    backgroundColor: currentActiveTab === 'all' ? colors.primary : '#FFFFFF',
-                    borderColor: colors.primary,
-                    border: currentActiveTab === 'all' ? 'none' : `2px solid ${colors.primary}20`
-                  }}
-                >
-                  All Work
-                  <span className="ml-2 text-sm opacity-75">
-                    ({totalGalleryItems})
-                  </span>
-                </button>
-                
-                {/* Category Tabs */}
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setActiveGalleryTab(category)}
-                    className={`px-6 py-3 rounded-full font-semibold transition duration-300 ${
-                      currentActiveTab === category 
-                        ? 'text-white shadow-lg transform scale-105' 
-                        : 'text-gray-600 hover:text-gray-800 bg-white hover:shadow-md'
-                    }`}
-                    style={{
-                      backgroundColor: currentActiveTab === category ? colors.primary : '#FFFFFF',
-                      borderColor: colors.primary,
-                      border: currentActiveTab === category ? 'none' : `2px solid ${colors.primary}20`
-                    }}
-                  >
-                    {category}
-                    <span className="ml-2 text-sm opacity-75">
-                      ({groupedItems[category].length})
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Images Grid for Active Category */}
-              {displayItems && displayItems.length > 0 && (
-                <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {displayItems.map((item: any) => (
-                    <div 
-                      key={item.id} 
-                      className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition cursor-pointer"
-                      onClick={() => setSelectedImageModal(item)}
-                    >
-                      <img 
-                        src={item.url} 
-                        alt={item.title || `${currentActiveTab} work example`}
-                        className="w-full h-64 object-cover group-hover:scale-110 transition duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="absolute bottom-0 left-0 right-0 p-4">
-                          {item.title && (
-                            <h4 className="text-white font-semibold text-lg mb-1">{item.title}</h4>
-                          )}
-                          {item.description && (
-                            <p className="text-white/90 text-sm">{item.description}</p>
-                          )}
-                        </div>
-                        
-                        {/* Click to view larger indicator */}
-                        <div className="absolute top-3 right-3">
-                          <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                              <circle cx="11" cy="11" r="8"/>
-                              <path d="M21 21l-4.35-4.35"/>
-                              <path d="M11 8v6"/>
-                              <path d="M8 11h6"/>
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Service category badge */}
-                      <div className="absolute top-3 left-3">
-                        <span 
-                          className="px-3 py-1 rounded-full text-xs font-semibold text-white"
-                          style={{ backgroundColor: colors.accent }}
-                        >
-                          {item.category || 'General'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t">
+            <div className="container mx-auto px-6 py-4 space-y-4">
+              <a href="#services" className="block py-2 text-gray-700">Services</a>
+              {business.packages?.length > 0 && (
+                <a href="#packages" className="block py-2 text-gray-700">Packages</a>
               )}
-
-              {/* Call to action */}
-              <div className="text-center mt-12">
-                <p className="text-lg mb-6" style={{ color: colors.secondary, opacity: 0.8 }}>
-                  Like what you see? Book your appointment today!
-                </p>
-                <a 
-                  href={`/book/${business.slug}`} 
-                  className="inline-block text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition"
-                  style={{ backgroundColor: colors.primary }}
-                >
-                  Get Started
-                </a>
-              </div>
+              {business.galleryItems?.length > 0 && (
+                <a href="#gallery" className="block py-2 text-gray-700">Gallery</a>
+              )}
+              {reviews.length > 0 && (
+                <a href="#reviews" className="block py-2 text-gray-700">Reviews</a>
+              )}
+              <a href="#contact" className="block py-2 text-gray-700">Contact</a>
+              {customerSession && (
+                <>
+                  {customerPackages.length > 0 && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {customerPackages.reduce((sum, pkg) => sum + pkg.remainingSessions, 0)} sessions
+                    </span>
+                  )}
+                  <Link href="/client/portal" className="block py-2 text-blue-600">
+                    My Portal
+                  </Link>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  setShowBookingModal(true)
+                  setMobileMenuOpen(false)
+                }}
+                className="w-full px-6 py-2.5 rounded-xl font-semibold text-white"
+                style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}
+              >
+                Book Now
+              </button>
             </div>
-          </section>
-        )
-      })()}
-
-      {/* Reviews Section - Now with real data and moved before Contact */}
-      {reviews.length > 0 && (
-        <section id="reviews" className="py-24 relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute inset-0">
-            <div className="absolute top-1/3 left-1/5 w-64 h-64 bg-gradient-to-br from-purple-100 to-pink-50 rounded-full blur-3xl opacity-60"></div>
-            <div className="absolute bottom-1/3 right-1/5 w-80 h-80 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full blur-3xl opacity-60"></div>
           </div>
-          
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="text-center mb-16">
-              <h2 className="text-5xl font-black mb-6" style={{ color: colors.secondary }}>Customer Reviews</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                See what our customers have to say about their experience
-              </p>
-              <div className="mt-6">
-                <div className="flex items-center justify-center gap-2">
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={24} className="fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-lg font-semibold text-gray-700">
-                    {(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} out of 5
-                  </span>
-                  <span className="text-gray-500">({reviews.length} reviews)</span>
+        )}
+      </header>
+      
+      {/* Hero Section with Cover Image */}
+      <section className="relative h-[60vh] min-h-[500px] pt-20">
+        <div className="absolute inset-0">
+          {business.coverImage ? (
+            <img 
+              src={business.coverImage} 
+              alt={business.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div 
+              className="w-full h-full"
+              style={{ 
+                background: `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.accent}20 100%)` 
+              }}
+            />
+          )}
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+        
+        <div className="relative h-full flex items-center justify-center text-center px-6">
+          <div>
+            <h1 className="text-5xl md:text-7xl font-black text-white mb-4 drop-shadow-lg">
+              {business.name}
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
+              {business.description || 'Professional services for you'}
+            </p>
+            
+            {/* Customer packages alert */}
+            {customerPackages.length > 0 && (
+              <div className="bg-green-500/90 backdrop-blur-md text-white rounded-lg p-4 mb-8 max-w-md mx-auto">
+                <div className="flex items-center justify-center">
+                  <Package className="w-5 h-5 mr-2" />
+                  <p className="font-medium">
+                    You have {customerPackages.reduce((sum, pkg) => sum + pkg.remainingSessions, 0)} sessions available!
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {reviews.slice(0, 6).map((review: any) => (
-                <div key={review.id} className="group relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl hover:shadow-2xl p-8 border border-white/20 hover:border-white/40 transform hover:-translate-y-2 transition duration-500">
-                  <div className="absolute top-0 left-0 w-full h-1 rounded-t-3xl" style={{ background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}></div>
-                  
-                  <div className="flex items-center mb-6">
-                    <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={22} 
-                          className={`${i < review.rating ? 'fill-current' : ''} drop-shadow-sm`} 
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="relative mb-6">
-                    <svg className="absolute -top-2 -left-2 w-8 h-8 text-gray-200" fill="currentColor" viewBox="0 0 32 32">
-                      <path d="M7.5 14.5c0-3.3 2.7-6 6-6s6 2.7 6 6c0 3.3-2.7 6-6 6-0.8 0-1.5-0.2-2.2-0.5L7.5 22v-3.8c-1.8-1.3-3-3.4-3-5.7z"/>
-                    </svg>
-                    <p className="text-gray-700 text-lg leading-relaxed italic pl-6 line-clamp-4">
-                      "{review.comment || 'Great experience!'}"
-                    </p>
-                  </div>
-                  
-                  <div className="border-t border-gray-100 pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-bold text-gray-900 text-lg">
-                          {review.customer?.name || 'Anonymous'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(review.createdAt).toLocaleDateString('en-US', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
-                        </div>
-                      </div>
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.primary + '20' }}>
-                        {review.customer?.avatar ? (
-                          <img src={review.customer.avatar} alt={review.customer.name} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <span className="text-2xl font-bold" style={{ color: colors.primary }}>
-                            {(review.customer?.name || 'A')[0].toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {reviews.length > 6 && (
-              <div className="text-center mt-12">
-                <p className="text-gray-600 mb-4">And many more satisfied customers!</p>
               </div>
             )}
+
+            <div className="flex flex-wrap justify-center gap-4">
+              <button
+                onClick={() => {
+                  setShowBookingModal(true)
+                  setBookingStep(1)
+                }}
+                className="inline-flex items-center px-8 py-3 text-lg font-semibold text-white rounded-full hover:scale-105 transition-all shadow-xl"
+                style={{ backgroundColor: colors.primary }}
+              >
+                Book Appointment
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </button>
+              {business.packages?.length > 0 && (
+                <button
+                  onClick={() => document.getElementById('packages')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center px-8 py-3 text-lg font-semibold text-white rounded-full hover:scale-105 transition-all shadow-xl bg-yellow-500"
+                >
+                  View Packages
+                  <Package className="w-5 h-5 ml-2" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      {business.stats && (
+        <section className="py-8 bg-white border-b">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-3 gap-8 text-center">
+              <div>
+                <p className="text-3xl font-bold" style={{ color: colors.primary }}>
+                  {business.stats.completedAppointments || 0}+
+                </p>
+                <p className="text-gray-600">Happy Customers</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold" style={{ color: colors.primary }}>
+                  {business.stats.averageRating?.toFixed(1) || '5.0'}
+                </p>
+                <div className="flex justify-center mt-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className="w-5 h-5" 
+                      fill={i < Math.round(business.stats?.averageRating || 5) ? colors.accent : 'none'}
+                      color={colors.accent}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-bold" style={{ color: colors.primary }}>
+                  {business.services?.length || 0}
+                </p>
+                <p className="text-gray-600">Services</p>
+              </div>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Booking Section */}
-      <section id="booking" className="py-24 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${colors.primary}10 0%, ${colors.accent}10 100%)` }}>
-        {/* Background decoration */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 right-1/6 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 left-1/6 w-80 h-80 bg-white/3 rounded-full blur-3xl animate-pulse delay-700"></div>
+      {/* Services Section */}
+      <section id="services" className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <h2 className="text-4xl font-bold text-center mb-12" style={{ color: colors.primary }}>
+            Our Services
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {business.services?.map((service: any) => (
+              <div key={service.id} className="border rounded-lg p-6 hover:shadow-lg transition">
+                <h3 className="text-xl font-semibold mb-2">{service.name}</h3>
+                <p className="text-gray-600 mb-4">{service.description}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold" style={{ color: colors.primary }}>
+                    ${service.price}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    {service.duration} min
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedService(service)
+                    setShowBookingModal(true)
+                    setBookingStep(1)
+                  }}
+                  className="mt-4 w-full py-2 rounded-lg text-white font-medium hover:opacity-90 transition"
+                  style={{ backgroundColor: colors.accent }}
+                >
+                  Book Now
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-5xl font-black mb-6" style={{ color: colors.secondary }}>Book Your Appointment</h2>
-              <p className="text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
-                Schedule your visit in just a few clicks and experience our premium services
-              </p>
+      </section>
+
+      {/* Packages Section */}
+      {business.packages?.length > 0 && (
+        <section id="packages" className="py-16 bg-gray-50">
+          <div className="container mx-auto px-6">
+            <h2 className="text-4xl font-bold text-center mb-12" style={{ color: colors.primary }}>
+              Package Deals
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {business.packages?.map((pkg: any) => (
+                <div key={pkg.id} className="bg-white rounded-lg shadow-lg p-6">
+                  <h3 className="text-xl font-semibold mb-2">{pkg.name}</h3>
+                  <p className="text-gray-600 mb-4">{pkg.description}</p>
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold" style={{ color: colors.primary }}>
+                      ${pkg.price}
+                    </span>
+                    {pkg.originalPrice > pkg.price && (
+                      <span className="text-lg text-gray-400 line-through ml-2">
+                        ${pkg.originalPrice}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>✓ {pkg.sessionCount} sessions included</p>
+                    <p>✓ Valid for {pkg.validityDays} days</p>
+                    {pkg.services?.map((ps: any) => (
+                      <p key={ps.serviceId}>✓ {ps.service?.name} ({ps.quantity}x)</p>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedPackageForPurchase(pkg)
+                      setShowPackageReserveModal(true)
+                    }}
+                    className="w-full py-2 rounded-lg text-white font-medium hover:opacity-90 transition"
+                    style={{ backgroundColor: colors.accent }}
+                  >
+                    Purchase Package
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Gallery Section */}
+      {business.galleryItems?.length > 0 && (
+        <section id="gallery" className="py-16 bg-white">
+          <div className="container mx-auto px-6">
+            <h2 className="text-4xl font-bold text-center mb-12" style={{ color: colors.primary }}>
+              Gallery
+            </h2>
+            
+            {/* Category Tabs */}
+            <div className="flex justify-center mb-8 gap-2 flex-wrap">
+              {['All', ...new Set(business.galleryItems.map((item: any) => item.category || 'General'))].map((category: any) => (
+                <button
+                  key={category}
+                  onClick={() => setActiveGalleryTab(category)}
+                  className={`px-4 py-2 rounded-full font-medium transition ${
+                    activeGalleryTab === category
+                      ? 'text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  style={activeGalleryTab === category ? { backgroundColor: colors.primary } : {}}
+                >
+                  {category}
+                </button>
+              ))}
             </div>
 
-            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border border-white/30">
-              {/* Step 1: Select Service - Improved Design */}
+            {/* Gallery Grid */}
+            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {business.galleryItems
+                .filter((item: any) => activeGalleryTab === 'All' || (item.category || 'General') === activeGalleryTab)
+                .map((item: any, index: number) => (
+                  <div 
+                    key={index} 
+                    className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition"
+                    onClick={() => setSelectedImageModal(item)}
+                  >
+                    <img
+                      src={item.url || item.imageUrl}
+                      alt={item.title || 'Gallery image'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Reviews Section */}
+      {reviews.length > 0 && (
+        <section id="reviews" className="py-16 bg-gray-50">
+          <div className="container mx-auto px-6">
+            <h2 className="text-4xl font-bold text-center mb-12" style={{ color: colors.primary }}>
+              Customer Reviews
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reviews.slice(0, 6).map((review: any) => (
+                <div key={review.id} className="bg-white rounded-lg p-6 shadow">
+                  <div className="flex items-center mb-4">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className="w-5 h-5"
+                          fill={i < review.rating ? colors.accent : 'none'}
+                          color={colors.accent}
+                        />
+                      ))}
+                    </div>
+                    <span className="ml-2 text-gray-600">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 mb-2">{review.comment}</p>
+                  <p className="text-sm text-gray-500">- {review.customer?.name || 'Customer'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Contact Section */}
+      <section id="contact" className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <h2 className="text-4xl font-bold text-center mb-12" style={{ color: colors.primary }}>
+            Contact Us
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <MapPin size={40} className="mx-auto mb-4" style={{ color: colors.primary }} />
+              <h3 className="font-semibold mb-2">Address</h3>
+              <p className="text-gray-600">
+                {business.address}<br />
+                {business.city}, {business.state} {business.postalCode}
+              </p>
+            </div>
+            <div className="text-center">
+              <Phone size={40} className="mx-auto mb-4" style={{ color: colors.primary }} />
+              <h3 className="font-semibold mb-2">Phone</h3>
+              <p className="text-gray-600">{business.phone}</p>
+            </div>
+            <div className="text-center">
+              <Mail size={40} className="mx-auto mb-4" style={{ color: colors.primary }} />
+              <h3 className="font-semibold mb-2">Email</h3>
+              <p className="text-gray-600">{business.email}</p>
+            </div>
+          </div>
+
+          {/* Working Hours */}
+          {workingHours.length > 0 && (
+            <div className="mt-12 text-center">
+              <h3 className="text-xl font-semibold mb-4">Working Hours</h3>
+              <div className="space-y-2">
+                {workingHours.map((schedule, index) => (
+                  <div key={index} className="text-gray-600">
+                    <span className="font-medium">{schedule.days}:</span> {schedule.time}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b sticky top-0 bg-white">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Book Appointment</h2>
+                <button
+                  onClick={() => {
+                    setShowBookingModal(false)
+                    setBookingStep(1)
+                    setSelectedService(null)
+                    setSelectedPackage(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              {/* Progress Indicator */}
+              <div className="flex gap-2 mt-4">
+                {[1, 2, 3, 4].map((step) => (
+                  <div
+                    key={step}
+                    className={`h-2 flex-1 rounded-full ${
+                      bookingStep >= step ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Step 1: Select Service */}
               {bookingStep === 1 && (
                 <div>
-                  <div className="flex items-center mb-8">
-                    <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
-                    <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
-                      1
-                    </div>
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
-                  </div>
+                  <h3 className="text-lg font-semibold mb-4">Select a Service</h3>
                   
-                  <h3 className="text-3xl font-black mb-6" style={{ color: colors.secondary }}>Select a Service</h3>
-                  
-                  {(() => {
-                    // Get unique categories
-                    const categories = Array.from(new Set(business.services?.map((s: any) => s.category || 'General'))) as string[]
-                    
-                    // Filter services based on search and category
-                    const filteredServices = business.services?.filter((service: any) => {
-                      const matchesSearch = service.name.toLowerCase().includes(serviceSearchTerm.toLowerCase()) ||
-                                          service.description?.toLowerCase().includes(serviceSearchTerm.toLowerCase())
-                      const matchesCategory = selectedServiceCategory === 'all' || 
-                                            (service.category || 'General') === selectedServiceCategory
-                      return matchesSearch && matchesCategory
-                    }) || []
-
-                    return (
-                      <>
-                        {/* Search and Filter Bar */}
-                        <div className="mb-6 space-y-4">
-                          {/* Search Input */}
-                          <div className="relative">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  {/* Show package session options if customer has packages */}
+                  {customerPackages.length > 0 && (
+                    <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                      <p className="font-medium text-green-800 mb-3">Use Your Package Sessions</p>
+                      <div className="space-y-2">
+                        {customerPackages.map((pkg) => (
+                          <label key={pkg.id} className="flex items-center p-3 bg-white rounded-lg cursor-pointer hover:bg-green-100">
                             <input
-                              type="text"
-                              placeholder="Search services..."
-                              value={serviceSearchTerm}
-                              onChange={(e) => setServiceSearchTerm(e.target.value)}
-                              className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                              style={{ focusBorderColor: colors.primary }}
-                            />
-                          </div>
-                          
-                          {/* Category Filters */}
-                          {categories.length > 1 && (
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() => setSelectedServiceCategory('all')}
-                                className={`px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                  selectedServiceCategory === 'all'
-                                    ? 'text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                                style={{
-                                  backgroundColor: selectedServiceCategory === 'all' ? colors.primary : undefined
-                                }}
-                              >
-                                All Services
-                              </button>
-                              {categories.map(category => (
-                                <button
-                                  key={category}
-                                  onClick={() => setSelectedServiceCategory(category)}
-                                  className={`px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                    selectedServiceCategory === category
-                                      ? 'text-white shadow-md'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                  }`}
-                                  style={{
-                                    backgroundColor: selectedServiceCategory === category ? colors.primary : undefined
-                                  }}
-                                >
-                                  {category}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Services Grid with Scroll */}
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                          {filteredServices.length > 0 ? (
-                            <div className="grid gap-3">
-                              {filteredServices.map((service: any) => (
-                                <div 
-                                  key={service.id}
-                                  onClick={() => {
+                              type="radio"
+                              name="package"
+                              value={pkg.id}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedPackage(pkg)
+                                  // Auto-select the first service from the package
+                                  const service = pkg.package?.services?.[0]?.service
+                                  if (service) {
                                     setSelectedService(service)
-                                    // Check if staff module is enabled
-                                    if (business.enableStaffModule) {
-                                      // Load staff for this service
-                                      fetchStaffForService(service.id)
-                                      setBookingStep(2) // Go to staff selection
-                                    } else {
-                                      setBookingStep(3) // Go directly to date/time selection
-                                    }
-                                  }}
-                                  className={`border-2 rounded-xl p-4 cursor-pointer transition duration-200 hover:shadow-md ${
-                                    selectedService?.id === service.id 
-                                      ? 'shadow-lg transform scale-[1.02]' 
-                                      : 'hover:border-gray-300'
-                                  }`}
-                                  style={{
-                                    borderColor: selectedService?.id === service.id ? colors.primary : '#e5e7eb',
-                                    backgroundColor: selectedService?.id === service.id ? colors.primary + '08' : 'white',
-                                  }}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1 pr-4">
-                                      <div className="flex items-start gap-3">
-                                        <div 
-                                          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                          style={{ 
-                                            background: `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.accent}20 100%)`,
-                                            color: colors.primary 
-                                          }}
-                                        >
-                                          <span className="font-bold">{service.name.charAt(0)}</span>
-                                        </div>
-                                        <div className="flex-1">
-                                          <h4 className="font-semibold text-base text-gray-900">{service.name}</h4>
-                                          <p className="text-gray-600 text-sm mt-1 line-clamp-1">{service.description}</p>
-                                          <div className="flex items-center gap-4 mt-2">
-                                            <span className="flex items-center text-xs text-gray-500">
-                                              <Clock size={14} className="mr-1" style={{ color: colors.primary }} />
-                                              {service.duration} min
-                                            </span>
-                                            {service.category && (
-                                              <span className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-600">
-                                                {service.category}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="text-right flex flex-col items-end">
-                                      <div className="text-2xl font-black" style={{ color: colors.primary }}>
-                                        ${service.price}
-                                      </div>
-                                      <ChevronRight 
-                                        className="text-gray-400 mt-1" 
-                                        size={20}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-12 text-gray-500">
-                              <Grid3X3 size={48} className="mx-auto mb-4 opacity-30" />
-                              <p>No services found matching your search</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Service Count */}
-                        {filteredServices.length > 0 && (
-                          <div className="mt-4 text-center text-sm text-gray-500">
-                            Showing {filteredServices.length} of {business.services?.length || 0} services
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                  
-                  <style jsx>{`
-                    .custom-scrollbar::-webkit-scrollbar {
-                      width: 6px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-track {
-                      background: #f1f1f1;
-                      border-radius: 10px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb {
-                      background: ${colors.primary}40;
-                      border-radius: 10px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                      background: ${colors.primary}60;
-                    }
-                  `}</style>
-                </div>
-              )}
-
-              {/* Step 2: Select Staff (if module is enabled) */}
-              {bookingStep === 2 && business.enableStaffModule && (
-                <div>
-                  <div className="flex items-center mb-8">
-                    <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
-                    <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
-                      2
-                    </div>
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
-                  </div>
-                  
-                  <h3 className="text-3xl font-black mb-6" style={{ color: colors.secondary }}>Select Professional</h3>
-                  
-                  {console.log('Rendering staff selection. Available staff:', availableStaff)}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {availableStaff.map((staff: any) => (
-                      <div
-                        key={staff.id}
-                        onClick={() => {
-                          setSelectedStaff(staff)
-                          setBookingStep(3) // Go to date/time selection
-                        }}
-                        className={`border-2 rounded-xl p-4 cursor-pointer transition duration-200 hover:shadow-md ${
-                          selectedStaff?.id === staff.id
-                            ? 'shadow-lg transform scale-[1.02]'
-                            : 'hover:border-gray-300'
-                        }`}
-                        style={{
-                          borderColor: selectedStaff?.id === staff.id ? colors.primary : '#e5e7eb',
-                          backgroundColor: selectedStaff?.id === staff.id ? colors.primary + '08' : 'white',
-                        }}
-                      >
-                        <div className="flex items-start gap-4">
-                          {staff.photo ? (
-                            <img
-                              src={staff.photo}
-                              alt={staff.name}
-                              className="w-16 h-16 rounded-lg object-cover"
+                                  }
+                                }
+                              }}
+                              className="mr-3"
                             />
-                          ) : (
-                            <div 
-                              className="w-16 h-16 rounded-lg flex items-center justify-center"
-                              style={{ backgroundColor: colors.primary + '20', color: colors.primary }}
-                            >
-                              <span className="text-xl font-bold">{staff.name.charAt(0)}</span>
+                            <div className="flex-1">
+                              <p className="font-medium">{pkg.package?.name}</p>
+                              <p className="text-sm text-gray-600">
+                                {pkg.remainingSessions} sessions remaining
+                              </p>
                             </div>
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-lg" style={{ color: colors.secondary }}>
-                              {staff.name}
-                            </h4>
-                            {staff.bio && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{staff.bio}</p>
-                            )}
-                            {staff.rating && staff.totalReviews > 0 && (
-                              <div className="flex items-center gap-1 mt-2">
-                                <Star size={16} className="text-yellow-400 fill-current" />
-                                <span className="text-sm font-medium">{staff.rating.toFixed(1)}</span>
-                                <span className="text-xs text-gray-500">({staff.totalReviews} reviews)</span>
-                              </div>
-                            )}
-                            {staff.specialties && staff.specialties.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {staff.specialties.slice(0, 2).map((specialty: string, idx: number) => (
-                                  <span 
-                                    key={idx}
-                                    className="text-xs px-2 py-1 rounded-full"
-                                    style={{ backgroundColor: colors.primary + '15', color: colors.primary }}
-                                  >
-                                    {specialty}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {business.services?.map((service: any) => (
+                      <div
+                        key={service.id}
+                        onClick={() => {
+                          setSelectedService(service)
+                          setBookingStep(2)
+                          if (business.enableStaffModule) {
+                            fetchStaffForService(service.id)
+                          }
+                        }}
+                        className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-medium">{service.name}</h4>
+                            <p className="text-sm text-gray-600">{service.duration} minutes</p>
                           </div>
+                          <span className="text-xl font-bold" style={{ color: colors.primary }}>
+                            ${service.price}
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  {availableStaff.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      <p>No professionals available for this service</p>
-                    </div>
-                  )}
-
-                  <div className="mt-6 flex justify-between">
-                    <button
-                      onClick={() => setBookingStep(1)}
-                      className="px-6 py-3 border-2 border-gray-200 rounded-xl font-semibold hover:bg-gray-50 transition"
-                    >
-                      Back
-                    </button>
-                  </div>
                 </div>
               )}
 
-              {/* Step 3: Select Date & Time */}
-              {bookingStep === 3 && (
+              {/* Step 2: Select Date & Time */}
+              {bookingStep === 2 && (
                 <div>
-                  <div className="flex items-center mb-8">
-                    <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
-                    <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
-                      {business.enableStaffModule ? 3 : 2}
+                  <button
+                    onClick={() => setBookingStep(1)}
+                    className="mb-4 flex items-center text-gray-600 hover:text-gray-900"
+                  >
+                    <ChevronLeft size={20} className="mr-1" />
+                    Back
+                  </button>
+                  
+                  <h3 className="text-lg font-semibold mb-4">Select Date & Time</h3>
+                  
+                  {selectedService && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <p className="font-medium">{selectedService.name}</p>
+                      <p className="text-sm text-gray-600">{selectedService.duration} minutes - ${selectedService.price}</p>
+                      {selectedPackage && (
+                        <p className="text-sm text-green-600 mt-1">
+                          Using package session ({selectedPackage.remainingSessions} remaining)
+                        </p>
+                      )}
                     </div>
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
-                  </div>
-                  
-                  <h3 className="text-3xl font-black mb-8" style={{ color: colors.secondary }}>Select Date & Time</h3>
-                  
-                  <div className="space-y-6">
+                  )}
+
+                  {/* Staff Selection (if enabled) */}
+                  {business.enableStaffModule && availableStaff.length > 0 && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Professional (Optional)
+                      </label>
+                      <select
+                        value={selectedStaff?.id || ''}
+                        onChange={(e) => {
+                          const staff = availableStaff.find(s => s.id === e.target.value)
+                          setSelectedStaff(staff || null)
+                        }}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        <option value="">Any Available</option>
+                        {availableStaff.map((staff) => (
+                          <option key={staff.id} value={staff.id}>
+                            {staff.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Select Date
                       </label>
-                      <input 
+                      <input
                         type="date"
                         min={new Date().toISOString().split('T')[0]}
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                        style={{ focusBorderColor: colors.primary }}
+                        className="w-full px-4 py-2 border rounded-lg"
                       />
                     </div>
-
-                    {selectedDate && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Available Time Slots
-                        </label>
-                        {isLoadingSlots ? (
-                          <div className="text-center py-4">Loading available times...</div>
-                        ) : availableSlots.length > 0 ? (
-                          <div className="grid grid-cols-4 gap-2">
-                            {availableSlots.map(time => (
-                              <button
-                                key={time}
-                                type="button"
-                                onClick={() => setSelectedTime(time)}
-                                className={`p-3 rounded-xl border-2 font-semibold transition duration-200 ${
-                                  selectedTime === time 
-                                    ? 'text-white shadow-lg transform scale-105' 
-                                    : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                                }`}
-                                style={{
-                                  backgroundColor: selectedTime === time ? colors.primary : undefined,
-                                  borderColor: selectedTime === time ? colors.primary : undefined
-                                }}
-                              >
-                                {time}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-gray-500">
-                            No available time slots for this date
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex gap-4">
-                      <button 
-                        type="button"
-                        onClick={() => setBookingStep(business.enableStaffModule ? 2 : 1)}
-                        className="flex-1 border-2 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-50 transition duration-200"
-                        style={{ borderColor: colors.primary, color: colors.primary }}
-                      >
-                        Back
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setBookingStep(4)}
-                        disabled={!selectedDate || !selectedTime}
-                        className="flex-1 text-white py-4 rounded-xl font-bold hover:opacity-90 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: colors.primary }}
-                      >
-                        Continue
-                      </button>
-                    </div>
                   </div>
+
+                  {selectedDate && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Available Times
+                      </label>
+                      {isLoadingSlots ? (
+                        <p className="text-gray-500">Loading available times...</p>
+                      ) : availableSlots.length > 0 ? (
+                        <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                          {availableSlots.map((slot) => (
+                            <button
+                              key={slot}
+                              onClick={() => {
+                                setSelectedTime(slot)
+                                setBookingStep(3)
+                              }}
+                              className="px-4 py-2 border rounded-lg hover:bg-blue-50 hover:border-blue-500 transition"
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">No available times for this date</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Step 4: Contact Information */}
-              {bookingStep === 4 && (
+              {/* Step 3: Customer Information */}
+              {bookingStep === 3 && (
                 <div>
-                  <div className="flex items-center mb-8">
-                    <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
-                    <div className="mx-6 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: colors.primary }}>
-                      {business.enableStaffModule ? 4 : 3}
-                    </div>
-                    <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
-                  </div>
+                  <button
+                    onClick={() => setBookingStep(2)}
+                    className="mb-4 flex items-center text-gray-600 hover:text-gray-900"
+                  >
+                    <ChevronLeft size={20} className="mr-1" />
+                    Back
+                  </button>
                   
-                  <h3 className="text-3xl font-black mb-8" style={{ color: colors.secondary }}>Contact Information</h3>
+                  <h3 className="text-lg font-semibold mb-4">Your Information</h3>
                   
-                  <form onSubmit={handleBookingSubmit} className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
+                  <form onSubmit={handleBookingSubmit}>
+                    <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Full Name *
                         </label>
-                        <input 
+                        <input
                           type="text"
                           required
                           value={bookingData.customerName}
-                          onChange={(e) => setBookingData({...bookingData, customerName: e.target.value})}
-                          className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                          style={{ focusBorderColor: colors.primary }}
+                          onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
+                          className="w-full px-4 py-2 border rounded-lg"
                         />
                       </div>
+                      
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phone Number *
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email *
                         </label>
-                        <input 
+                        <input
+                          type="email"
+                          required
+                          value={bookingData.customerEmail}
+                          onChange={(e) => setBookingData({ ...bookingData, customerEmail: e.target.value })}
+                          className="w-full px-4 py-2 border rounded-lg"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Phone *
+                        </label>
+                        <input
                           type="tel"
                           required
-                          minLength={7}
                           value={bookingData.customerPhone}
-                          onChange={(e) => setBookingData({...bookingData, customerPhone: e.target.value})}
-                          className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                          style={{ focusBorderColor: colors.primary }}
-                          placeholder="Enter at least 7 digits"
+                          onChange={(e) => setBookingData({ ...bookingData, customerPhone: e.target.value })}
+                          className="w-full px-4 py-2 border rounded-lg"
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address *
-                      </label>
-                      <input 
-                        type="email"
-                        required
-                        value={bookingData.customerEmail}
-                        onChange={(e) => setBookingData({...bookingData, customerEmail: e.target.value})}
-                        className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                        style={{ focusBorderColor: colors.primary }}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Special Notes (Optional)
-                      </label>
-                      <textarea 
-                        rows={3}
-                        value={bookingData.notes}
-                        onChange={(e) => setBookingData({...bookingData, notes: e.target.value})}
-                        className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-2 focus:ring-0 focus:outline-none transition"
-                        style={{ focusBorderColor: colors.primary }}
-                        placeholder="Any special requests or information..."
-                      />
-                    </div>
-                    
-                    <div className="p-6 rounded-2xl border-2" style={{ backgroundColor: colors.primary + '05', borderColor: colors.primary + '20' }}>
-                      <h4 className="font-black text-xl mb-4" style={{ color: colors.secondary }}>Booking Summary</h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Service:</span>
-                          <span className="font-medium">{selectedService?.name}</span>
-                        </div>
-                        {selectedStaff && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Professional:</span>
-                            <span className="font-medium">{selectedStaff.name}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Date:</span>
-                          <span className="font-medium">{new Date(selectedDate).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Time:</span>
-                          <span className="font-medium">{selectedTime}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Duration:</span>
-                          <span className="font-medium">{selectedService?.duration} minutes</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Price:</span>
-                          <span className="font-bold text-blue-600">${selectedService?.price}</span>
-                        </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Notes (Optional)
+                        </label>
+                        <textarea
+                          value={bookingData.notes}
+                          onChange={(e) => setBookingData({ ...bookingData, notes: e.target.value })}
+                          className="w-full px-4 py-2 border rounded-lg"
+                          rows={3}
+                        />
                       </div>
-                    </div>
 
-                    <div className="flex gap-4">
-                      <button 
-                        type="button"
-                        onClick={() => setBookingStep(3)}
-                        className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
-                      >
-                        Back
-                      </button>
-                      <button 
+                      {/* Booking Summary */}
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold mb-2">Booking Summary</h4>
+                        <p className="text-sm text-gray-600">Service: {selectedService?.name}</p>
+                        <p className="text-sm text-gray-600">Date: {selectedDate}</p>
+                        <p className="text-sm text-gray-600">Time: {selectedTime}</p>
+                        {selectedStaff && (
+                          <p className="text-sm text-gray-600">Professional: {selectedStaff.name}</p>
+                        )}
+                        <p className="text-sm font-semibold mt-2">
+                          Total: {selectedPackage ? 'Using Package Session' : `$${selectedService?.price}`}
+                        </p>
+                      </div>
+                      
+                      <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-3 rounded-lg text-white font-medium disabled:opacity-50"
+                        style={{ backgroundColor: colors.primary }}
                       >
-                        {isSubmitting ? 'Processing...' : 'Confirm Booking'}
+                        {isSubmitting ? 'Booking...' : 'Confirm Booking'}
                       </button>
                     </div>
                   </form>
                 </div>
               )}
 
-              {/* Success Step */}
+              {/* Step 4: Success */}
               {bookingStep === 5 && bookingSuccess && (
-                <div className="text-center py-12">
-                  <div className="mb-6">
-                    <div className="mx-auto bg-green-100 rounded-full w-20 h-20 flex items-center justify-center">
-                      <Check className="text-green-600" size={40} />
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-3xl font-bold text-gray-900 mb-4">Booking Confirmed!</h3>
-                  <p className="text-lg text-gray-600 mb-8">
-                    Your appointment has been successfully booked.
-                  </p>
-                  
-                  <div className="bg-gray-50 p-6 rounded-lg max-w-md mx-auto mb-8">
-                    <h4 className="font-semibold mb-4">Appointment Details</h4>
-                    <div className="space-y-2 text-left">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Service:</span>
-                        <span className="font-medium">{selectedService?.name}</span>
-                      </div>
-                      {selectedStaff && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Professional:</span>
-                          <span className="font-medium">{selectedStaff.name}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Date:</span>
-                        <span className="font-medium">{new Date(selectedDate).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Time:</span>
-                        <span className="font-medium">{selectedTime}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Price:</span>
-                        <span className="font-bold text-blue-600">${selectedService?.price}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
+                <div className="text-center py-8">
+                  <CheckCircle size={64} className="mx-auto mb-4 text-green-500" />
+                  <h3 className="text-2xl font-bold mb-2">Booking Confirmed!</h3>
                   <p className="text-gray-600 mb-6">
-                    A confirmation email has been sent to {bookingData.customerEmail}
+                    Your appointment has been successfully booked. You will receive a confirmation email shortly.
                   </p>
-                  
-                  <button 
+                  <button
                     onClick={() => {
+                      setShowBookingModal(false)
                       setBookingStep(1)
-                      setSelectedService(null)
-                      setSelectedStaff(null)
-                      setAvailableStaff([])
-                      setSelectedDate('')
-                      setSelectedTime('')
-                      setBookingData({ customerName: '', customerEmail: '', customerPhone: '', notes: '' })
                       setBookingSuccess(false)
+                      setSelectedService(null)
+                      setSelectedPackage(null)
+                      setBookingData({
+                        customerName: '',
+                        customerEmail: '',
+                        customerPhone: '',
+                        notes: ''
+                      })
                     }}
-                    className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+                    className="px-6 py-2 rounded-lg text-white font-medium"
+                    style={{ backgroundColor: colors.primary }}
                   >
-                    Book Another Appointment
+                    Close
                   </button>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Contact Section */}
-      <section id="contact" className="py-24 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${colors.primary}05 0%, ${colors.accent}05 100%)` }}>
-        {/* Background decoration */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/6 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/6 w-96 h-96 bg-white/3 rounded-full blur-3xl animate-pulse delay-500"></div>
-        </div>
-        
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-black mb-6" style={{ color: colors.secondary }}>Get In Touch</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Visit us or reach out for any questions about our services
-            </p>
-          </div>
+      {/* Package Reservation Modal */}
+      {showPackageReserveModal && selectedPackageForPurchase && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b sticky top-0 bg-white">
+              <h2 className="text-2xl font-bold">Reserve Package: {selectedPackageForPurchase.name}</h2>
+              <button
+                onClick={() => setShowPackageReserveModal(false)}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
 
-          <div className="grid md:grid-cols-2 gap-16 max-w-7xl mx-auto">
-            <div className="space-y-8">
-              <div className="flex items-start space-x-6">
-                <div className="p-4 rounded-2xl" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}>
-                  <MapPin className="text-white" size={28} />
-                </div>
-                <div>
-                  <h3 className="font-black text-xl mb-2" style={{ color: colors.secondary }}>Address</h3>
-                  <p className="text-gray-600">
-                    {business.address || 'Address not available'}<br />
-                    {business.city}, {business.state} {business.zipCode}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-6">
-                <div className="p-4 rounded-2xl" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}>
-                  <Phone className="text-white" size={28} />
-                </div>
-                <div>
-                  <h3 className="font-black text-xl mb-2" style={{ color: colors.secondary }}>Phone</h3>
-                  <p className="text-gray-600">{business.phone || 'Phone not available'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-6">
-                <div className="p-4 rounded-2xl" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}>
-                  <Mail className="text-white" size={28} />
-                </div>
-                <div>
-                  <h3 className="font-black text-xl mb-2" style={{ color: colors.secondary }}>Email</h3>
-                  <p className="text-gray-600">{business.email || 'Email not available'}</p>
-                </div>
-              </div>
-
-              {business.socialLinks && (
-                <div className="flex items-start space-x-6">
-                  <div className="p-4 rounded-2xl" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}>
-                    <MessageCircle className="text-white" size={28} />
-                  </div>
+            <div className="p-6">
+              <form onSubmit={handlePackageReserve}>
+                <div className="space-y-4">
                   <div>
-                    <h3 className="font-black text-xl mb-4" style={{ color: colors.secondary }}>Follow Us</h3>
-                    <div className="flex space-x-4">
-                      {business.socialLinks.facebook && (
-                        <a href={business.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600">
-                          <Facebook size={24} />
-                        </a>
-                      )}
-                      {business.socialLinks.instagram && (
-                        <a href={business.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-pink-600">
-                          <Instagram size={24} />
-                        </a>
-                      )}
-                      {business.socialLinks.twitter && (
-                        <a href={business.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-400">
-                          <Twitter size={24} />
-                        </a>
-                      )}
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={reservationData.name}
+                      onChange={(e) => setReservationData({ ...reservationData, name: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={reservationData.email}
+                      onChange={(e) => setReservationData({ ...reservationData, email: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={reservationData.phone}
+                      onChange={(e) => setReservationData({ ...reservationData, phone: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Payment Method
+                    </label>
+                    <select
+                      value={reservationData.paymentMethod}
+                      onChange={(e) => setReservationData({ ...reservationData, paymentMethod: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    >
+                      <option value="TRANSFER">Bank Transfer</option>
+                      <option value="CASH">Cash</option>
+                      <option value="CARD">Card</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notes
+                    </label>
+                    <textarea
+                      value={reservationData.notes}
+                      onChange={(e) => setReservationData({ ...reservationData, notes: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600 transition disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Reserving...' : 'Reserve Package'}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div>
-              <div className="flex items-start space-x-6">
-                <div className="p-4 rounded-2xl" style={{ background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)` }}>
-                  <Clock className="text-white" size={28} />
-                </div>
-                <div>
-                  <h3 className="font-black text-xl mb-2" style={{ color: colors.secondary }}>Business Hours</h3>
-                  <div className="space-y-0">
-                    {(() => {
-                      // Reorder to show Monday-Saturday, then Sunday
-                      const reorderedHours = [
-                        workingHours[1], // Monday
-                        workingHours[2], // Tuesday
-                        workingHours[3], // Wednesday
-                        workingHours[4], // Thursday
-                        workingHours[5], // Friday
-                        workingHours[6], // Saturday
-                        workingHours[0], // Sunday
-                      ].filter(Boolean)
-                      
-                      return reorderedHours.map((hour: any, index: number) => (
-                        <div key={hour.day} className="flex gap-4 py-0.5 text-sm">
-                          <span className="font-medium text-gray-700 w-24">{hour.day}</span>
-                          <span className={hour.hours === 'Closed' ? 'text-red-500' : 'text-gray-900'}>
-                            {hour.hours}
-                          </span>
-                        </div>
-                      ))
-                    })()}
-                  </div>
-                  
-                  {business.phone && (
-                    <div className="mt-4">
-                      <a 
-                        href={`https://wa.me/${business.phone.replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:from-green-600 hover:to-green-700 transition duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                      >
-                        <MessageCircle size={16} />
-                        <span>WhatsApp</span>
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative overflow-hidden py-12" style={{ background: `linear-gradient(135deg, ${colors.secondary} 0%, ${colors.primary} 100%)` }}>
-        {/* Background decoration */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/3 w-80 h-80 bg-white/3 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="container mx-auto px-6 text-center relative z-10">
-          <div className="mb-6">
-            <h3 className="text-3xl font-black text-white mb-3">{business.name}</h3>
-            <p className="text-white/90 text-lg font-medium">
-              Thank you for choosing us for your service needs.
-            </p>
-            <p className="text-white/90 text-lg font-medium">
-              We look forward to serving you!
-            </p>
-          </div>
-          
-          <div className="border-t border-white/20 pt-6">
-            <p className="text-white/60 text-sm">
-              &copy; {new Date().getFullYear()} {business.name}. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      )}
 
       {/* Image Modal */}
       {selectedImageModal && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedImageModal(null)}
-        >
-          <div 
-            className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button */}
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImageModal(null)}>
+          <div className="relative max-w-4xl w-full">
             <button
               onClick={() => setSelectedImageModal(null)}
-              className="absolute top-4 right-4 z-10 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 transition backdrop-blur-sm"
+              className="absolute top-4 right-4 text-white hover:text-gray-300"
             >
-              <X size={24} />
+              <X size={32} />
             </button>
-
-            {/* Image */}
-            <img 
-              src={selectedImageModal.url}
+            <img
+              src={selectedImageModal.url || selectedImageModal.imageUrl}
               alt={selectedImageModal.title || 'Gallery image'}
-              className="w-full h-auto max-h-[70vh] object-contain"
+              className="w-full h-auto rounded-lg"
             />
-
-            {/* Image Info */}
-            <div className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  {selectedImageModal.title && (
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {selectedImageModal.title}
-                    </h3>
-                  )}
-                  {selectedImageModal.description && (
-                    <p className="text-gray-600 mb-4">
-                      {selectedImageModal.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4">
-                    <span 
-                      className="px-4 py-2 rounded-full text-sm font-semibold text-white"
-                      style={{ backgroundColor: colors.accent }}
-                    >
-                      {selectedImageModal.category || 'General'}
-                    </span>
-                    {selectedImageModal.createdAt && (
-                      <span className="text-sm text-gray-500">
-                        Added {new Date(selectedImageModal.createdAt).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Action buttons */}
-              <div className="flex gap-3 mt-6">
-                <a 
-                  href={`/book/${business.slug}`} 
-                  className="flex-1 text-center text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition"
-                  style={{ backgroundColor: colors.primary }}
-                  onClick={() => setSelectedImageModal(null)}
-                >
-                  Book This Service
-                </a>
-                <button
-                  onClick={() => setSelectedImageModal(null)}
-                  className="px-6 py-3 border-2 rounded-lg font-semibold hover:bg-gray-50 transition"
-                  style={{ borderColor: colors.primary, color: colors.primary }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
+            {selectedImageModal.title && (
+              <p className="text-white text-center mt-4 text-xl">{selectedImageModal.title}</p>
+            )}
+            {selectedImageModal.description && (
+              <p className="text-gray-300 text-center mt-2">{selectedImageModal.description}</p>
+            )}
           </div>
         </div>
       )}

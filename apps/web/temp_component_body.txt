@@ -1,0 +1,252 @@
+export default function BusinessLanding({ business }: BusinessLandingProps) {
+  // Extract theme colors from business settings
+  const theme = business.settings?.theme || {}
+  const colors = {
+    primary: theme.primaryColor || '#3B82F6',
+    secondary: theme.secondaryColor || '#1F2937',
+    accent: theme.accentColor || '#10B981',
+    background: theme.backgroundColor || '#FFFFFF'
+  }
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [showPackageReserveModal, setShowPackageReserveModal] = useState(false)
+  const [bookingStep, setBookingStep] = useState(1)
+  const [selectedService, setSelectedService] = useState<any>(null)
+  const [selectedPackage, setSelectedPackage] = useState<any>(null)
+  const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [availableStaff, setAvailableStaff] = useState<any[]>([])
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedTime, setSelectedTime] = useState('')
+  const [availableSlots, setAvailableSlots] = useState<string[]>([])
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [bookingData, setBookingData] = useState({
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    notes: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [selectedImageModal, setSelectedImageModal] = useState<any>(null)
+  const [activeGalleryTab, setActiveGalleryTab] = useState('')
+  const [currentServicePage, setCurrentServicePage] = useState(1)
+  const servicesPerPage = 6
+  const [serviceSearchTerm, setServiceSearchTerm] = useState('')
+  const [selectedServiceCategory, setSelectedServiceCategory] = useState('all')
+  const [reviews, setReviews] = useState<any[]>([])
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false)
+  const [selectedServicesCategory, setSelectedServicesCategory] = useState('all')
+  const [serviceSearchTermMain, setServiceSearchTermMain] = useState('')
+  const [reservationData, setReservationData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    paymentMethod: 'TRANSFER',
+    notes: ''
+  })
+  const [reservationSuccess, setReservationSuccess] = useState(false)
+  
+  // Format working hours using correct field names and business settings
+  const formatWorkingHours = (hours: any[], settings: any) => {
+    const daysMap: any = {
+      0: 'Sunday',
+      1: 'Monday', 
+      2: 'Tuesday',
+      3: 'Wednesday',
+      4: 'Thursday',
+      5: 'Friday',
+      6: 'Saturday'
+    }
+    
+    // Get schedule settings for default hours
+    const scheduleSettings = settings?.scheduleSettings || {
+      startTime: '09:00',
+      endTime: '17:00'
+    }
+    
+    // Create a complete week schedule
+    const weekSchedule = []
+    for (let day = 0; day <= 6; day++) {
+      const dayHours = hours.find((h: any) => h.dayOfWeek === day)
+      
+      if (dayHours) {
+        weekSchedule.push({
+          day: daysMap[day],
+          hours: !dayHours.isActive ? 'Closed' : `${dayHours.startTime || scheduleSettings.startTime} - ${dayHours.endTime || scheduleSettings.endTime}`
+        })
+      } else {
+        // Use schedule settings to determine if this day should be open
+        const isWorkingDay = settings?.scheduleSettings?.workingDays?.includes(day)
+        weekSchedule.push({
+          day: daysMap[day],
+          hours: isWorkingDay ? `${scheduleSettings.startTime} - ${scheduleSettings.endTime}` : 'Closed'
+        })
+      }
+    }
+    
+    return weekSchedule
+  }
+
+  const workingHours = formatWorkingHours(business.workingHours || [], business.settings || {})
+
+  // Fetch reviews on component mount
+  useEffect(() => {
+    fetchReviews()
+  }, [business.id])
+
+  // Fetch available time slots when date, service, and staff are selected
+  useEffect(() => {
+    if (selectedDate && selectedService) {
+      fetchAvailableSlots()
+    }
+  }, [selectedDate, selectedService, selectedStaff])
+
+  const fetchReviews = async () => {
+    setIsLoadingReviews(true)
+    try {
+      const response = await fetch(`/api/public/reviews?businessId=${business.id}`)
+      const data = await response.json()
+      setReviews(data || [])
+    } catch (error) {
+      console.error('Error fetching reviews:', error)
+      setReviews([])
+    } finally {
+      setIsLoadingReviews(false)
+    }
+  }
+
+  const fetchStaffForService = async (serviceId: string) => {
+    try {
+      // Use customSlug if available, otherwise fall back to slug or id
+      const businessIdentifier = business.customSlug || business.slug || business.id
+      console.log('Fetching staff for service:', serviceId, 'business identifier:', businessIdentifier)
+      const url = `/api/public/staff/${encodeURIComponent(businessIdentifier)}?serviceId=${serviceId}`
+      console.log('Fetching from URL:', url)
+      
+      const response = await fetch(url)
+      if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText)
+      }
+      
+      const data = await response.json()
+      console.log('Staff data received:', data)
+      console.log('Setting availableStaff to:', data.staff)
+      setAvailableStaff(data.staff || [])
+    } catch (error) {
+      console.error('Error fetching staff:', error)
+      setAvailableStaff([])
+    }
+  }
+
+  const fetchAvailableSlots = async () => {
+    setIsLoadingSlots(true)
+    try {
+      const params = new URLSearchParams({
+        businessId: business.id,
+        serviceId: selectedService.id,
+        date: selectedDate
+      })
+      
+      // Add staffId if staff is selected
+      if (selectedStaff) {
+        params.append('staffId', selectedStaff.id)
+      }
+      
+      const response = await fetch(`/api/public/appointments?${params}`)
+      const data = await response.json()
+      setAvailableSlots(data.availableSlots || [])
+    } catch (error) {
+      console.error('Error fetching slots:', error)
+      setAvailableSlots([])
+    } finally {
+      setIsLoadingSlots(false)
+    }
+  }
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const appointmentData: any = {
+        businessId: business.id,
+        serviceId: selectedService.id,
+        date: selectedDate,
+        time: selectedTime,
+        ...bookingData
+      }
+      
+      // Add packageId if a package is selected
+      if (selectedPackage) {
+        appointmentData.packageId = selectedPackage.id
+      }
+      
+      // Add staffId if staff is selected
+      if (selectedStaff) {
+        appointmentData.staffId = selectedStaff.id
+      }
+      
+      const response = await fetch('/api/public/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointmentData)
+      })
+
+      if (response.ok) {
+        setBookingSuccess(true)
+        setBookingStep(5) // Success step
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to create booking')
+      }
+    } catch (error) {
+      console.error('Booking error:', error)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handlePackageReserve = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/public/packages/reserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packageId: selectedPackage?.id,
+          customerName: reservationData.name,
+          customerEmail: reservationData.email,
+          customerPhone: reservationData.phone,
+          paymentMethod: reservationData.paymentMethod,
+          notes: reservationData.notes
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setReservationSuccess(true)
+        alert(`Package reserved successfully! ${result.purchase.paymentInstructions.message}`)
+        // Reset form
+        setReservationData({
+          name: '',
+          email: '',
+          phone: '',
+          paymentMethod: 'TRANSFER',
+          notes: ''
+        })
+        setShowPackageReserveModal(false)
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to reserve package')
+      }
+    } catch (error) {
+      console.error('Reservation error:', error)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }

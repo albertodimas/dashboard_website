@@ -1,0 +1,4 @@
+SELECT 'Reviews' as table_name, COUNT(*) as count FROM "Review" WHERE "businessId" = (SELECT id FROM "Business" WHERE "customSlug" = 'wmc/welcome');
+SELECT 'Gallery' as table_name, COUNT(*) as count FROM "GalleryItem" WHERE "businessId" = (SELECT id FROM "Business" WHERE "customSlug" = 'wmc/welcome');
+SELECT 'Staff' as table_name, COUNT(*) as count FROM "Staff" WHERE "businessId" = (SELECT id FROM "Business" WHERE "customSlug" = 'wmc/welcome');
+SELECT 'WorkingHours' as table_name, COUNT(*) as count FROM "WorkingHours" WHERE "businessId" = (SELECT id FROM "Business" WHERE "customSlug" = 'wmc/welcome');

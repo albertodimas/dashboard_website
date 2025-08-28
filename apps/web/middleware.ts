@@ -19,6 +19,7 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/admin/') || 
       pathname.startsWith('/business/') ||
       pathname.startsWith('/business-pages/') ||
+      pathname.startsWith('/client/') ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/register') ||
       pathname.startsWith('/book/') ||
@@ -30,9 +31,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
-  // For custom business pages, rewrite to the new location
+  // For custom business pages, rewrite to /b/[slug]
   if (pathname !== '/' && !pathname.includes('.')) {
-    return NextResponse.rewrite(new URL(`/business-pages${pathname}`, request.url))
+    // For paths with wmc, preserve the full path
+    if (pathname.startsWith('/wmc')) {
+      return NextResponse.rewrite(new URL(`/b${pathname}`, request.url))
+    }
+    // For other custom slugs
+    const slug = pathname.substring(1)
+    return NextResponse.rewrite(new URL(`/b/${slug}`, request.url))
   }
   
   // For root path and other paths, let them continue normally

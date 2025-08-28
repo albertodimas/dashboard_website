@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@dashboard/db'
-import BusinessLanding from '@/components/business/BusinessLanding'
+import BusinessLandingFixed from '@/components/business/BusinessLandingFixed'
 
 interface BusinessPageProps {
   params: {
@@ -20,6 +20,24 @@ async function getBusinessData(slug: string) {
         services: {
           where: { isActive: true },
           orderBy: { createdAt: 'asc' }
+        },
+        packages: {
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            services: {
+              include: {
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    duration: true,
+                    price: true
+                  }
+                }
+              }
+            }
+          }
         },
         staff: {
           where: { isActive: true }
@@ -95,7 +113,14 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
     notFound()
   }
 
-  return <BusinessLanding business={business} />
+  // Debug log en el servidor
+  console.log('[SERVER] Business data for', params.slug, {
+    enablePackagesModule: business.enablePackagesModule,
+    packagesCount: business.packages?.length || 0,
+    packages: business.packages?.map((p: any) => ({ name: p.name, isActive: p.isActive }))
+  })
+
+  return <BusinessLandingFixed business={business} />
 }
 
 export async function generateMetadata({ params }: BusinessPageProps) {

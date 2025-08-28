@@ -12,6 +12,7 @@ export default function DashboardNav() {
   const { t } = useLanguage()
   const [businessName, setBusinessName] = useState('')
   const [enableStaffModule, setEnableStaffModule] = useState(false)
+  const [enablePackagesModule, setEnablePackagesModule] = useState(false)
   
   useEffect(() => {
     // Load business name from database
@@ -26,7 +27,10 @@ export default function DashboardNav() {
           }
           // Check for enableStaffModule explicitly
           setEnableStaffModule(data.enableStaffModule === true)
+          // Check for enablePackagesModule
+          setEnablePackagesModule(data.enablePackagesModule === true)
           console.log('Staff module enabled:', data.enableStaffModule) // Debug log
+          console.log('Packages module enabled:', data.enablePackagesModule) // Debug log
         }
       } catch (error) {
         console.error('Error loading business name:', error)
@@ -43,6 +47,18 @@ export default function DashboardNav() {
   const navItems = [
     { href: '/dashboard/appointments', label: t('appointments') },
     { href: '/dashboard/services', label: t('services') },
+    ...(enablePackagesModule ? [
+      {
+        href: '/dashboard/packages', 
+        label: t('language') === 'en' ? '📦 Packages' : '📦 Paquetes',
+        highlight: true 
+      },
+      {
+        href: '/dashboard/package-purchases', 
+        label: t('language') === 'en' ? '💳 Purchases' : '💳 Compras',
+        highlight: true
+      }
+    ] : []),
     ...(enableStaffModule ? [{ 
       href: '/dashboard/staff', 
       label: t('language') === 'en' ? '👥 Staff' : '👥 Trabajadores',

@@ -11,9 +11,18 @@ export async function GET(req: NextRequest) {
       return createAuthResponse('Business not found', 404)
     }
 
+    // Ensure packages module state is synced with enablePackagesModule field
+    const features = business.features || {}
+    if (business.enablePackagesModule && !features.packages) {
+      features.packages = { enabled: true }
+    } else if (features.packages) {
+      features.packages.enabled = business.enablePackagesModule
+    }
+
     return NextResponse.json({
       businessType: business.businessType,
-      features: business.features || {}
+      features,
+      enablePackagesModule: business.enablePackagesModule
     })
   } catch (error) {
     console.error('Error fetching business modules:', error)
@@ -33,12 +42,16 @@ export async function POST(req: NextRequest) {
 
     const { businessType, features } = await req.json()
 
+    // Check if packages module is enabled in features
+    const enablePackagesModule = features?.packages?.enabled || false
+
     // Update the business with new type and features
     const business = await prisma.business.updateMany({
       where: { tenantId: user.tenantId },
       data: {
         businessType,
-        features: features || {}
+        features: features || {},
+        enablePackagesModule
       }
     })
 

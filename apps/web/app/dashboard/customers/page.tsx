@@ -14,6 +14,22 @@ interface Customer {
   totalSpent: number
   lastVisit: string
   status: 'active' | 'inactive'
+  packagePurchases?: PackagePurchase[]
+}
+
+interface PackagePurchase {
+  id: string
+  packageId: string
+  package: {
+    name: string
+    sessionCount: number
+  }
+  purchaseDate: string
+  expiryDate?: string
+  totalSessions: number
+  usedSessions: number
+  remainingSessions: number
+  status: string
 }
 
 export default function CustomersPage() {
@@ -26,7 +42,9 @@ export default function CustomersPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [showSessionsModal, setShowSessionsModal] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [selectedCustomerPurchases, setSelectedCustomerPurchases] = useState<PackagePurchase[]>([])
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -99,6 +117,23 @@ export default function CustomersPage() {
   const handleViewCustomer = (customer: Customer) => {
     setSelectedCustomer(customer)
     setShowViewModal(true)
+  }
+
+  const handleViewSessions = async (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setShowSessionsModal(true)
+    
+    // Fetch package purchases for this customer
+    try {
+      const response = await fetch(`/api/packages/purchase?customerId=${customer.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setSelectedCustomerPurchases(data.purchases || [])
+      }
+    } catch (err) {
+      console.error('Failed to load package purchases:', err)
+      setSelectedCustomerPurchases([])
+    }
   }
 
   const handleEditCustomer = (customer: Customer) => {
@@ -292,6 +327,9 @@ export default function CustomersPage() {
                   {t('language') === 'en' ? 'Last Visit' : 'Última Visita'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('language') === 'en' ? 'Active Sessions' : 'Sesiones Activas'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -328,6 +366,14 @@ export default function CustomersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{customer.lastVisit}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button 
+                      onClick={() => handleViewSessions(customer)}
+                      className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                    >
+                      {t('language') === 'en' ? 'View Sessions' : 'Ver Sesiones'}
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -550,6 +596,109 @@ export default function CustomersPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sessions Modal */}
+        {showSessionsModal && selectedCustomer && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+              <h2 className="text-xl font-bold mb-4">
+                {t('language') === 'en' ? 'Package Sessions for ' : 'Sesiones de Paquetes para '} 
+                {selectedCustomer.name}
+              </h2>
+              
+              {selectedCustomerPurchases.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  {t('language') === 'en' 
+                    ? 'No package purchases found for this customer.' 
+                    : 'No se encontraron compras de paquetes para este cliente.'}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedCustomerPurchases.map((purchase) => (
+                    <div key={purchase.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold text-lg">{purchase.package.name}</h3>
+                          <p className="text-sm text-gray-600">
+                            {t('language') === 'en' ? 'Purchased: ' : 'Comprado: '} 
+                            {new Date(purchase.purchaseDate).toLocaleDateString()}
+                          </p>
+                          {purchase.expiryDate && (
+                            <p className="text-sm text-gray-600">
+                              {t('language') === 'en' ? 'Expires: ' : 'Expira: '} 
+                              {new Date(purchase.expiryDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          purchase.status === 'ACTIVE' 
+                            ? 'bg-green-100 text-green-800' 
+                            : purchase.status === 'EXPIRED'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {purchase.status}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4 mt-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-gray-900">
+                            {purchase.totalSessions}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {t('language') === 'en' ? 'Total Sessions' : 'Sesiones Totales'}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">
+                            {purchase.usedSessions}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {t('language') === 'en' ? 'Used' : 'Usadas'}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {purchase.remainingSessions}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {t('language') === 'en' ? 'Remaining' : 'Restantes'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="mt-4">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full" 
+                            style={{
+                              width: `${(purchase.usedSessions / purchase.totalSessions) * 100}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    setShowSessionsModal(false)
+                    setSelectedCustomer(null)
+                    setSelectedCustomerPurchases([])
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  {t('language') === 'en' ? 'Close' : 'Cerrar'}
+                </button>
+              </div>
             </div>
           </div>
         )}
