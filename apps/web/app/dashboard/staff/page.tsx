@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/DashboardLayout'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
+import { compressImage, formatFileSize } from '@/lib/image-resize-client'
 
 interface Staff {
   id: string
@@ -69,6 +71,12 @@ export default function StaffPage() {
     isActive: true,
     canAcceptBookings: true
   })
+  
+  // Upload states
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<string>('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [specialtyInput, setSpecialtyInput] = useState('')
   const [scheduleData, setScheduleData] = useState({
@@ -137,6 +145,108 @@ export default function StaffPage() {
     })
   }
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const originalFile = event.target.files?.[0]
+    if (!originalFile) return
+
+    // Validar tipo de archivo
+    if (!originalFile.type.startsWith('image/')) {
+      alert(t('language') === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
+      return
+    }
+
+    setUploadingPhoto(true)
+    
+    try {
+      // Mostrar tamaño original
+      const originalSize = formatFileSize(originalFile.size)
+      setUploadProgress(
+        t('language') === 'en' 
+          ? `Processing image (${originalSize})...` 
+          : `Procesando imagen (${originalSize})...`
+      )
+
+      // Comprimir imagen automáticamente si es necesaria
+      let fileToUpload = originalFile
+      
+      // Si la imagen es mayor a 5MB, comprimirla
+      if (originalFile.size > 5 * 1024 * 1024) {
+        setUploadProgress(
+          t('language') === 'en' 
+            ? 'Compressing image...' 
+            : 'Comprimiendo imagen...'
+        )
+        
+        fileToUpload = await compressImage(originalFile, 5) // Comprimir a máximo 5MB
+        
+        const newSize = formatFileSize(fileToUpload.size)
+        setUploadProgress(
+          t('language') === 'en' 
+            ? `Image compressed from ${originalSize} to ${newSize}` 
+            : `Imagen comprimida de ${originalSize} a ${newSize}`
+        )
+      }
+
+      // Crear preview local inmediatamente antes de comprimir
+      const previewReader = new FileReader()
+      previewReader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string)
+      }
+      previewReader.readAsDataURL(originalFile) // Usar archivo original para preview inmediato
+
+      // Preparar FormData
+      const formData = new FormData()
+      formData.append('file', fileToUpload)
+      formData.append('type', 'avatar')
+      if (selectedStaff?.id) {
+        formData.append('id', `staff_${selectedStaff.id}`)
+      }
+
+      setUploadProgress(
+        t('language') === 'en' 
+          ? 'Uploading image...' 
+          : 'Subiendo imagen...'
+      )
+
+      // Subir imagen
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image')
+      }
+
+      const data = await response.json()
+      
+      // Actualizar formData con el ID de la imagen
+      setFormData(prev => ({ ...prev, photo: data.imageId }))
+      
+      // Actualizar preview con la URL del servidor
+      setPhotoPreview(data.url)
+      
+      setUploadProgress(
+        t('language') === 'en' 
+          ? 'Image uploaded successfully!' 
+          : '¡Imagen subida exitosamente!'
+      )
+      
+      // Limpiar mensaje después de 3 segundos
+      setTimeout(() => setUploadProgress(''), 3000)
+    } catch (error) {
+      console.error('Error uploading photo:', error)
+      alert(t('language') === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
+      setUploadProgress('')
+    } finally {
+      setUploadingPhoto(false)
+      // Resetear el input para permitir subir la misma imagen de nuevo si es necesario
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   const handleSaveStaff = async () => {
     try {
       setSaving(true)
@@ -169,6 +279,8 @@ export default function StaffPage() {
         isActive: true,
         canAcceptBookings: true
       })
+      setPhotoPreview(null)
+      setUploadProgress('')
     } catch (error) {
       console.error('Error saving staff:', error)
       alert(t('language') === 'en' ? 'Failed to save staff member' : 'Error al guardar el trabajador')
@@ -226,18 +338,26 @@ export default function StaffPage() {
     }
   }
 
-  const openEditModal = (staffMember: Staff) => {
-    setSelectedStaff(staffMember)
+  const openEditModal = (member: Staff) => {
+    setSelectedStaff(member)
     setFormData({
-      name: staffMember.name,
-      email: staffMember.email,
-      phone: staffMember.phone || '',
-      photo: staffMember.photo || '',
-      bio: staffMember.bio || '',
-      specialties: staffMember.specialties || [],
-      isActive: staffMember.isActive,
-      canAcceptBookings: staffMember.canAcceptBookings
+      name: member.name,
+      email: member.email,
+      phone: member.phone || '',
+      photo: member.photo || '',
+      bio: member.bio || '',
+      specialties: member.specialties || [],
+      isActive: member.isActive,
+      canAcceptBookings: member.canAcceptBookings
     })
+    // Si la foto existe, generar preview
+    if (member.photo) {
+      setPhotoPreview(getImageUrl(member.photo, 'avatar', 128))
+    } else {
+      setPhotoPreview(null)
+      setUploadProgress('')
+    }
+    setUploadProgress('') // Limpiar progreso
     setShowAddModal(true)
   }
 
@@ -296,6 +416,9 @@ export default function StaffPage() {
                 isActive: true,
                 canAcceptBookings: true
               })
+              setPhotoPreview(null)
+      setUploadProgress('')
+              setUploadProgress('') // Limpiar progreso
               setShowAddModal(true)
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -312,9 +435,12 @@ export default function StaffPage() {
               <div className="h-48 bg-gray-200 relative">
                 {member.photo ? (
                   <img 
-                    src={member.photo} 
+                    src={getImageUrl(member.photo, 'avatar', 256)}
+                    srcSet={getImageSrcSet(member.photo, 'avatar')}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     alt={member.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-center"
+                    loading="lazy"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -485,18 +611,89 @@ export default function StaffPage() {
                     />
                   </div>
 
-                  {/* Photo URL */}
+                  {/* Photo Upload */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Photo URL' : 'URL de Foto'}
+                      {t('language') === 'en' ? 'Photo' : 'Foto'}
                     </label>
+                    
+                    {/* Hidden file input */}
                     <input
-                      type="url"
-                      value={formData.photo}
-                      onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      placeholder="https://example.com/photo.jpg"
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
                     />
+                    
+                    {/* Upload button and preview */}
+                    <div className="flex items-start gap-4">
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingPhoto}
+                          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          {uploadingPhoto 
+                            ? (t('language') === 'en' ? 'Uploading...' : 'Subiendo...')
+                            : (t('language') === 'en' ? 'Choose Photo' : 'Elegir Foto')
+                          }
+                        </button>
+                        <p className="mt-2 text-xs text-gray-500">
+                          {t('language') === 'en' 
+                            ? 'Any size image - automatically compressed' 
+                            : 'Cualquier tamaño - se comprime automáticamente'}
+                        </p>
+                        {uploadProgress && (
+                          <div className="mt-2 flex items-center gap-2">
+                            {uploadingPhoto && (
+                              <svg className="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            )}
+                            <p className={`text-xs font-medium ${uploadProgress.includes('success') || uploadProgress.includes('exitosa') ? 'text-green-600' : 'text-blue-600'}`}>
+                              {uploadProgress}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Preview */}
+                      {(photoPreview || formData.photo) && (
+                        <div className="relative group">
+                          <div className={`relative ${uploadingPhoto ? 'opacity-60' : ''} transition-opacity`}>
+                            <img 
+                              src={photoPreview || getImageUrl(formData.photo, 'avatar', 128)}
+                              alt="Preview"
+                              className="w-32 h-32 object-cover rounded-md border-2 border-gray-300 shadow-sm"
+                            />
+                            {uploadingPhoto && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-md">
+                                <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, photo: '' })
+                              setPhotoPreview(null)
+                              setUploadProgress('')
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-sm"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Bio */}

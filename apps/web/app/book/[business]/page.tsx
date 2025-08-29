@@ -70,6 +70,7 @@ export default function BookingPage() {
   const [step, setStep] = useState(1)
   const [services, setServices] = useState<Service[]>([])
   const [selectedService, setSelectedService] = useState<Service | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [availableStaff, setAvailableStaff] = useState<Staff[]>([])
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
   const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
@@ -512,31 +513,126 @@ export default function BookingPage() {
         {step === 1 && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">{t('selectService')}</h2>
-            <div className="space-y-3">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  onClick={() => setSelectedService(service)}
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedService?.id === service.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{service.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        {t('duration')}: {service.duration} {t('minutes')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-gray-900">${service.price}</p>
+            
+            {/* Category filters */}
+            {(() => {
+              const categories = Array.from(new Set(
+                services.map(s => s.category).filter(Boolean)
+              )) as string[]
+              
+              if (categories.length > 1) {
+                return (
+                  <div className="mb-6">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSelectedCategory('all')}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          selectedCategory === 'all'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {language === 'es' ? 'Todos' : 'All'}
+                      </button>
+                      {categories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => setSelectedCategory(category)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            selectedCategory === category
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {category}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              }
+              return null
+            })()}
+            
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {(() => {
+                // Filter services by selected category
+                const filteredServices = selectedCategory === 'all'
+                  ? services
+                  : services.filter(s => s.category === selectedCategory)
+                
+                // Group services by category if no filter applied and more than 10 services
+                if (selectedCategory === 'all' && services.length > 10) {
+                  const groupedServices: { [key: string]: Service[] } = {}
+                  services.forEach((service) => {
+                    const category = service.category || (language === 'es' ? 'Sin categoría' : 'Uncategorized')
+                    if (!groupedServices[category]) {
+                      groupedServices[category] = []
+                    }
+                    groupedServices[category].push(service)
+                  })
+                  
+                  return Object.entries(groupedServices).map(([category, categoryServices]) => (
+                    <div key={category} className="mb-6">
+                      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                        {category}
+                      </h3>
+                      <div className="space-y-2">
+                        {categoryServices.map((service) => (
+                          <div
+                            key={service.id}
+                            onClick={() => setSelectedService(service)}
+                            className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                              selectedService?.id === service.id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-medium text-gray-900">{service.name}</h3>
+                                <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                  {t('duration')}: {service.duration} {t('minutes')}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-semibold text-gray-900">${service.price}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                } else {
+                  // Show services without grouping
+                  return filteredServices.map((service) => (
+                    <div
+                      key={service.id}
+                      onClick={() => setSelectedService(service)}
+                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                        selectedService?.id === service.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{service.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                          <p className="text-sm text-gray-500 mt-2">
+                            {t('duration')}: {service.duration} {t('minutes')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">${service.price}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                }
+              })()}
             </div>
             {services.length === 0 && (
               <p className="text-gray-500 text-center py-8">
