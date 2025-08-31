@@ -319,6 +319,8 @@ model Customer {
   email             String
   name              String
   phone             String?
+  password          String?       // Para autenticación del portal de cliente
+  emailVerified     Boolean       @default(false)
   avatar            String?
   address           String?
   city              String?
@@ -330,6 +332,7 @@ model Customer {
   tags              String[]
   metadata          Json          @default("{}")
   isVip             Boolean       @default(false)
+  source            String?       // WALK_IN, ONLINE, PORTAL, etc.
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

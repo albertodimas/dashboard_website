@@ -18,7 +18,13 @@ export async function POST(request: NextRequest) {
     )
 
     const body = await request.json()
-    const { packageId, customerId, paymentMethod = 'CASH' } = body
+    const { 
+      packageId, 
+      customerId, 
+      paymentMethod = 'CASH',
+      paymentStatus = 'PENDING', // Allow specifying payment status
+      status = 'PENDING' // Default to PENDING
+    } = body
 
     // Get package details
     const packageDetails = await prisma.package.findUnique({
@@ -35,26 +41,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if customer already has an active purchase for this package
-    const existingPurchase = await prisma.packagePurchase.findFirst({
-      where: {
-        packageId,
-        customerId,
-        status: 'ACTIVE',
-        remainingSessions: { gt: 0 }
-      }
-    })
+    // Only check for existing active purchases if we're creating an active one
+    if (status === 'ACTIVE') {
+      const existingPurchase = await prisma.packagePurchase.findFirst({
+        where: {
+          packageId,
+          customerId,
+          status: 'ACTIVE',
+          remainingSessions: { gt: 0 }
+        }
+      })
 
-    if (existingPurchase) {
-      return NextResponse.json(
-        { error: 'Customer already has an active purchase for this package' },
-        { status: 400 }
-      )
+      if (existingPurchase) {
+        return NextResponse.json(
+          { error: 'Customer already has an active purchase for this package' },
+          { status: 400 }
+        )
+      }
     }
 
-    // Calculate expiry date if validity days are set
+    // Calculate expiry date if validity days are set and package is active
     let expiryDate = null
-    if (packageDetails.validityDays) {
+    if (packageDetails.validityDays && status === 'ACTIVE') {
       expiryDate = new Date()
       expiryDate.setDate(expiryDate.getDate() + packageDetails.validityDays)
     }
@@ -73,8 +81,8 @@ export async function POST(request: NextRequest) {
         remainingSessions: packageDetails.sessionCount || 1,
         pricePaid: packageDetails.price,
         paymentMethod,
-        paymentStatus: 'COMPLETED',
-        status: 'ACTIVE'
+        paymentStatus,
+        status
       },
       include: {
         package: true,

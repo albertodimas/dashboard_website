@@ -1,0 +1,1 @@
+UPDATE "Business" SET "enableStaffModule" = true WHERE "id" = (SELECT id FROM "Business" LIMIT 1);

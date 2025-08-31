@@ -16,11 +16,13 @@ export default function PackagePurchasesPage() {
   const [purchases, setPurchases] = useState<any[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null)
   const [formData, setFormData] = useState({
     customerId: '',
     packageId: '',
-    paymentMethod: 'CASH'
+    paymentMethod: 'CASH',
+    paymentReceived: false // Track if payment was received
   })
   const [activationData, setActivationData] = useState({
     paymentConfirmed: false,
@@ -69,14 +71,18 @@ export default function PackagePurchasesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          status: 'ACTIVE' // Manual creation from dashboard is already active
+          customerId: formData.customerId,
+          packageId: formData.packageId,
+          paymentMethod: formData.paymentMethod,
+          // Set status based on payment received checkbox
+          status: formData.paymentReceived ? 'ACTIVE' : 'PENDING',
+          paymentStatus: formData.paymentReceived ? 'PAID' : 'PENDING'
         })
       })
 
       if (response.ok) {
         setShowAddModal(false)
-        setFormData({ customerId: '', packageId: '', paymentMethod: 'CASH' })
+        setFormData({ customerId: '', packageId: '', paymentMethod: 'CASH', paymentReceived: false })
         await loadData()
         alert(language === 'en' ? 'Package purchase registered successfully!' : '¡Compra de paquete registrada exitosamente!')
       } else {
@@ -97,11 +103,11 @@ export default function PackagePurchasesPage() {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/dashboard/package-purchases/activate', {
-        method: 'POST',
+      const response = await fetch(`/api/packages/purchase/${selectedPurchase.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          purchaseId: selectedPurchase.id,
+          action: 'confirm_payment',
           notes: activationData.notes
         })
       })
@@ -118,6 +124,31 @@ export default function PackagePurchasesPage() {
       }
     } catch (error) {
       alert('Error activating package')
+    }
+    setLoading(false)
+  }
+
+  const handleDeletePurchase = async () => {
+    if (!selectedPurchase) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/packages/purchase/${selectedPurchase.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        setShowDeleteModal(false)
+        setSelectedPurchase(null)
+        await loadData()
+        alert(language === 'en' ? 'Pending package deleted successfully!' : '¡Paquete pendiente eliminado exitosamente!')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to delete package')
+      }
+    } catch (error) {
+      alert('Error deleting package')
     }
     setLoading(false)
   }
@@ -303,6 +334,10 @@ export default function PackagePurchasesPage() {
               setSelectedPurchase(purchase)
               setShowActivateModal(true)
             }}
+            onDeletePurchase={(purchase) => {
+              setSelectedPurchase(purchase)
+              setShowDeleteModal(true)
+            }}
           />
         ) : (
           <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -402,15 +437,26 @@ export default function PackagePurchasesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {purchase.status === 'PENDING' && (
-                      <button
-                        onClick={() => {
-                          setSelectedPurchase(purchase)
-                          setShowActivateModal(true)
-                        }}
-                        className="text-green-600 hover:text-green-900 mr-2"
-                      >
-                        {language === 'en' ? 'Activate' : 'Activar'}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedPurchase(purchase)
+                            setShowActivateModal(true)
+                          }}
+                          className="text-green-600 hover:text-green-900 mr-2"
+                        >
+                          {language === 'en' ? 'Activate' : 'Activar'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedPurchase(purchase)
+                            setShowDeleteModal(true)
+                          }}
+                          className="text-red-600 hover:text-red-900 mr-2"
+                        >
+                          {language === 'en' ? 'Delete' : 'Eliminar'}
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => console.log('View details', purchase.id)}
@@ -484,10 +530,33 @@ export default function PackagePurchasesPage() {
                     <option value="TRANSFER">{language === 'en' ? 'Transfer' : 'Transferencia'}</option>
                   </select>
                 </div>
+                <div className="mb-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.paymentReceived}
+                      onChange={(e) => setFormData({ ...formData, paymentReceived: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {language === 'en' 
+                        ? 'Payment has been received (activate immediately)' 
+                        : 'El pago ha sido recibido (activar inmediatamente)'}
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-6">
+                    {language === 'en'
+                      ? 'Leave unchecked to create as pending payment'
+                      : 'Deja sin marcar para crear como pago pendiente'}
+                  </p>
+                </div>
                 <div className="flex justify-end space-x-2">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setShowAddModal(false)
+                      setFormData({ customerId: '', packageId: '', paymentMethod: 'CASH', paymentReceived: false })
+                    }}
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                   >
                     {language === 'en' ? 'Cancel' : 'Cancelar'}
@@ -582,6 +651,77 @@ export default function PackagePurchasesPage() {
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
                 >
                   {loading ? '...' : language === 'en' ? 'Activate Package' : 'Activar Paquete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Package Modal */}
+        {showDeleteModal && selectedPurchase && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                {language === 'en' ? 'Delete Pending Package' : 'Eliminar Paquete Pendiente'}
+              </h3>
+              
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                <div className="text-sm text-red-800 mb-2">
+                  {language === 'en' 
+                    ? '⚠️ Warning: This action cannot be undone.' 
+                    : '⚠️ Advertencia: Esta acción no se puede deshacer.'}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {language === 'en' 
+                    ? 'The customer will be notified that their reservation has been cancelled.' 
+                    : 'Se notificará al cliente que su reserva ha sido cancelada.'}
+                </div>
+              </div>
+              
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <div className="text-sm text-gray-600">
+                  {language === 'en' ? 'Customer:' : 'Cliente:'}
+                </div>
+                <div className="font-medium">{selectedPurchase.customer?.name}</div>
+                <div className="text-sm text-gray-500">{selectedPurchase.customer?.email}</div>
+              </div>
+
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <div className="text-sm text-gray-600">
+                  {language === 'en' ? 'Package:' : 'Paquete:'}
+                </div>
+                <div className="font-medium">{selectedPurchase.package?.name}</div>
+                <div className="text-sm text-gray-500">
+                  {selectedPurchase.totalSessions} {language === 'en' ? 'sessions' : 'sesiones'} - ${selectedPurchase.pricePaid}
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  {language === 'en' ? 'Payment Method:' : 'Método de Pago:'} {selectedPurchase.paymentMethod}
+                </div>
+              </div>
+
+              <div className="mb-4 text-sm text-gray-600">
+                {language === 'en' 
+                  ? 'Are you sure you want to delete this pending package purchase?' 
+                  : '¿Está seguro que desea eliminar esta compra de paquete pendiente?'}
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setSelectedPurchase(null)
+                  }}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                >
+                  {language === 'en' ? 'Cancel' : 'Cancelar'}
+                </button>
+                <button
+                  onClick={handleDeletePurchase}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
+                >
+                  {loading ? '...' : language === 'en' ? 'Delete Package' : 'Eliminar Paquete'}
                 </button>
               </div>
             </div>

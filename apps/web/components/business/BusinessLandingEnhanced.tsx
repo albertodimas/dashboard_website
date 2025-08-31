@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   Star, MapPin, Phone, Mail, Clock, Calendar, Users, Package, 
   ChevronLeft, X, Check, Eye, ChevronRight, Heart, Share2, 
   Instagram, Facebook, Twitter, Award, Shield, Sparkles,
-  ArrowRight, User, DollarSign, Info, Image as ImageIcon
+  ArrowRight, User, DollarSign, Info, Image as ImageIcon, Gift,
+  LogIn, LogOut, UserCircle
 } from 'lucide-react'
 import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
 
@@ -14,6 +17,24 @@ interface BusinessLandingProps {
 }
 
 export default function BusinessLandingEnhanced({ business }: BusinessLandingProps) {
+  const router = useRouter()
+  
+  // Estados de autenticación
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [customerData, setCustomerData] = useState<any>(null)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [loginMode, setLoginMode] = useState<'login' | 'register' | 'verify'>('login')
+  const [loginForm, setLoginForm] = useState({
+    email: '',
+    password: '',
+    name: '',
+    phone: ''
+  })
+  const [verificationCode, setVerificationCode] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [verificationSent, setVerificationSent] = useState(false)
+  
   // Estados básicos
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [bookingStep, setBookingStep] = useState(1)
@@ -25,7 +46,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0)
-  const [bookingType, setBookingType] = useState<'service' | 'package'>('service')
+  const [bookingType, setBookingType] = useState<'service' | 'package' | 'use-package'>('service')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [servicesCategory, setServicesCategory] = useState<string>('all')
   const [servicesPage, setServicesPage] = useState(0)
@@ -33,8 +54,17 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     customerName: '',
     customerEmail: '',
     customerPhone: '',
-    notes: ''
+    notes: '',
+    paymentMethod: 'CASH' // Default payment method
   })
+  const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [lastBookingDetails, setLastBookingDetails] = useState<any>(null)
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]) // Paquetes activos del cliente
+  const [selectedCustomerPackage, setSelectedCustomerPackage] = useState<any>(null) // Paquete seleccionado para usar
+  const [usePackageSession, setUsePackageSession] = useState(false) // Si usar sesión del paquete
+  const [isLoadingPackages, setIsLoadingPackages] = useState(false)
+  const [hasSearchedPackages, setHasSearchedPackages] = useState(false)
+  const [myAppointments, setMyAppointments] = useState<any[]>([]) // Citas del cliente logueado
   
   // Datos del negocio
   const reviews = business.reviews || []
@@ -51,6 +81,208 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
   // Días de la semana
   const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem('clientToken')
+    const storedCustomerData = localStorage.getItem('clientData')
+    if (token && storedCustomerData) {
+      try {
+        const customer = JSON.parse(storedCustomerData)
+        setIsAuthenticated(true)
+        setCustomerData(customer)
+        // Auto-fill booking data
+        setBookingData(prev => ({
+          ...prev,
+          customerName: customer.name || '',
+          customerEmail: customer.email || '',
+          customerPhone: customer.phone || ''
+        }))
+        // Load customer packages and appointments
+        loadCustomerData(token)
+      } catch (error) {
+        console.error('Error loading customer data:', error)
+      }
+    }
+  }, [])
+
+  // Load customer packages and appointments
+  const loadCustomerData = async (token: string) => {
+    try {
+      // Load packages
+      const packagesResponse = await fetch('/api/cliente/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      if (packagesResponse.ok) {
+        const data = await packagesResponse.json()
+        setCustomerPackages(data.packages || [])
+        setMyAppointments(data.appointments || [])
+      }
+    } catch (error) {
+      console.error('Error loading customer data:', error)
+    }
+  }
+
+  // Handle login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginError('')
+    setIsLoggingIn(true)
+
+    try {
+      if (loginMode === 'register' && !verificationSent) {
+        // Send verification code
+        const response = await fetch('/api/cliente/auth/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginForm)
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          setLoginError(data.error || 'Error al enviar código')
+          return
+        }
+
+        // Show verification code input
+        setVerificationSent(true)
+        setLoginMode('verify')
+        setLoginError('')
+        
+        // In development, show the code
+        if (data.devCode) {
+          alert(`Código de verificación (solo desarrollo): ${data.devCode}`)
+        }
+        
+      } else if (loginMode === 'verify') {
+        // Verify code
+        const response = await fetch('/api/cliente/auth/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: loginForm.email,
+            code: verificationCode
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          setLoginError(data.error || 'Código inválido')
+          return
+        }
+
+        // Success - save and continue
+        localStorage.setItem('clientToken', data.token)
+        localStorage.setItem('clientData', JSON.stringify(data.customer))
+        
+        setIsAuthenticated(true)
+        setCustomerData(data.customer)
+        setShowLoginModal(false)
+        
+        setBookingData(prev => ({
+          ...prev,
+          customerName: data.customer.name || '',
+          customerEmail: data.customer.email || '',
+          customerPhone: data.customer.phone || ''
+        }))
+        
+        setCustomerPackages(data.packages || [])
+        setMyAppointments(data.appointments || [])
+        
+      } else {
+        // Normal login
+        const response = await fetch('/api/cliente/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginForm)
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          setLoginError(data.error || 'Error al iniciar sesión')
+          return
+        }
+
+        localStorage.setItem('clientToken', data.token)
+        localStorage.setItem('clientData', JSON.stringify(data.customer))
+        
+        setIsAuthenticated(true)
+        setCustomerData(data.customer)
+        setShowLoginModal(false)
+        
+        setBookingData(prev => ({
+          ...prev,
+          customerName: data.customer.name || '',
+          customerEmail: data.customer.email || '',
+          customerPhone: data.customer.phone || ''
+        }))
+        
+        setCustomerPackages(data.packages || [])
+        setMyAppointments(data.appointments || [])
+      }
+      
+    } catch (error) {
+      console.error('Login error:', error)
+      setLoginError('Error de conexión')
+    } finally {
+      setIsLoggingIn(false)
+    }
+  }
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('clientToken')
+    localStorage.removeItem('clientData')
+    setIsAuthenticated(false)
+    setCustomerData(null)
+    setCustomerPackages([])
+    setMyAppointments([])
+    setBookingData({
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      notes: '',
+      paymentMethod: 'CASH'
+    })
+  }
+
+  // Handle appointment cancellation
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
+    
+    const token = localStorage.getItem('clientToken')
+    if (!token) {
+      alert('Debes iniciar sesión para cancelar citas')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        alert('Cita cancelada exitosamente')
+        // Reload appointments
+        await loadCustomerData(token)
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Error al cancelar la cita')
+      }
+    } catch (error) {
+      console.error('Error canceling appointment:', error)
+      alert('Error al cancelar la cita')
+    }
+  }
 
   // Auto-rotar galería
   useEffect(() => {
@@ -88,37 +320,111 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     }
   }
 
+  // Buscar paquetes activos del cliente cuando ingresa su email
+  const fetchCustomerPackages = async () => {
+    // Si el usuario está autenticado, ya tenemos sus paquetes
+    if (isAuthenticated) {
+      setHasSearchedPackages(true)
+      return
+    }
+    
+    // Validar formato de email más estricto
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!bookingData.customerEmail || !emailRegex.test(bookingData.customerEmail)) return
+    
+    setIsLoadingPackages(true)
+    try {
+      const response = await fetch(`/api/public/customer/packages?email=${encodeURIComponent(bookingData.customerEmail)}&businessId=${business.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCustomerPackages(data.packages || [])
+        setHasSearchedPackages(true)
+        // Si tiene paquetes y estamos reservando un servicio, preseleccionar el uso del paquete
+        if (data.packages && data.packages.length > 0 && bookingType === 'service') {
+          // Buscar un paquete que incluya el servicio seleccionado
+          const applicablePackage = data.packages.find((pkg: any) => 
+            pkg.package.services.some((ps: any) => ps.serviceId === selectedService?.id) &&
+            pkg.remainingSessions > 0
+          )
+          if (applicablePackage) {
+            setSelectedCustomerPackage(applicablePackage)
+            setUsePackageSession(true)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching customer packages:', error)
+    } finally {
+      setIsLoadingPackages(false)
+    }
+  }
+
   useEffect(() => {
     if (selectedDate && (selectedService || selectedPackage)) {
       fetchAvailableSlots()
     }
   }, [selectedDate, selectedService, selectedPackage, selectedStaff])
 
+  // No buscar automáticamente - solo cuando el usuario lo solicite
+  // Este useEffect se puede eliminar ya que ahora usamos onBlur y onKeyPress
+
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
-      const response = await fetch('/api/public/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId: business.id,
-          serviceId: selectedService?.id || selectedPackage?.services[0]?.service?.id,
-          staffId: selectedStaff?.id,
-          date: selectedDate,
-          time: selectedTime,
-          customerName: bookingData.customerName,
-          customerEmail: bookingData.customerEmail,
-          customerPhone: bookingData.customerPhone,
-          notes: bookingData.notes,
-          packageId: selectedPackage?.id
+      let response;
+      
+      if (bookingType === 'package') {
+        // For package purchases, use the package purchase endpoint
+        response = await fetch('/api/public/packages/purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: business.id,
+            packageId: selectedPackage?.id,
+            customerName: bookingData.customerName,
+            customerEmail: bookingData.customerEmail,
+            customerPhone: bookingData.customerPhone,
+            paymentMethod: bookingData.paymentMethod,
+            notes: bookingData.notes
+          })
         })
-      })
+      } else {
+        // For service appointments, use the appointments endpoint
+        response = await fetch('/api/public/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: business.id,
+            serviceId: selectedService?.id,
+            packagePurchaseId: usePackageSession ? selectedCustomerPackage?.id : undefined,
+            usePackageSession: usePackageSession,
+            staffId: selectedStaff?.id,
+            date: selectedDate,
+            time: selectedTime,
+            customerName: bookingData.customerName,
+            customerEmail: bookingData.customerEmail,
+            customerPhone: bookingData.customerPhone,
+            notes: bookingData.notes
+          })
+        })
+      }
 
       if (response.ok) {
-        alert('¡Reserva confirmada! Te hemos enviado un email con los detalles.')
-        setShowBookingModal(false)
-        resetBookingForm()
+        const result = await response.json()
+        setLastBookingDetails({
+          service: selectedService?.name || selectedPackage?.name,
+          date: selectedDate,
+          time: selectedTime,
+          staff: selectedStaff?.name || 'Por asignar',
+          customerName: bookingData.customerName,
+          customerEmail: bookingData.customerEmail,
+          usedPackage: usePackageSession,
+          packageName: selectedCustomerPackage?.package?.name,
+          remainingSessions: result.appointment?.remainingSessions
+        })
+        setBookingSuccess(true)
+        setBookingStep(4) // Nuevo paso para mostrar éxito
       } else {
         const error = await response.json()
         alert(error.error || 'Error al crear la reserva')
@@ -141,14 +447,22 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       customerName: '',
       customerEmail: '',
       customerPhone: '',
-      notes: ''
+      notes: '',
+      paymentMethod: 'CASH'
     })
+    setBookingSuccess(false)
+    setLastBookingDetails(null)
+    setCustomerPackages([])
+    setSelectedCustomerPackage(null)
+    setUsePackageSession(false)
+    setIsLoadingPackages(false)
+    setHasSearchedPackages(false)
   }
 
   // Calcular rating promedio
-  const averageRating = (reviews.length > 0 
+  const averageRating = reviews.length > 0 
     ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length 
-    : 5)
+    : 5
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,6 +486,31 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* User menu */}
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
+                    <UserCircle className="w-5 h-5 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">{customerData?.name}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    title="Cerrar sesión"
+                  >
+                    <LogOut className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <LogIn className="w-5 h-5 text-gray-600" />
+                  <span className="hidden sm:inline text-sm font-medium">Iniciar Sesión</span>
+                </button>
+              )}
+              
               <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                 <Heart className="w-5 h-5 text-gray-600" />
               </button>
@@ -268,6 +607,13 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 Reservar Ahora
                 <ArrowRight className="w-5 h-5" />
               </button>
+              <Link
+                href="/cliente/dashboard"
+                className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
+              >
+                <User className="w-5 h-5" />
+                Mi Portal
+              </Link>
               
               <a
                 href="#services"
@@ -540,6 +886,127 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         </div>
       </section>
 
+      {/* My Packages & Appointments Section for Authenticated Users */}
+      {isAuthenticated && (customerPackages.length > 0 || myAppointments.length > 0) && (
+        <section className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold mb-2">Mi Cuenta</h2>
+              <p className="text-gray-600">Gestiona tus paquetes y citas</p>
+            </div>
+
+            {/* Active Packages */}
+            {customerPackages.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Package className="w-5 h-5" style={{ color: colors.primary }} />
+                  Mis Paquetes Activos
+                </h3>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {customerPackages.map((purchasedPkg: any) => (
+                    <div 
+                      key={purchasedPkg.id}
+                      className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="font-bold text-lg">{purchasedPkg.package.name}</h4>
+                        {purchasedPkg.remainingSessions > 0 && (
+                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                            {purchasedPkg.remainingSessions} sesiones
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2 mb-4">
+                        {purchasedPkg.package.services.map((ps: any) => (
+                          <p key={ps.service.id} className="text-sm text-gray-600">
+                            • {ps.service.name} ({ps.quantity}x)
+                          </p>
+                        ))}
+                      </div>
+                      {purchasedPkg.expiryDate && (
+                        <p className="text-xs text-gray-500">
+                          Vence: {new Date(purchasedPkg.expiryDate).toLocaleDateString()}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedCustomerPackage(purchasedPkg)
+                          setBookingType('use-package')
+                          setShowBookingModal(true)
+                        }}
+                        disabled={purchasedPkg.remainingSessions === 0}
+                        className="mt-4 w-full py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ 
+                          background: purchasedPkg.remainingSessions > 0 ? colors.gradient : '#e5e7eb',
+                          color: purchasedPkg.remainingSessions > 0 ? 'white' : '#9ca3af'
+                        }}
+                      >
+                        {purchasedPkg.remainingSessions > 0 ? 'Usar Paquete' : 'Sin sesiones'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Appointments */}
+            {myAppointments.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" style={{ color: colors.primary }} />
+                  Mis Próximas Citas
+                </h3>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myAppointments
+                    .filter((apt: any) => new Date(apt.startTime) >= new Date())
+                    .slice(0, 6)
+                    .map((appointment: any) => (
+                      <div 
+                        key={appointment.id}
+                        className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-semibold">{appointment.service.name}</h4>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            appointment.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : 
+                            appointment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {appointment.status === 'CONFIRMED' ? 'Confirmada' : 
+                             appointment.status === 'PENDING' ? 'Pendiente' : appointment.status}
+                          </span>
+                        </div>
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <p className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(appointment.startTime).toLocaleDateString()}
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            {new Date(appointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {appointment.staff && (
+                            <p className="flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              {appointment.staff.name}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleCancelAppointment(appointment.id)}
+                          className="mt-4 w-full py-2 rounded-lg font-medium text-red-600 border border-red-200 hover:bg-red-50 transition-all"
+                        >
+                          Cancelar Cita
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Packages Section mejorada */}
       {business.packages?.length > 0 && (
         <section id="packages" className="py-20 bg-white">
@@ -618,6 +1085,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       onClick={() => {
                         setSelectedPackage(pkg)
                         setBookingType('package')
+                        setBookingStep(3) // Jump directly to customer info for packages
                         setShowBookingModal(true)
                       }}
                       className="w-full py-3 rounded-xl font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300"
@@ -873,9 +1341,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {bookingType === 'package' ? 'Comprar Paquete' : 'Reservar Cita'}
+                    {bookingStep === 4 ? 'Confirmación' : (bookingType === 'package' ? 'Comprar Paquete' : 'Reservar Cita')}
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Paso {bookingStep} de 3</p>
+                  {bookingStep !== 4 && (
+                    <p className="text-sm text-gray-500 mt-1">Paso {bookingStep} de 3</p>
+                  )}
                 </div>
                 <button
                   onClick={() => {
@@ -899,6 +1369,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <div className={`h-1 flex-1 rounded-full transition-colors ${
                   bookingStep >= 3 ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gray-200'
                 }`} />
+                {bookingStep === 4 && (
+                  <div className="h-1 flex-1 rounded-full bg-green-500" />
+                )}
               </div>
             </div>
 
@@ -911,7 +1384,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     <label className="text-sm font-medium text-gray-700 mb-3 block">
                       ¿Qué deseas hacer?
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <button
                         onClick={() => setBookingType('service')}
                         className={`p-4 rounded-xl border-2 transition-all ${
@@ -923,7 +1396,27 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         <Calendar className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'service' ? '#3B82F6' : '#9CA3AF'} />
                         <p className="font-semibold">Reservar Servicio</p>
-                        <p className="text-xs text-gray-500 mt-1">Agenda una cita</p>
+                        <p className="text-xs text-gray-500 mt-1">Pagar al asistir</p>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setBookingType('use-package')
+                          // Solicitar email inmediatamente
+                          if (!bookingData.customerEmail) {
+                            setBookingStep(1.5) // Paso intermedio para pedir email
+                          }
+                        }}
+                        className={`p-4 rounded-xl border-2 transition-all ${
+                          bookingType === 'use-package'
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Gift className="w-6 h-6 mx-auto mb-2" 
+                          color={bookingType === 'use-package' ? '#10B981' : '#9CA3AF'} />
+                        <p className="font-semibold">Usar Mi Paquete</p>
+                        <p className="text-xs text-gray-500 mt-1">Tengo sesiones</p>
                       </button>
                       
                       <button
@@ -942,7 +1435,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     </div>
                   </div>
 
-                  {/* Lista de servicios o paquetes */}
+                  {/* Lista de servicios o paquetes normal */}
+                  {bookingType !== 'use-package' && (
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-3 block">
                       {bookingType === 'package' ? 'Selecciona un paquete' : 'Selecciona un servicio'}
@@ -1103,14 +1597,162 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               )}
 
-              {/* Step 2: Fecha y hora (solo para servicios) */}
-              {bookingStep === 2 && bookingType === 'service' && (
+              {/* Step 1.5: Seleccionar paquete para usar */}
+              {bookingStep === 1.5 && bookingType === 'use-package' && (
                 <div className="space-y-6">
                   <button
-                    onClick={() => setBookingStep(1)}
+                    onClick={() => {
+                      setBookingStep(1)
+                      setBookingType('service')
+                      setSelectedCustomerPackage(null)
+                      setCustomerPackages([])
+                    }}
+                    className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <ChevronLeft size={20} className="mr-1" />
+                    Volver
+                  </button>
+                  
+                  {/* Solicitar email si no lo tiene */}
+                  {!bookingData.customerEmail && (
+                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                      <p className="font-semibold text-green-800 mb-3">
+                        Ingresa tu email para ver tus paquetes disponibles
+                      </p>
+                      <input
+                        type="email"
+                        placeholder="tu@email.com"
+                        value={bookingData.customerEmail}
+                        onChange={(e) => {
+                          setBookingData({...bookingData, customerEmail: e.target.value})
+                          setHasSearchedPackages(false) // Reset search status when email changes
+                        }}
+                        onBlur={() => {
+                          // Buscar cuando el usuario termine de escribir
+                          fetchCustomerPackages()
+                        }}
+                        onKeyPress={(e) => {
+                          // Buscar cuando presione Enter
+                          if (e.key === 'Enter') {
+                            fetchCustomerPackages()
+                          }
+                        }}
+                        className="w-full px-4 py-3 border-2 rounded-xl focus:border-green-500 transition-colors"
+                        autoFocus
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Ingresa tu email completo y presiona Enter o haz clic fuera del campo
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Mostrar estado de carga */}
+                  {bookingData.customerEmail && isLoadingPackages && (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                      <p className="text-gray-600 mt-2">Buscando tus paquetes...</p>
+                    </div>
+                  )}
+                  
+                  {/* Mostrar paquetes disponibles si ya ingresó email */}
+                  {bookingData.customerEmail && !isLoadingPackages && customerPackages.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-3 block">
+                        Tus paquetes disponibles
+                      </label>
+                      <div className="space-y-3">
+                        {customerPackages.map((pkg) => (
+                          <div 
+                            key={pkg.id}
+                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                              selectedCustomerPackage?.id === pkg.id 
+                                ? 'border-green-500 bg-green-50' 
+                                : 'border-gray-200 hover:border-green-300'
+                            }`}
+                            onClick={() => {
+                              setSelectedCustomerPackage(pkg)
+                              setUsePackageSession(true)
+                            }}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-semibold">{pkg.package.name}</p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {pkg.remainingSessions} sesiones disponibles
+                                </p>
+                                {pkg.expiryDate && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Válido hasta: {new Date(pkg.expiryDate).toLocaleDateString()}
+                                  </p>
+                                )}
+                                <div className="mt-2">
+                                  <p className="text-xs text-gray-600">Incluye:</p>
+                                  {pkg.package.services.map((ps: any) => (
+                                    <p key={ps.serviceId} className="text-xs text-gray-500">
+                                      • {ps.service.name} ({ps.quantity} sesiones)
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                              {selectedCustomerPackage?.id === pkg.id && (
+                                <Check className="text-green-600" size={24} />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {selectedCustomerPackage && (
+                        <button
+                          onClick={() => {
+                            // Preseleccionar el primer servicio del paquete
+                            const firstService = selectedCustomerPackage.package.services[0]?.service
+                            if (firstService) {
+                              setSelectedService(firstService)
+                              setBookingStep(2)
+                            }
+                          }}
+                          className="w-full mt-4 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+                          style={{ background: colors.gradient }}
+                        >
+                          Continuar y elegir horario
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Mensaje si no tiene paquetes - solo mostrar después de buscar */}
+                  {bookingData.customerEmail && !isLoadingPackages && hasSearchedPackages && customerPackages.length === 0 && (
+                    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 text-center">
+                      <p className="text-yellow-800 font-semibold mb-2">
+                        No encontramos paquetes activos
+                      </p>
+                      <p className="text-sm text-yellow-700 mb-3">
+                        No tienes paquetes disponibles con este email
+                      </p>
+                      <button
+                        onClick={() => {
+                          setBookingType('package')
+                          setBookingStep(1)
+                        }}
+                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        ¿Quieres comprar un paquete?
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Fecha y hora (para servicios y use-package) */}
+              {bookingStep === 2 && (bookingType === 'service' || bookingType === 'use-package') && (
+                <div className="space-y-6">
+                  <button
+                    onClick={() => setBookingStep(bookingType === 'use-package' ? 1.5 : 1)}
                     className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
                   >
                     <ChevronLeft size={20} className="mr-1" />
@@ -1118,35 +1760,58 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   </button>
 
                   {/* Staff Selection */}
-                  {staff.length > 0 && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-3 block">
-                        Profesional (opcional)
-                      </label>
-                      
-                      {/* Opción visual con fotos */}
-                      <div className="space-y-2">
-                        {/* Opción "Cualquier disponible" */}
-                        <div
-                          onClick={() => setSelectedStaff(null)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-300 ${
-                            !selectedStaff ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                          }`}
-                        >
-                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                            <Users size={20} className="text-gray-500" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">Cualquier disponible</p>
-                            <p className="text-sm text-gray-500">Se asignará automáticamente</p>
-                          </div>
-                          {!selectedStaff && (
-                            <Check size={20} className="text-blue-500" />
-                          )}
-                        </div>
+                  {(() => {
+                    // Debug: Ver qué contiene el servicio seleccionado
+                    console.log('Selected Service:', selectedService)
+                    console.log('Service Staff:', selectedService?.serviceStaff)
+                    
+                    // Filtrar trabajadores basándose en el servicio seleccionado
+                    const availableStaff = staff.filter((s: any) => {
+                      // Si el servicio tiene serviceStaff, solo mostrar esos trabajadores
+                      if (selectedService?.serviceStaff && selectedService.serviceStaff.length > 0) {
+                        return selectedService.serviceStaff.some((ss: any) => ss.staffId === s.id)
+                      }
+                      // Si no hay serviceStaff, mostrar todos los trabajadores activos
+                      return s.isActive !== false
+                    })
+                    
+                    // Solo mostrar la sección si hay trabajadores disponibles
+                    if (availableStaff.length === 0 && selectedService?.serviceStaff?.length > 0) {
+                      // Si el servicio tiene asignados pero ninguno está en la lista de staff
+                      return null
+                    }
+                    
+                    return (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-3 block">
+                          Profesional {availableStaff.length > 0 ? '(opcional)' : ''}
+                        </label>
                         
-                        {/* Lista de trabajadores con fotos */}
-                        {staff.map((s: any) => (
+                        {/* Opción visual con fotos */}
+                        <div className="space-y-2">
+                          {/* Opción "Cualquier disponible" - solo mostrar si hay trabajadores */}
+                          {availableStaff.length > 0 && (
+                            <div
+                              onClick={() => setSelectedStaff(null)}
+                              className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-300 ${
+                                !selectedStaff ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                              }`}
+                            >
+                              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                                <Users size={20} className="text-gray-500" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">Cualquier disponible</p>
+                                <p className="text-sm text-gray-500">Se asignará automáticamente</p>
+                              </div>
+                              {!selectedStaff && (
+                                <Check size={20} className="text-blue-500" />
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Lista de trabajadores con fotos - ya filtrados */}
+                          {availableStaff.map((s: any) => (
                           <div
                             key={s.id}
                             onClick={() => setSelectedStaff(s)}
@@ -1193,7 +1858,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         ))}
                       </div>
                     </div>
-                  )}
+                  )
+                  })()}
 
                   {/* Date Selection */}
                   <div>
@@ -1281,7 +1947,14 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         </>
                       )}
                       <p className="font-bold text-lg mt-2">
-                        Total: ${selectedService?.price || selectedPackage?.price}
+                        {bookingType === 'service' && usePackageSession ? (
+                          <>
+                            <span className="line-through text-gray-400">${selectedService?.price}</span>
+                            <span className="ml-2 text-green-600">$0 (Usando paquete)</span>
+                          </>
+                        ) : (
+                          <>Total: ${selectedService?.price || selectedPackage?.price}</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1329,6 +2002,98 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         placeholder="+1 234 567 8900"
                       />
                     </div>
+
+                    {/* Paquetes disponibles del cliente - solo para servicios */}
+                    {bookingType === 'service' && customerPackages.length > 0 && (
+                      <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                        <p className="font-semibold text-green-800 mb-3">
+                          🎉 ¡Tienes paquetes disponibles!
+                        </p>
+                        <div className="space-y-2">
+                          {customerPackages.map((pkg) => {
+                            const isApplicable = pkg.package.services.some((ps: any) => 
+                              ps.serviceId === selectedService?.id
+                            )
+                            if (!isApplicable) return null
+                            
+                            return (
+                              <label 
+                                key={pkg.id}
+                                className="flex items-start space-x-3 p-3 bg-white rounded-lg cursor-pointer hover:bg-green-50 transition-colors"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={usePackageSession && selectedCustomerPackage?.id === pkg.id}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedCustomerPackage(pkg)
+                                      setUsePackageSession(true)
+                                    } else {
+                                      setSelectedCustomerPackage(null)
+                                      setUsePackageSession(false)
+                                    }
+                                  }}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1">
+                                  <p className="font-medium text-gray-900">
+                                    {pkg.package.name}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {pkg.remainingSessions} sesiones disponibles
+                                  </p>
+                                  {pkg.expiryDate && (
+                                    <p className="text-xs text-gray-500">
+                                      Válido hasta: {new Date(pkg.expiryDate).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                  {usePackageSession && selectedCustomerPackage?.id === pkg.id && (
+                                    <p className="text-sm font-medium text-green-600 mt-1">
+                                      ✓ Usarás 1 sesión de este paquete
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            )
+                          })}
+                          {!customerPackages.some(pkg => 
+                            pkg.package.services.some((ps: any) => ps.serviceId === selectedService?.id)
+                          ) && (
+                            <p className="text-sm text-gray-600 italic">
+                              Ninguno de tus paquetes incluye este servicio
+                            </p>
+                          )}
+                        </div>
+                        {usePackageSession && (
+                          <div className="mt-3 p-2 bg-green-100 rounded-lg">
+                            <p className="text-sm text-green-800">
+                              <strong>Precio a pagar: $0</strong> (usando sesión del paquete)
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Campo de método de pago - solo para paquetes */}
+                    {bookingType === 'package' && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 block">
+                          Método de Pago *
+                        </label>
+                        <select
+                          required
+                          value={bookingData.paymentMethod}
+                          onChange={(e) => setBookingData({...bookingData, paymentMethod: e.target.value})}
+                          className="w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors"
+                        >
+                          <option value="CASH">Efectivo</option>
+                          <option value="TRANSFER">Transferencia Bancaria</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Tu paquete quedará pendiente hasta confirmar el pago
+                        </p>
+                      </div>
+                    )}
                     
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-1 block">
@@ -1357,8 +2122,324 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   </p>
                 </form>
               )}
+
+              {/* Step 4: Confirmación de éxito */}
+              {bookingStep === 4 && bookingSuccess && (
+                <div className="space-y-6 text-center">
+                  <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${
+                    bookingType === 'package' ? 'bg-yellow-100' : 'bg-green-100'
+                  }`}>
+                    {bookingType === 'package' ? (
+                      <Clock size={40} className="text-yellow-600" />
+                    ) : (
+                      <Check size={40} className="text-green-600" />
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      {bookingType === 'package' ? '¡Reserva de Paquete Registrada!' : '¡Reserva Confirmada!'}
+                    </h3>
+                    {bookingType === 'package' ? (
+                      <>
+                        <p className="text-gray-600 mb-3">
+                          Tu reserva está <strong>pendiente de pago</strong>
+                        </p>
+                        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-left">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Próximos pasos:</strong>
+                          </p>
+                          <ul className="text-sm text-yellow-700 mt-2 space-y-1">
+                            {bookingData.paymentMethod === 'TRANSFER' ? (
+                              <>
+                                <li>• Realiza la transferencia bancaria</li>
+                                <li>• Envía el comprobante al negocio</li>
+                                <li>• Espera la confirmación de tu pago</li>
+                              </>
+                            ) : (
+                              <>
+                                <li>• Acércate al negocio para pagar en efectivo</li>
+                                <li>• Una vez confirmado el pago, tu paquete será activado</li>
+                              </>
+                            )}
+                            <li>• Recibirás un email de confirmación cuando esté activo</li>
+                          </ul>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-600">
+                          Te hemos enviado un email con los detalles de tu reserva
+                        </p>
+                        {lastBookingDetails?.usedPackage && (
+                          <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-left mt-3">
+                            <p className="text-sm text-green-800">
+                              <strong>✅ Sesión de paquete utilizada</strong>
+                            </p>
+                            <p className="text-sm text-green-700 mt-1">
+                              Se ha descontado 1 sesión de tu paquete: <strong>{lastBookingDetails.packageName}</strong>
+                            </p>
+                            {lastBookingDetails.remainingSessions !== undefined && (
+                              <p className="text-sm text-green-600 mt-1">
+                                Te quedan <strong>{lastBookingDetails.remainingSessions} sesiones</strong> disponibles
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Detalles de la reserva */}
+                  <div className="bg-gray-50 p-4 rounded-xl text-left space-y-3">
+                    <h4 className="font-semibold text-gray-900">
+                      Detalles de tu {bookingType === 'package' ? 'compra' : 'reserva'}:
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{bookingType === 'package' ? 'Paquete:' : 'Servicio:'}</span>
+                        <span className="font-medium">{lastBookingDetails?.service}</span>
+                      </div>
+                      {bookingType === 'service' && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Fecha:</span>
+                            <span className="font-medium">{lastBookingDetails?.date}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Hora:</span>
+                            <span className="font-medium">{lastBookingDetails?.time}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Profesional:</span>
+                            <span className="font-medium">{lastBookingDetails?.staff}</span>
+                          </div>
+                        </>
+                      )}
+                      {bookingType === 'package' && selectedPackage && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Sesiones incluidas:</span>
+                          <span className="font-medium">{selectedPackage.sessionCount || 1}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Cliente:</span>
+                        <span className="font-medium">{lastBookingDetails?.customerName}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botones de acción */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        resetBookingForm()
+                      }}
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                    >
+                      {bookingType === 'package' ? 'Comprar otro paquete' : 'Hacer otra reserva'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowBookingModal(false)
+                        resetBookingForm()
+                      }}
+                      className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-all"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-500">
+                    Recibirás un recordatorio 24 horas antes de tu cita
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">
+                  {loginMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowLoginModal(false)
+                    setLoginError('')
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {loginError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {loginError}
+                </div>
+              )}
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                {loginMode === 'verify' ? (
+                  // Verification code input
+                  <>
+                    <div className="text-center mb-4">
+                      <p className="text-gray-600">
+                        Hemos enviado un código de verificación a:
+                      </p>
+                      <p className="font-semibold">{loginForm.email}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Código de Verificación
+                      </label>
+                      <input
+                        type="text"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-2xl font-bold tracking-wider"
+                        placeholder="000000"
+                        maxLength={6}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isLoggingIn || verificationCode.length !== 6}
+                      className="w-full py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg disabled:opacity-50"
+                      style={{ background: colors.gradient }}
+                    >
+                      {isLoggingIn ? 'Verificando...' : 'Verificar Código'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginMode('register')
+                        setVerificationSent(false)
+                        setVerificationCode('')
+                        setLoginError('')
+                      }}
+                      className="w-full py-2 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      ← Volver
+                    </button>
+                  </>
+                ) : (
+                  // Regular login/register form
+                  <>
+                    {loginMode === 'register' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nombre Completo
+                        </label>
+                        <input
+                          type="text"
+                          value={loginForm.name}
+                          onChange={(e) => setLoginForm({...loginForm, name: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required={loginMode === 'register'}
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={loginForm.email}
+                        onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Contraseña
+                      </label>
+                      <input
+                        type="password"
+                        value={loginForm.password}
+                        onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                        minLength={6}
+                      />
+                    </div>
+
+                    {loginMode === 'register' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Teléfono (Opcional)
+                        </label>
+                        <input
+                          type="tel"
+                          value={loginForm.phone}
+                          onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isLoggingIn}
+                      className="w-full py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg disabled:opacity-50"
+                      style={{ background: colors.gradient }}
+                    >
+                      {isLoggingIn ? 'Procesando...' : 
+                       loginMode === 'login' ? 'Iniciar Sesión' : 
+                       'Enviar Código de Verificación'}
+                    </button>
+                  </>
+                )}
+              </form>
+
+              {loginMode !== 'verify' && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={() => {
+                      setLoginMode(loginMode === 'login' ? 'register' : 'login')
+                      setLoginError('')
+                      setVerificationSent(false)
+                      setVerificationCode('')
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    {loginMode === 'login' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* My Appointments Modal */}
+      {isAuthenticated && myAppointments.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-40">
+          <button
+            onClick={() => {
+              // Show appointments in booking modal
+              setBookingType('use-package')
+              setShowBookingModal(true)
+              setBookingStep(1)
+            }}
+            className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center gap-2 hover:shadow-xl transition-all"
+          >
+            <Calendar className="w-5 h-5" style={{ color: colors.primary }} />
+            <span className="font-medium">Mis Citas ({myAppointments.filter((a: any) => new Date(a.startTime) >= new Date()).length})</span>
+          </button>
         </div>
       )}
     </div>

@@ -20,6 +20,7 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/business/') ||
       pathname.startsWith('/business-pages/') ||
       pathname.startsWith('/client/') ||
+      pathname.startsWith('/cliente/') ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/register') ||
       pathname.startsWith('/book/') ||
@@ -62,6 +63,6 @@ export const config = {
      * - register
      * - business (existing business routes)
      */
-    '/((?!api/|_next/static|_next/image|favicon.ico|public|admin|dashboard|login|register|business).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|public|admin|dashboard|login|register|business|cliente).*)',
   ],
 }

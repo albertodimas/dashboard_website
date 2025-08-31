@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Large Test Image</title>
+</head>
+<body>
+    <h1>Large Image Generator</h1>
+    <canvas id="canvas" width="4000" height="4000"></canvas>
+    <br>
+    <a id="download" download="large-test-image.jpg">Download Large Test Image</a>
+    
+    <script>
+        // Create a large test image
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Create a gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 4000, 4000);
+        gradient.addColorStop(0, '#4F46E5');
+        gradient.addColorStop(0.5, '#7C3AED');
+        gradient.addColorStop(1, '#EC4899');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 4000, 4000);
+        
+        // Add some circles
+        for (let i = 0; i < 100; i++) {
+            ctx.beginPath();
+            ctx.arc(
+                Math.random() * 4000,
+                Math.random() * 4000,
+                Math.random() * 200 + 50,
+                0,
+                2 * Math.PI
+            );
+            ctx.fillStyle = `hsla(${Math.random() * 360}, 70%, 60%, 0.3)`;
+            ctx.fill();
+        }
+        
+        // Add text
+        ctx.font = 'bold 200px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('TEST IMAGE', 2000, 2000);
+        ctx.font = '100px Arial';
+        ctx.fillText('4000x4000 pixels', 2000, 2200);
+        
+        // Convert to blob with high quality to make it large
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.getElementById('download');
+            link.href = url;
+            
+            // Show file size
+            const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+            document.body.insertAdjacentHTML('beforeend', 
+                `<p>Image size: ${sizeMB} MB (${blob.size.toLocaleString()} bytes)</p>`
+            );
+        }, 'image/jpeg', 0.95);
+    </script>
+</body>
+</html>

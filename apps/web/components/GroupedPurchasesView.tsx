@@ -7,12 +7,14 @@ interface GroupedPurchasesViewProps {
   groupedByCustomer: any
   language: string
   onActivatePurchase: (purchase: any) => void
+  onDeletePurchase: (purchase: any) => void
 }
 
 export default function GroupedPurchasesView({ 
   groupedByCustomer, 
   language, 
-  onActivatePurchase 
+  onActivatePurchase,
+  onDeletePurchase 
 }: GroupedPurchasesViewProps) {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set())
 
@@ -218,12 +220,20 @@ export default function GroupedPurchasesView({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           {purchase.status === 'PENDING' && (
-                            <button
-                              onClick={() => onActivatePurchase(purchase)}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              {language === 'en' ? 'Activate' : 'Activar'}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => onActivatePurchase(purchase)}
+                                className="text-green-600 hover:text-green-900 mr-2"
+                              >
+                                {language === 'en' ? 'Activate' : 'Activar'}
+                              </button>
+                              <button
+                                onClick={() => onDeletePurchase(purchase)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                {language === 'en' ? 'Delete' : 'Eliminar'}
+                              </button>
+                            </>
                           )}
                         </td>
                       </tr>

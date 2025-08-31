@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import BusinessLanding from '@/components/business/BusinessLanding'
+import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
 
 export default function BusinessClientWrapper({ businessId, initialData }: any) {
   const [businessData, setBusinessData] = useState(initialData)
@@ -27,5 +27,5 @@ export default function BusinessClientWrapper({ businessId, initialData }: any) 
     return <div>Loading...</div>
   }
 
-  return <BusinessLanding business={businessData} />
+  return <BusinessLandingEnhanced business={businessData} />
 }
