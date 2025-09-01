@@ -79,11 +79,16 @@ export default function StaffPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [specialtyInput, setSpecialtyInput] = useState('')
-  const [scheduleData, setScheduleData] = useState({
-    dayOfWeek: 1,
-    startTime: '09:00',
-    endTime: '17:00',
-    isActive: true
+  const [scheduleData, setScheduleData] = useState<any>(() => {
+    const initialSchedule: any = {}
+    for (let day = 0; day <= 6; day++) {
+      initialSchedule[day] = {
+        isActive: day >= 1 && day <= 5, // Lunes a Viernes activos por defecto
+        startTime: '09:00',
+        endTime: '17:00'
+      }
+    }
+    return initialSchedule
   })
 
   useEffect(() => {
@@ -121,7 +126,10 @@ export default function StaffPage() {
       const response = await fetch('/api/dashboard/staff')
       if (response.ok) {
         const data = await response.json()
+        console.log('Staff data loaded:', data)
         setStaff(data)
+      } else {
+        console.error('Staff API response not OK:', response.status)
       }
     } catch (error) {
       console.error('Error loading staff:', error)
@@ -318,6 +326,8 @@ export default function StaffPage() {
     try {
       setSaving(true)
       
+      console.log('Saving schedule data:', scheduleData)
+      
       const response = await fetch(`/api/dashboard/staff/${selectedStaff.id}/working-hours`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -325,11 +335,16 @@ export default function StaffPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save schedule')
+        const errorData = await response.json()
+        console.error('API Error:', errorData)
+        throw new Error(errorData.error || 'Failed to save schedule')
       }
 
       await loadStaff()
       alert(t('language') === 'en' ? 'Schedule saved successfully' : 'Horario guardado exitosamente')
+      // Cerrar el modal después de guardar exitosamente
+      setShowScheduleModal(false)
+      setSelectedStaff(null)
     } catch (error) {
       console.error('Error saving schedule:', error)
       alert(t('language') === 'en' ? 'Failed to save schedule' : 'Error al guardar el horario')
@@ -428,6 +443,37 @@ export default function StaffPage() {
         </div>
 
         {/* Staff Grid */}
+        {console.log('Rendering staff list:', staff.length, 'members')}
+        {staff.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-gray-500 mb-4">
+              {t('language') === 'en' 
+                ? 'No staff members found. Add your first staff member to get started.'
+                : 'No se encontraron trabajadores. Agrega tu primer trabajador para comenzar.'}
+            </p>
+            <button
+              onClick={() => {
+                setSelectedStaff(null)
+                setFormData({
+                  name: '',
+                  email: '',
+                  phone: '',
+                  photo: '',
+                  bio: '',
+                  specialties: [],
+                  isActive: true,
+                  canAcceptBookings: true
+                })
+                setPhotoPreview(null)
+                setUploadProgress('')
+                setShowAddModal(true)
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {t('language') === 'en' ? '+ Add First Staff Member' : '+ Agregar Primer Trabajador'}
+            </button>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {staff.map((member) => (
             <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -534,6 +580,21 @@ export default function StaffPage() {
                   <button
                     onClick={() => {
                       setSelectedStaff(member)
+                      // Cargar horarios existentes del trabajador
+                      const newSchedule: any = {}
+                      for (let day = 0; day <= 6; day++) {
+                        const existingHours = member.workingHours?.find((wh: any) => wh.dayOfWeek === day)
+                        newSchedule[day] = existingHours ? {
+                          isActive: existingHours.isActive,
+                          startTime: existingHours.startTime,
+                          endTime: existingHours.endTime
+                        } : {
+                          isActive: day >= 1 && day <= 5,
+                          startTime: '09:00',
+                          endTime: '17:00'
+                        }
+                      }
+                      setScheduleData(newSchedule)
                       setShowScheduleModal(true)
                     }}
                     className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
@@ -557,6 +618,7 @@ export default function StaffPage() {
             </div>
           ))}
         </div>
+        )}
 
         {/* Add/Edit Modal */}
         {showAddModal && (
@@ -806,69 +868,118 @@ export default function StaffPage() {
         {/* Schedule Modal */}
         {showScheduleModal && selectedStaff && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h2 className="text-xl font-bold mb-4">
                   {t('language') === 'en' ? 'Set Working Hours' : 'Configurar Horario'} - {selectedStaff.name}
                 </h2>
 
-                <div className="space-y-4">
-                  {/* Day */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Day of Week' : 'Día de la Semana'}
-                    </label>
-                    <select
-                      value={scheduleData.dayOfWeek}
-                      onChange={(e) => setScheduleData({ ...scheduleData, dayOfWeek: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                {/* Apply to All Days */}
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                  <h3 className="text-sm font-semibold text-blue-900 mb-3">
+                    {t('language') === 'en' ? 'Quick Setup' : 'Configuración Rápida'}
+                  </h3>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-600 mb-1">
+                        {t('language') === 'en' ? 'Start' : 'Inicio'}
+                      </label>
+                      <input
+                        type="time"
+                        id="quickStartTime"
+                        defaultValue="09:00"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-600 mb-1">
+                        {t('language') === 'en' ? 'End' : 'Fin'}
+                      </label>
+                      <input
+                        type="time"
+                        id="quickEndTime"
+                        defaultValue="17:00"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <button
+                      onClick={() => {
+                        const quickStart = (document.getElementById('quickStartTime') as HTMLInputElement).value
+                        const quickEnd = (document.getElementById('quickEndTime') as HTMLInputElement).value
+                        const newSchedule = {...scheduleData}
+                        for (let day = 0; day <= 6; day++) {
+                          newSchedule[day] = {
+                            isActive: day >= 1 && day <= 5, // Lunes a Viernes por defecto
+                            startTime: quickStart,
+                            endTime: quickEnd
+                          }
+                        }
+                        setScheduleData(newSchedule)
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                     >
-                      {DAYS_OF_WEEK.map(day => (
-                        <option key={day.value} value={day.value}>
-                          {t('language') === 'en' ? day.label : day.labelEs}
-                        </option>
-                      ))}
-                    </select>
+                      {t('language') === 'en' ? 'Apply to All' : 'Aplicar a Todos'}
+                    </button>
                   </div>
+                </div>
 
-                  {/* Start Time */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Start Time' : 'Hora de Inicio'}
-                    </label>
-                    <input
-                      type="time"
-                      value={scheduleData.startTime}
-                      onChange={(e) => setScheduleData({ ...scheduleData, startTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    />
-                  </div>
-
-                  {/* End Time */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'End Time' : 'Hora de Fin'}
-                    </label>
-                    <input
-                      type="time"
-                      value={scheduleData.endTime}
-                      onChange={(e) => setScheduleData({ ...scheduleData, endTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    />
-                  </div>
-
-                  {/* Active */}
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={scheduleData.isActive}
-                      onChange={(e) => setScheduleData({ ...scheduleData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      {t('language') === 'en' ? 'Active' : 'Activo'}
-                    </span>
-                  </label>
+                {/* Individual Days */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    {t('language') === 'en' ? 'Individual Days' : 'Días Individuales'}
+                  </h3>
+                  {DAYS_OF_WEEK.map(day => (
+                    <div key={day.value} className="flex items-center gap-3 p-3 border rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={scheduleData[day.value]?.isActive || false}
+                        onChange={(e) => {
+                          setScheduleData({
+                            ...scheduleData,
+                            [day.value]: {
+                              ...scheduleData[day.value],
+                              isActive: e.target.checked
+                            }
+                          })
+                        }}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <div className="w-24 font-medium text-sm">
+                        {t('language') === 'en' ? day.label : day.labelEs}
+                      </div>
+                      <input
+                        type="time"
+                        value={scheduleData[day.value]?.startTime || '09:00'}
+                        onChange={(e) => {
+                          setScheduleData({
+                            ...scheduleData,
+                            [day.value]: {
+                              ...scheduleData[day.value],
+                              startTime: e.target.value
+                            }
+                          })
+                        }}
+                        disabled={!scheduleData[day.value]?.isActive}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm disabled:bg-gray-100"
+                      />
+                      <span className="text-sm text-gray-500">-</span>
+                      <input
+                        type="time"
+                        value={scheduleData[day.value]?.endTime || '17:00'}
+                        onChange={(e) => {
+                          setScheduleData({
+                            ...scheduleData,
+                            [day.value]: {
+                              ...scheduleData[day.value],
+                              endTime: e.target.value
+                            }
+                          })
+                        }}
+                        disabled={!scheduleData[day.value]?.isActive}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm disabled:bg-gray-100"
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Current Schedule */}

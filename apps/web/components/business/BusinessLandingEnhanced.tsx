@@ -695,7 +695,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       </section>
 
       {/* Services Section mejorada */}
-      <section id="services" className="py-20 bg-gray-50">
+      <section id="services" className="py-2 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
@@ -888,9 +888,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
       {/* My Packages & Appointments Section for Authenticated Users */}
       {isAuthenticated && (customerPackages.length > 0 || myAppointments.length > 0) && (
-        <section className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
+        <section className="py-1 bg-gradient-to-br from-blue-50 to-purple-50">
           <div className="container mx-auto px-4 sm:px-6">
-            <div className="text-center mb-10">
+            <div className="text-center mb-2">
               <h2 className="text-3xl font-bold mb-2">Mi Cuenta</h2>
               <p className="text-gray-600">Gestiona tus paquetes y citas</p>
             </div>
@@ -1009,7 +1009,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
       {/* Packages Section mejorada */}
       {business.packages?.length > 0 && (
-        <section id="packages" className="py-20 bg-white">
+        <section id="packages" className="py-2 bg-white">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
@@ -1102,7 +1102,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
       {/* Staff Section */}
       {staff.length > 0 && (
-        <section className="py-20 bg-gray-50">
+        <section className="py-2 bg-gray-50">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
@@ -1154,7 +1154,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
       {/* Reviews Section mejorada */}
       {reviews.length > 0 && (
-        <section id="reviews" className="py-20 bg-white">
+        <section id="reviews" className="py-2 bg-white">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
@@ -1227,20 +1227,20 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       )}
 
       {/* Contact Section mejorada */}
-      <section id="contact" className="py-20 bg-gray-900 text-white">
+      <section id="contact" className="py-2 bg-gray-900 text-white">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid lg:grid-cols-2 gap-12">
+          <div className="grid lg:grid-cols-2 gap-2">
             {/* Info */}
             <div>
-              <h2 className="text-3xl font-bold mb-8">Información de Contacto</h2>
+              <h2 className="text-base font-bold mb-1">Información de Contacto</h2>
               
-              <div className="space-y-6 mb-8">
+              <div className="space-y-1 mb-2">
                 {business.address && (
-                  <div className="flex items-start gap-4">
-                    <MapPin className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: colors.accent }} />
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold mb-1">Dirección</p>
-                      <p className="text-gray-300">
+                      <p className="font-semibold text-sm">Dirección</p>
+                      <p className="text-gray-300 text-sm">
                         {business.address}, {business.city}, {business.state}
                       </p>
                     </div>
@@ -1248,21 +1248,21 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 )}
                 
                 {business.phone && (
-                  <div className="flex items-start gap-4">
-                    <Phone className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: colors.accent }} />
+                  <div className="flex items-start gap-2">
+                    <Phone className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold mb-1">Teléfono</p>
-                      <p className="text-gray-300">{business.phone}</p>
+                      <p className="font-semibold text-sm">Teléfono</p>
+                      <p className="text-gray-300 text-sm">{business.phone}</p>
                     </div>
                   </div>
                 )}
                 
                 {business.email && (
-                  <div className="flex items-start gap-4">
-                    <Mail className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: colors.accent }} />
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold mb-1">Email</p>
-                      <p className="text-gray-300">{business.email}</p>
+                      <p className="font-semibold text-sm">Email</p>
+                      <p className="text-gray-300 text-sm">{business.email}</p>
                     </div>
                   </div>
                 )}
@@ -1270,27 +1270,27 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
               {/* Social media */}
               <div>
-                <p className="font-semibold mb-4">Síguenos</p>
-                <div className="flex gap-4">
-                  <a href="#" className="p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                    <Facebook className="w-5 h-5" />
+                <p className="font-semibold mb-1 text-xs">Síguenos</p>
+                <div className="flex gap-2">
+                  <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                    <Facebook className="w-4 h-4" />
                   </a>
-                  <a href="#" className="p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                    <Instagram className="w-5 h-5" />
+                  <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                    <Instagram className="w-4 h-4" />
                   </a>
-                  <a href="#" className="p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                    <Twitter className="w-5 h-5" />
+                  <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                    <Twitter className="w-4 h-4" />
                   </a>
                 </div>
               </div>
             </div>
 
             {/* Horarios */}
-            <div>
-              <h2 className="text-3xl font-bold mb-8">Horario de Atención</h2>
+            <div className="flex flex-col items-end">
+              <h2 className="text-base font-bold mb-1 w-full text-right">Horario de Atención</h2>
               
-              <div className="space-y-3">
-                {[0, 1, 2, 3, 4, 5, 6].map(day => {
+              <div className="space-y-0.5 w-auto">
+                {[1, 2, 3, 4, 5, 6, 0].map(day => {  // Lunes primero, Domingo último
                   const dayHours = workingHours.find((wh: any) => 
                     wh.dayOfWeek === day && !wh.staffId
                   )
@@ -1299,14 +1299,14 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   return (
                     <div 
                       key={day} 
-                      className={`flex justify-between py-3 px-4 rounded-lg ${
+                      className={`flex items-center py-0.5 px-2 rounded text-xs ${
                         isToday ? 'bg-white/10' : ''
                       }`}
                     >
-                      <span className={`font-medium ${isToday ? 'text-white' : 'text-gray-400'}`}>
+                      <span className={`font-medium text-right w-20 ${isToday ? 'text-white' : 'text-gray-400'}`}>
                         {daysOfWeek[day]}
                       </span>
-                      <span className={isToday ? 'text-white' : 'text-gray-400'}>
+                      <span className={`ml-4 text-right min-w-[100px] ${isToday ? 'text-white' : 'text-gray-400'}`}>
                         {dayHours && dayHours.isActive
                           ? `${dayHours.startTime} - ${dayHours.endTime}`
                           : 'Cerrado'}
@@ -1318,9 +1318,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               
               <button
                 onClick={() => setShowBookingModal(true)}
-                className="w-full mt-8 py-4 rounded-xl font-bold text-gray-900 bg-white hover:bg-gray-100 transition-all duration-300"
+                className="mt-1 px-4 py-1 rounded font-semibold text-xs text-gray-900 bg-white hover:bg-gray-100 transition-all duration-300"
               >
-                Reservar Cita Ahora
+                Reservar Cita
               </button>
             </div>
           </div>
@@ -1328,8 +1328,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       </section>
 
       {/* Footer */}
-      <footer className="bg-black py-8 text-center text-gray-400">
-        <p>&copy; 2024 {business.name}. Todos los derechos reservados.</p>
+      <footer className="bg-black py-1 text-center text-gray-400">
+        <p className="text-xs">&copy; 2025 {business.name}. Todos los derechos reservados.</p>
       </footer>
 
       {/* Booking Modal Mejorado */}
@@ -1400,11 +1400,48 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       </button>
                       
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           setBookingType('use-package')
-                          // Solicitar email inmediatamente
-                          if (!bookingData.customerEmail) {
-                            setBookingStep(1.5) // Paso intermedio para pedir email
+                          
+                          // Si el usuario está logueado, cargar sus paquetes automáticamente
+                          const token = localStorage.getItem('clientToken')
+                          if (token && customerData?.email) {
+                            setBookingData(prev => ({ ...prev, customerEmail: customerData.email }))
+                            setIsLoadingPackages(true)
+                            
+                            try {
+                              const response = await fetch('/api/cliente/dashboard', {
+                                headers: {
+                                  'Authorization': `Bearer ${token}`
+                                }
+                              })
+                              
+                              if (response.ok) {
+                                const data = await response.json()
+                                if (data.packages && data.packages.length > 0) {
+                                  setCustomerPackages(data.packages)
+                                  setHasSearchedPackages(true)
+                                  setBookingStep(1.5) // Ir a selección de paquete
+                                } else {
+                                  alert('No tienes paquetes activos disponibles')
+                                  setBookingType('package') // Cambiar a comprar paquete
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error loading packages:', error)
+                            } finally {
+                              setIsLoadingPackages(false)
+                            }
+                          } else {
+                            // Si no está logueado, preguntar si desea iniciar sesión
+                            const confirmLogin = confirm('Debes iniciar sesión para usar tus paquetes. ¿Deseas hacerlo ahora?')
+                            if (confirmLogin) {
+                              const currentUrl = encodeURIComponent(window.location.href)
+                              window.location.href = `/cliente/login?from=${currentUrl}`
+                            } else {
+                              // Volver al tipo de reserva normal si el usuario cancela
+                              setBookingType('service')
+                            }
                           }
                         }}
                         className={`p-4 rounded-xl border-2 transition-all ${
@@ -1664,7 +1701,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       <label className="text-sm font-medium text-gray-700 mb-3 block">
                         Tus paquetes disponibles
                       </label>
-                      <div className="space-y-3">
+                      <div className="space-y-1">
                         {customerPackages.map((pkg) => (
                           <div 
                             key={pkg.id}
@@ -1707,20 +1744,42 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       </div>
                       
                       {selectedCustomerPackage && (
-                        <button
-                          onClick={() => {
-                            // Preseleccionar el primer servicio del paquete
-                            const firstService = selectedCustomerPackage.package.services[0]?.service
-                            if (firstService) {
-                              setSelectedService(firstService)
-                              setBookingStep(2)
-                            }
-                          }}
-                          className="w-full mt-4 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
-                          style={{ background: colors.gradient }}
-                        >
-                          Continuar y elegir horario
-                        </button>
+                        <div className="mt-6 space-y-4">
+                          <h4 className="font-semibold text-gray-700">Selecciona el servicio que deseas reservar:</h4>
+                          <div className="grid gap-3">
+                            {selectedCustomerPackage.package.services.map((pkgService: any) => (
+                              <button
+                                key={pkgService.service.id}
+                                onClick={() => {
+                                  // Buscar el servicio completo en la lista de servicios
+                                  const fullService = business.services?.find((s: any) => s.id === pkgService.service.id || s.id === pkgService.serviceId)
+                                  console.log('Buscando servicio:', {
+                                    pkgServiceId: pkgService.service?.id || pkgService.serviceId,
+                                    availableServices: business.services?.map((s: any) => ({ id: s.id, name: s.name })) || [],
+                                    found: fullService
+                                  })
+                                  if (fullService) {
+                                    setSelectedService(fullService)
+                                    setBookingStep(2)
+                                  } else {
+                                    alert('Error: No se pudo encontrar el servicio. Por favor, recarga la página.')
+                                  }
+                                }}
+                                className="p-4 rounded-xl border-2 border-gray-200 hover:border-purple-300 transition-all text-left"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-semibold">{pkgService.service.name}</p>
+                                    <p className="text-sm text-gray-500">
+                                      Duración: {pkgService.service.duration} min
+                                    </p>
+                                  </div>
+                                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
@@ -2290,7 +2349,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 {loginMode === 'verify' ? (
                   // Verification code input
                   <>
-                    <div className="text-center mb-4">
+                    <div className="text-center mb-2">
                       <p className="text-gray-600">
                         Hemos enviado un código de verificación a:
                       </p>
@@ -2444,4 +2503,5 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       )}
     </div>
   )
-}
+}// Force reload
+

@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { User, Lock, Mail, ArrowRight, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ClientLoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLogin, setIsLogin] = useState(true)
+  const [returnUrl, setReturnUrl] = useState('/')
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -16,6 +18,20 @@ export default function ClientLoginPage() {
     phone: ''
   })
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    // Obtener la URL de retorno desde los parámetros o del referrer
+    const from = searchParams.get('from')
+    if (from) {
+      setReturnUrl(decodeURIComponent(from))
+    } else if (typeof window !== 'undefined' && document.referrer) {
+      // Si viene de una página del mismo dominio, usar esa como retorno
+      const referrerUrl = new URL(document.referrer)
+      if (referrerUrl.hostname === window.location.hostname) {
+        setReturnUrl(document.referrer)
+      }
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,8 +56,13 @@ export default function ClientLoginPage() {
       localStorage.setItem('clientToken', data.token)
       localStorage.setItem('clientData', JSON.stringify(data.customer))
       
-      // Redirigir al dashboard
-      router.push('/cliente/dashboard')
+      // Redirigir a la página de retorno o al dashboard
+      const redirectTo = searchParams.get('from')
+      if (redirectTo) {
+        router.push(decodeURIComponent(redirectTo))
+      } else {
+        router.push('/cliente/dashboard')
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -177,10 +198,10 @@ export default function ClientLoginPage() {
             </p>
           </div>
 
-          {/* Back to home */}
+          {/* Back to previous page */}
           <div className="mt-4 text-center">
-            <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">
-              ← Volver al inicio
+            <Link href={returnUrl} className="text-gray-500 hover:text-gray-700 text-sm">
+              ← Volver
             </Link>
           </div>
         </div>

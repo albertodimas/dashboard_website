@@ -1,194 +1,144 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
-import { z } from 'zod'
 
-const workingHourSchema = z.object({
-  dayOfWeek: z.number().min(0).max(6),
-  startTime: z.string(),
-  endTime: z.string(),
-  isActive: z.boolean().optional()
-})
-
-// GET working hours for a specific staff member
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const business = await getCurrentBusiness()
-
-    if (!business) {
-      return createAuthResponse('Business not found', 404)
-    }
-
-    // Verify staff belongs to this business
-    const staff = await prisma.staff.findFirst({
-      where: {
-        id: params.id,
-        businessId: business.id
-      }
-    })
-
-    if (!staff) {
-      return NextResponse.json(
-        { error: 'Staff member not found' },
-        { status: 404 }
-      )
-    }
-
-    const workingHours = await prisma.workingHour.findMany({
-      where: { 
-        staffId: params.id,
-        businessId: business.id
-      },
-      orderBy: { dayOfWeek: 'asc' }
-    })
-
-    return NextResponse.json(workingHours)
-  } catch (error) {
-    console.error('Error fetching working hours:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch working hours' },
-      { status: 500 }
-    )
-  }
-}
-
-// POST create or update working hours for a staff member
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const business = await getCurrentBusiness()
-
     if (!business) {
       return createAuthResponse('Business not found', 404)
     }
 
-    // Verify staff belongs to this business
+    const staffId = params.id
+    const scheduleData = await request.json()
+    
+    console.log('Received schedule data:', scheduleData)
+    console.log('Staff ID:', staffId)
+    console.log('Business ID:', business.id)
+
+    // Verify the staff member belongs to the user's business
     const staff = await prisma.staff.findFirst({
       where: {
-        id: params.id,
+        id: staffId,
         businessId: business.id
       }
     })
 
     if (!staff) {
-      return NextResponse.json(
-        { error: 'Staff member not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Staff member not found' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const validated = workingHourSchema.parse(body)
-
-    // Check if working hour already exists for this day
-    const existing = await prisma.workingHour.findUnique({
+    // Delete existing working hours for this staff member
+    await prisma.workingHour.deleteMany({
       where: {
-        businessId_staffId_dayOfWeek: {
+        staffId: staffId,
+        businessId: business.id
+      }
+    })
+
+    // Create new working hours
+    const workingHours = []
+    for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
+      const dayData = scheduleData[dayOfWeek]
+      if (dayData && dayData.isActive) {
+        workingHours.push({
           businessId: business.id,
-          staffId: params.id,
-          dayOfWeek: validated.dayOfWeek
+          staffId: staffId,
+          dayOfWeek,
+          startTime: dayData.startTime,
+          endTime: dayData.endTime,
+          isActive: true
+        })
+      }
+    }
+
+    if (workingHours.length > 0) {
+      await prisma.workingHour.createMany({
+        data: workingHours
+      })
+    }
+
+    // Fetch updated staff with working hours
+    const updatedStaff = await prisma.staff.findUnique({
+      where: { id: staffId },
+      include: {
+        workingHours: {
+          orderBy: { dayOfWeek: 'asc' }
         }
       }
     })
 
-    let workingHour
-    if (existing) {
-      // Update existing
-      workingHour = await prisma.workingHour.update({
-        where: { id: existing.id },
-        data: {
-          startTime: validated.startTime,
-          endTime: validated.endTime,
-          isActive: validated.isActive !== false
-        }
-      })
-    } else {
-      // Create new
-      workingHour = await prisma.workingHour.create({
-        data: {
-          businessId: business.id,
-          staffId: params.id,
-          dayOfWeek: validated.dayOfWeek,
-          startTime: validated.startTime,
-          endTime: validated.endTime,
-          isActive: validated.isActive !== false
-        }
-      })
-    }
-
-    return NextResponse.json(workingHour)
+    return NextResponse.json({
+      success: true,
+      staff: updatedStaff,
+      message: 'Working hours updated successfully'
+    })
   } catch (error) {
-    console.error('Error saving working hours:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
-        { status: 400 }
-      )
-    }
-
+    console.error('Error updating working hours:', error)
     return NextResponse.json(
-      { error: 'Failed to save working hours' },
+      { error: 'Failed to update working hours' },
       { status: 500 }
     )
   }
 }
 
-// DELETE remove working hours for a specific day
-export async function DELETE(
+// GET working hours for a staff member
+export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const business = await getCurrentBusiness()
-
     if (!business) {
       return createAuthResponse('Business not found', 404)
     }
 
-    const { searchParams } = new URL(request.url)
-    const dayOfWeek = searchParams.get('dayOfWeek')
+    const staffId = params.id
 
-    if (!dayOfWeek) {
-      return NextResponse.json(
-        { error: 'Day of week is required' },
-        { status: 400 }
-      )
-    }
-
-    // Verify staff belongs to this business
+    // Verify the staff member belongs to the user's business
     const staff = await prisma.staff.findFirst({
       where: {
-        id: params.id,
+        id: staffId,
         businessId: business.id
+      },
+      include: {
+        workingHours: {
+          orderBy: { dayOfWeek: 'asc' }
+        }
       }
     })
 
     if (!staff) {
-      return NextResponse.json(
-        { error: 'Staff member not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Staff member not found' }, { status: 404 })
     }
 
-    await prisma.workingHour.deleteMany({
-      where: {
-        businessId: business.id,
-        staffId: params.id,
-        dayOfWeek: parseInt(dayOfWeek)
+    // Format working hours for the frontend
+    const formattedSchedule: any = {}
+    for (let day = 0; day <= 6; day++) {
+      const dayHours = staff.workingHours.find(wh => wh.dayOfWeek === day)
+      formattedSchedule[day] = dayHours ? {
+        isActive: dayHours.isActive,
+        startTime: dayHours.startTime,
+        endTime: dayHours.endTime
+      } : {
+        isActive: false,
+        startTime: '09:00',
+        endTime: '17:00'
       }
-    })
+    }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      schedule: formattedSchedule,
+      staff
+    })
   } catch (error) {
-    console.error('Error deleting working hours:', error)
+    console.error('Error fetching working hours:', error)
     return NextResponse.json(
-      { error: 'Failed to delete working hours' },
+      { error: 'Failed to fetch working hours' },
       { status: 500 }
     )
   }

@@ -105,10 +105,10 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t py-8">
+      <footer className="border-t py-4">
         <div className="container mx-auto px-4">
           <div className="text-center text-sm text-muted-foreground">
-            © 2024 Dashboard. All rights reserved.
+            © 2025 userFit. Todos los derechos reservados.
           </div>
         </div>
       </footer>
