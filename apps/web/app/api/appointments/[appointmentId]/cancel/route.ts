@@ -77,7 +77,7 @@ export async function POST(
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
-        cancelReason: 'Cancelado por el cliente'
+        cancellationReason: 'Cancelado por el cliente'
       }
     })
 

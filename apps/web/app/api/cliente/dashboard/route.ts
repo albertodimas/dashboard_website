@@ -66,10 +66,13 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Obtener citas
+    // Obtener citas (excluyendo las canceladas)
     const appointments = await prisma.appointment.findMany({
       where: {
-        customerId: decoded.customerId
+        customerId: decoded.customerId,
+        status: {
+          not: 'CANCELLED'
+        }
       },
       include: {
         service: {

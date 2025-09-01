@@ -436,11 +436,19 @@ export async function GET(request: NextRequest) {
     // Use UTC day to avoid timezone issues with date-only strings
     const dayOfWeek = new Date(date + 'T00:00:00').getDay()
     
-    // Try to get specific working hours for this day
-    // If staffId is provided, prioritize staff-specific hours
-    let workingHours = null
+    // Get business-wide working hours first
+    const businessWorkingHours = await prisma.workingHour.findFirst({
+      where: {
+        businessId,
+        staffId: null,
+        dayOfWeek
+      }
+    })
+    
+    // Get staff-specific working hours if staffId is provided
+    let staffWorkingHours = null
     if (staffId) {
-      workingHours = await prisma.workingHour.findFirst({
+      staffWorkingHours = await prisma.workingHour.findFirst({
         where: {
           businessId,
           staffId,
@@ -449,35 +457,56 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    // If no staff-specific hours, try business-wide hours
-    if (!workingHours) {
-      workingHours = await prisma.workingHour.findFirst({
-        where: {
-          businessId,
-          staffId: null,
-          dayOfWeek
-        }
-      })
+    // Determine business hours (from working hours or schedule settings)
+    const businessStartTime = businessWorkingHours?.startTime || scheduleSettings.startTime
+    const businessEndTime = businessWorkingHours?.endTime || scheduleSettings.endTime
+    
+    // If no business hours configured, return empty
+    if (!businessStartTime || !businessEndTime) {
+      console.log('No business hours configured for business:', businessId)
+      return NextResponse.json({ availableSlots: [] })
+    }
+    
+    // Check if business is open this day
+    if (businessWorkingHours && !businessWorkingHours.isActive) {
+      return NextResponse.json({ availableSlots: [] })
     }
     
     // If no working hours found and no schedule settings working days, return empty
-    if (!workingHours && (!scheduleSettings.workingDays || !scheduleSettings.workingDays.includes(dayOfWeek))) {
-      return NextResponse.json({ availableSlots: [] })
-    }
-
-    // If no specific working hours, use schedule settings from database
-    const startTimeStr = workingHours?.startTime || scheduleSettings.startTime
-    const endTimeStr = workingHours?.endTime || scheduleSettings.endTime
-    
-    // If no times configured at all, return empty
-    if (!startTimeStr || !endTimeStr) {
-      console.log('No working hours configured for business:', businessId)
+    if (!businessWorkingHours && (!scheduleSettings.workingDays || !scheduleSettings.workingDays.includes(dayOfWeek))) {
       return NextResponse.json({ availableSlots: [] })
     }
     
-    // If working hours exist and day is not active, return empty
-    if (workingHours && !workingHours.isActive) {
-      return NextResponse.json({ availableSlots: [] })
+    // Determine effective working hours
+    let startTimeStr = businessStartTime
+    let endTimeStr = businessEndTime
+    
+    // If staff has specific hours, use the intersection with business hours
+    if (staffWorkingHours) {
+      // Check if staff is working this day
+      if (!staffWorkingHours.isActive) {
+        return NextResponse.json({ availableSlots: [] })
+      }
+      
+      // Use the latest start time (intersection)
+      const staffStartMinutes = parseInt(staffWorkingHours.startTime.split(':')[0]) * 60 + parseInt(staffWorkingHours.startTime.split(':')[1])
+      const businessStartMinutes = parseInt(businessStartTime.split(':')[0]) * 60 + parseInt(businessStartTime.split(':')[1])
+      
+      // Use the earliest end time (intersection)
+      const staffEndMinutes = parseInt(staffWorkingHours.endTime.split(':')[0]) * 60 + parseInt(staffWorkingHours.endTime.split(':')[1])
+      const businessEndMinutes = parseInt(businessEndTime.split(':')[0]) * 60 + parseInt(businessEndTime.split(':')[1])
+      
+      // Take the most restrictive hours (intersection)
+      const effectiveStartMinutes = Math.max(staffStartMinutes, businessStartMinutes)
+      const effectiveEndMinutes = Math.min(staffEndMinutes, businessEndMinutes)
+      
+      // If no overlap, return empty
+      if (effectiveStartMinutes >= effectiveEndMinutes) {
+        return NextResponse.json({ availableSlots: [] })
+      }
+      
+      startTimeStr = `${Math.floor(effectiveStartMinutes / 60).toString().padStart(2, '0')}:${(effectiveStartMinutes % 60).toString().padStart(2, '0')}`
+      endTimeStr = `${Math.floor(effectiveEndMinutes / 60).toString().padStart(2, '0')}:${(effectiveEndMinutes % 60).toString().padStart(2, '0')}`
     }
 
     // Get existing appointments for the day
