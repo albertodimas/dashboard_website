@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
 
     // Calcular duración total del paquete
     let totalDuration = 0
+    let originalPrice = 0
+    
     if (services && services.length > 0) {
       const serviceIds = services.map((s: any) => s.serviceId)
       const serviceDetails = await prisma.service.findMany({
@@ -66,19 +68,18 @@ export async function POST(request: NextRequest) {
         const service = serviceDetails.find(sd => sd.id === s.serviceId)
         if (service) {
           totalDuration += service.duration * (s.quantity || 1)
+          originalPrice += service.price * (s.quantity || 1)
         }
       })
     }
 
-    // Calcular precio original si hay descuento
-    let originalPrice = packageData.price
-    if (packageData.discount && packageData.discount > 0) {
-      originalPrice = packageData.price / (1 - packageData.discount / 100)
-    }
+    // Calculate final price with discount (60% discount = pay 40%)
+    const finalPrice = originalPrice * (1 - (packageData.discount || 0) / 100)
 
     const newPackage = await prisma.package.create({
       data: {
         ...packageData,
+        price: finalPrice,
         duration: totalDuration,
         originalPrice,
         tenantId: user.tenantId,
@@ -135,8 +136,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Package not found' }, { status: 404 })
     }
 
-    // Calcular duración total del paquete
+    // Calcular duración total del paquete y precio original
     let totalDuration = 0
+    let originalPrice = 0
+    
     if (services && services.length > 0) {
       const serviceIds = services.map((s: any) => s.serviceId)
       const serviceDetails = await prisma.service.findMany({
@@ -147,15 +150,13 @@ export async function PUT(request: NextRequest) {
         const service = serviceDetails.find(sd => sd.id === s.serviceId)
         if (service) {
           totalDuration += service.duration * (s.quantity || 1)
+          originalPrice += service.price * (s.quantity || 1)
         }
       })
     }
 
-    // Calcular precio original si hay descuento
-    let originalPrice = packageData.price
-    if (packageData.discount && packageData.discount > 0) {
-      originalPrice = packageData.price / (1 - packageData.discount / 100)
-    }
+    // Calculate final price with discount (60% discount = pay 40%)
+    const finalPrice = originalPrice * (1 - (packageData.discount || 0) / 100)
 
     // Actualizar paquete y sus servicios
     const updatedPackage = await prisma.$transaction(async (tx) => {
@@ -169,6 +170,7 @@ export async function PUT(request: NextRequest) {
         where: { id: packageId },
         data: {
           ...packageData,
+          price: finalPrice,
           duration: totalDuration,
           originalPrice,
           services: {

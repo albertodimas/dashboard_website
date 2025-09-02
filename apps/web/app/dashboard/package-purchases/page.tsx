@@ -406,7 +406,7 @@ export default function PackagePurchasesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">${purchase.pricePaid}</div>
+                    <div className="text-sm text-gray-900">${typeof purchase.pricePaid === 'number' ? purchase.pricePaid.toFixed(2) : purchase.pricePaid}</div>
                     {purchase.paymentMethod && (
                       <div className="text-xs text-gray-500">{purchase.paymentMethod}</div>
                     )}
@@ -511,7 +511,7 @@ export default function PackagePurchasesPage() {
                     <option value="">{language === 'en' ? 'Select package' : 'Seleccionar paquete'}</option>
                     {packages.map((pkg) => (
                       <option key={pkg.id} value={pkg.id}>
-                        {pkg.name} - ${pkg.price} ({pkg.sessionCount} sessions)
+                        {pkg.name} - ${typeof pkg.price === 'number' ? pkg.price.toFixed(2) : pkg.price} ({pkg.sessionCount} sessions)
                       </option>
                     ))}
                   </select>
@@ -592,7 +592,7 @@ export default function PackagePurchasesPage() {
                 <div className="text-sm text-gray-600">Package:</div>
                 <div className="font-medium">{selectedPurchase.package?.name}</div>
                 <div className="text-sm text-gray-500">
-                  {selectedPurchase.totalSessions} sessions - ${selectedPurchase.pricePaid}
+                  {selectedPurchase.totalSessions} sessions - ${typeof selectedPurchase.pricePaid === 'number' ? selectedPurchase.pricePaid.toFixed(2) : selectedPurchase.pricePaid}
                 </div>
               </div>
 
@@ -692,7 +692,7 @@ export default function PackagePurchasesPage() {
                 </div>
                 <div className="font-medium">{selectedPurchase.package?.name}</div>
                 <div className="text-sm text-gray-500">
-                  {selectedPurchase.totalSessions} {language === 'en' ? 'sessions' : 'sesiones'} - ${selectedPurchase.pricePaid}
+                  {selectedPurchase.totalSessions} {language === 'en' ? 'sessions' : 'sesiones'} - ${typeof selectedPurchase.pricePaid === 'number' ? selectedPurchase.pricePaid.toFixed(2) : selectedPurchase.pricePaid}
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
                   {language === 'en' ? 'Payment Method:' : 'Método de Pago:'} {selectedPurchase.paymentMethod}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 
 interface Service {
   id: string
@@ -44,8 +45,8 @@ export default function PackagesPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: 0,
     discount: 0,
+    price: 0, // Final price that can be manually adjusted
     isActive: true,
     validityDays: '',
     maxPurchases: '',
@@ -53,6 +54,7 @@ export default function PackagesPage() {
     sessionCount: 1, // Number of sessions included in the package
     services: [] as PackageService[]
   })
+  const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchPackages()
@@ -88,10 +90,15 @@ export default function PackagesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Calculate price based on services and discount
+    const originalPrice = calculateOriginalPrice()
+    const finalPrice = formData.price || calculateFinalPrice()
+    
     const packageData = {
       ...formData,
-      price: Number(formData.price),
-      discount: Number(formData.discount) || null,
+      price: parseFloat(finalPrice.toFixed(2)),
+      originalPrice: originalPrice,
+      discount: Math.round(formData.discount) || null,
       validityDays: formData.validityDays ? Number(formData.validityDays) : null,
       maxPurchases: formData.maxPurchases ? Number(formData.maxPurchases) : null,
       displayOrder: Number(formData.displayOrder)
@@ -118,6 +125,14 @@ export default function PackagesPage() {
   }
 
   const handleDelete = async (packageId: string) => {
+    // Check if currently editing
+    if (editingPackage) {
+      alert(language === 'en' 
+        ? 'Please finish editing the current package before performing other actions.' 
+        : 'Por favor, termine de editar el paquete actual antes de realizar otras acciones.')
+      return
+    }
+    
     if (!confirm(language === 'en' ? 'Delete this package?' : '¿Eliminar este paquete?')) {
       return
     }
@@ -136,12 +151,20 @@ export default function PackagesPage() {
   }
 
   const handleEdit = (pkg: Package) => {
+    // Check if currently editing another package
+    if (editingPackage && editingPackage.id !== pkg.id) {
+      alert(language === 'en' 
+        ? 'Please finish editing the current package before editing another one.' 
+        : 'Por favor, termine de editar el paquete actual antes de editar otro.')
+      return
+    }
+    
     setEditingPackage(pkg)
     setFormData({
       name: pkg.name,
       description: pkg.description || '',
-      price: pkg.price,
-      discount: pkg.discount || 0,
+      discount: Math.round(pkg.discount || 0),
+      price: parseFloat(pkg.price.toFixed(2)),
       isActive: pkg.isActive,
       validityDays: pkg.validityDays?.toString() || '',
       maxPurchases: pkg.maxPurchases?.toString() || '',
@@ -159,8 +182,8 @@ export default function PackagesPage() {
     setFormData({
       name: '',
       description: '',
-      price: 0,
       discount: 0,
+      price: 0,
       isActive: true,
       validityDays: '',
       maxPurchases: '',
@@ -170,6 +193,18 @@ export default function PackagesPage() {
     })
     setEditingPackage(null)
     setShowForm(false)
+  }
+
+  const togglePackageExpansion = (packageId: string) => {
+    setExpandedPackages(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(packageId)) {
+        newSet.delete(packageId)
+      } else {
+        newSet.add(packageId)
+      }
+      return newSet
+    })
   }
 
   const addServiceToPackage = (serviceId: string) => {
@@ -229,6 +264,62 @@ export default function PackagesPage() {
     return total
   }
 
+  const calculateFinalPrice = () => {
+    const originalPrice = calculateOriginalPrice()
+    const discountAmount = (formData.discount / 100) * originalPrice
+    return parseFloat((originalPrice - discountAmount).toFixed(2))
+  }
+
+  // Update price when discount changes
+  const handleDiscountChange = (discount: number) => {
+    const roundedDiscount = Math.round(Math.max(0, Math.min(100, discount)))
+    const originalPrice = calculateOriginalPrice()
+    const newPrice = parseFloat((originalPrice * (1 - roundedDiscount / 100)).toFixed(2))
+    
+    setFormData({
+      ...formData,
+      discount: roundedDiscount,
+      price: newPrice
+    })
+  }
+
+  // Update discount when price changes
+  const handlePriceChange = (price: number) => {
+    const originalPrice = calculateOriginalPrice()
+    if (originalPrice > 0) {
+      const calculatedDiscount = ((originalPrice - price) / originalPrice) * 100
+      const roundedDiscount = Math.round(Math.max(0, Math.min(100, calculatedDiscount)))
+      
+      setFormData({
+        ...formData,
+        price: parseFloat(price.toFixed(2)),
+        discount: roundedDiscount
+      })
+    } else {
+      setFormData({
+        ...formData,
+        price: parseFloat(price.toFixed(2))
+      })
+    }
+  }
+
+  // Update price when services change
+  useEffect(() => {
+    if (formData.services.length > 0) {
+      const originalPrice = calculateOriginalPrice()
+      const newPrice = parseFloat((originalPrice * (1 - formData.discount / 100)).toFixed(2))
+      setFormData(prev => ({
+        ...prev,
+        price: newPrice
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        price: 0
+      }))
+    }
+  }, [formData.services])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -273,7 +364,7 @@ export default function PackagesPage() {
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     {language === 'en' ? 'Package Name' : 'Nombre del Paquete'}
@@ -289,16 +380,36 @@ export default function PackagesPage() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Price' : 'Precio'}
+                    {language === 'en' ? 'Discount %' : '% Descuento'}
                   </label>
                   <input
                     type="number"
-                    required
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
+                    min="0"
+                    max="100"
+                    value={formData.discount}
+                    onChange={(e) => handleDiscountChange(parseFloat(e.target.value) || 0)}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="0-100"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {language === 'en' ? 'Final Price' : 'Precio Final'}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => handlePriceChange(parseFloat(e.target.value) || 0)}
+                      className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="0.00"
+                      disabled={formData.services.length === 0}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -314,7 +425,7 @@ export default function PackagesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     {language === 'en' ? 'Sessions Included' : 'Sesiones Incluidas'}
@@ -325,20 +436,6 @@ export default function PackagesPage() {
                     required
                     value={formData.sessionCount}
                     onChange={(e) => setFormData({...formData, sessionCount: parseInt(e.target.value) || 1})}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Discount %' : '% Descuento'}
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={formData.discount}
-                    onChange={(e) => setFormData({...formData, discount: parseFloat(e.target.value)})}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -369,6 +466,43 @@ export default function PackagesPage() {
                   />
                 </div>
               </div>
+
+              {/* Price calculation display */}
+              {formData.services.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">
+                        {language === 'en' ? 'Services Total:' : 'Total Servicios:'}
+                      </span>
+                      <span className="ml-2 font-semibold text-gray-900">
+                        ${calculateOriginalPrice().toFixed(2)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">
+                        {language === 'en' ? 'Discount Applied:' : 'Descuento Aplicado:'}
+                      </span>
+                      <span className="ml-2 font-semibold text-red-600">
+                        {formData.discount}% (${(calculateOriginalPrice() * formData.discount / 100).toFixed(2)})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">
+                        {language === 'en' ? 'Package Price:' : 'Precio del Paquete:'}
+                      </span>
+                      <span className="ml-2 font-bold text-green-600 text-lg">
+                        ${formData.price.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500 text-center">
+                    {language === 'en' 
+                      ? 'Tip: Adjust discount % or final price - they sync automatically!'
+                      : 'Tip: Ajusta el % de descuento o el precio final - ¡se sincronizan automáticamente!'}
+                  </div>
+                </div>
+              )}
 
               {/* Selección de servicios */}
               <div>
@@ -491,83 +625,166 @@ export default function PackagesPage() {
         )}
 
         {/* Lista de paquetes */}
-        <div className="grid gap-4">
+        {editingPackage && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-yellow-800">
+              {language === 'en' 
+                ? `⚠️ You are currently editing "${editingPackage.name}". Please save or cancel your changes before performing other actions.`
+                : `⚠️ Actualmente está editando "${editingPackage.name}". Por favor, guarde o cancele sus cambios antes de realizar otras acciones.`}
+            </p>
+          </div>
+        )}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {packages.map(pkg => (
-            <div key={pkg.id} className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-start">
+            <div key={pkg.id} className="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col h-full">
+              {/* Header con descuento */}
+              {pkg.discount && pkg.discount > 0 && (
+                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-2">
+                  <span className="font-bold text-sm">{Math.round(pkg.discount)}% {language === 'en' ? 'DISCOUNT' : 'DESCUENTO'}</span>
+                </div>
+              )}
+              
+              <div className="p-6 flex flex-col flex-1">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold">{pkg.name}</h3>
-                    {!pkg.isActive && (
-                      <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                        {language === 'en' ? 'Inactive' : 'Inactivo'}
-                      </span>
-                    )}
-                    {pkg.discount && pkg.discount > 0 && (
-                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                        {pkg.discount}% OFF
-                      </span>
-                    )}
-                  </div>
-                  
-                  {pkg.description && (
-                    <p className="text-sm text-gray-600 mt-1">{pkg.description}</p>
-                  )}
-                  
-                  <div className="mt-3 flex items-center gap-4">
-                    <div>
-                      <span className="text-2xl font-bold text-blue-600">${pkg.price}</span>
-                      {pkg.originalPrice && pkg.originalPrice > pkg.price && (
-                        <span className="ml-2 text-sm text-gray-500 line-through">
-                          ${pkg.originalPrice.toFixed(2)}
+                  {/* Title and Status */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-bold text-gray-900">{pkg.name}</h3>
+                      {!pkg.isActive && (
+                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                          {language === 'en' ? 'Inactive' : 'Inactivo'}
                         </span>
                       )}
                     </div>
-                    
-                    <div className="text-sm text-gray-500">
-                      <span>{language === 'en' ? 'Duration:' : 'Duración:'} {pkg.duration} min</span>
+                  </div>
+                  
+                  {/* Description */}
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
+                    {pkg.description || (language === 'en' ? 'Special package offer' : 'Oferta especial de paquete')}
+                  </p>
+                  
+                  {/* Price Section */}
+                  <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {pkg.originalPrice && pkg.originalPrice > pkg.price && (
+                          <span className="text-sm text-gray-500 line-through block">
+                            ${typeof pkg.originalPrice === 'number' ? pkg.originalPrice.toFixed(2) : pkg.originalPrice}
+                          </span>
+                        )}
+                        <span className="text-3xl font-bold text-blue-600">
+                          ${typeof pkg.price === 'number' ? pkg.price.toFixed(2) : pkg.price}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-700">{pkg.sessionCount || 1}</div>
+                        <div className="text-xs text-gray-500">{language === 'en' ? 'sessions' : 'sesiones'}</div>
+                      </div>
                     </div>
-                    
-                    <div className="text-sm text-gray-500">
-                      <span>{language === 'en' ? 'Sessions:' : 'Sesiones:'} {pkg.sessionCount || 1}</span>
+                  </div>
+
+                  {/* Package Details */}
+                  <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-gray-600">{pkg.duration} min</span>
                     </div>
-                    
                     {pkg.validityDays && (
-                      <div className="text-sm text-gray-500">
-                        <span>{language === 'en' ? 'Valid for:' : 'Válido por:'} {pkg.validityDays} {language === 'en' ? 'days' : 'días'}</span>
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-gray-600">{pkg.validityDays} {language === 'en' ? 'days' : 'días'}</span>
                       </div>
                     )}
                   </div>
                   
+                  {/* Services List - Grid Layout when expanded */}
                   {pkg.services.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        {language === 'en' ? 'Includes:' : 'Incluye:'}
+                    <div className="border-t pt-4">
+                      <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                        {language === 'en' ? 'Included Services' : 'Servicios Incluidos'}
                       </p>
-                      <div className="flex flex-wrap gap-2">
-                        {pkg.services.map(ps => (
-                          <span key={ps.serviceId} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            {ps.quantity}x {ps.service?.name}
-                          </span>
+                      <div className={`${expandedPackages.has(pkg.id) 
+                        ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48' 
+                        : 'space-y-1 max-h-24'} overflow-y-auto custom-scrollbar transition-all duration-300`}>
+                        {(expandedPackages.has(pkg.id) ? pkg.services : pkg.services.slice(0, 3)).map(ps => (
+                          <div key={ps.serviceId} className={`flex items-center justify-between text-sm ${
+                            expandedPackages.has(pkg.id) ? 'bg-gray-50 rounded-lg p-2' : ''
+                          }`}>
+                            <span className="text-gray-600 truncate flex-1 text-xs">{ps.service?.name}</span>
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">
+                              {ps.quantity}x
+                            </span>
+                          </div>
                         ))}
                       </div>
+                      {pkg.services.length > 3 && (
+                        <button
+                          onClick={() => togglePackageExpansion(pkg.id)}
+                          className="w-full text-xs text-blue-600 hover:text-blue-800 font-medium pt-2 flex items-center justify-center gap-1 transition-colors"
+                        >
+                          {expandedPackages.has(pkg.id) ? (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                              {language === 'en' ? 'Show less' : 'Ver menos'}
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                              {language === 'en' ? `Show ${pkg.services.length - 3} more services` : `Ver ${pkg.services.length - 3} más servicios`}
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
                 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(pkg)}
-                    className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                  >
-                    {language === 'en' ? 'Edit' : 'Editar'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(pkg.id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    {language === 'en' ? 'Delete' : 'Eliminar'}
-                  </button>
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t mt-auto">
+                  {editingPackage && editingPackage.id === pkg.id ? (
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">
+                      {language === 'en' ? 'Currently Editing' : 'Editando'}
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleEdit(pkg)}
+                        disabled={editingPackage !== null && editingPackage.id !== pkg.id}
+                        className={`flex-1 px-3 py-2 rounded-lg transition-colors ${
+                          editingPackage && editingPackage.id !== pkg.id
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title={editingPackage && editingPackage.id !== pkg.id 
+                          ? (language === 'en' ? 'Finish editing current package first' : 'Termine de editar el paquete actual primero')
+                          : undefined}
+                      >
+                        {language === 'en' ? 'Edit' : 'Editar'}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(pkg.id)}
+                        disabled={editingPackage !== null}
+                        className={`flex-1 px-3 py-2 rounded-lg transition-colors ${
+                          editingPackage
+                            ? 'bg-red-100 text-red-400 cursor-not-allowed'
+                            : 'bg-red-100 text-red-600 hover:bg-red-200'
+                        }`}
+                        title={editingPackage 
+                          ? (language === 'en' ? 'Finish editing current package first' : 'Termine de editar el paquete actual primero')
+                          : undefined}
+                      >
+                        {language === 'en' ? 'Delete' : 'Eliminar'}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

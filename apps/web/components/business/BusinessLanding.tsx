@@ -22,6 +22,7 @@ import {
   Filter,
   AlertCircle
 } from 'lucide-react'
+import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 
 interface BusinessLandingProps {
   business: any
@@ -47,6 +48,33 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     accent: theme.accentColor || '#10B981',
     background: theme.backgroundColor || '#FFFFFF'
   }
+  const fontFamily = theme.fontFamily || 'inter'
+  const buttonStyle = theme.buttonStyle || 'rounded'
+  
+  // Font family mapping
+  const fontFamilyClasses: Record<string, string> = {
+    inter: 'font-sans',
+    playfair: 'font-serif',
+    montserrat: 'font-sans',
+    roboto: 'font-sans',
+    poppins: 'font-sans',
+    lato: 'font-sans'
+  }
+  
+  // Button style mapping
+  const getButtonClasses = (baseClasses: string = '') => {
+    const styleClasses = {
+      rounded: 'rounded-lg',
+      square: 'rounded-none',
+      pill: 'rounded-full',
+      gradient: 'rounded-lg',
+      'soft-rounded': 'rounded-2xl',
+      outlined: 'rounded-lg',
+      shadow: 'rounded-lg shadow-lg',
+      '3d': 'rounded-lg'
+    }
+    return `${baseClasses} ${styleClasses[buttonStyle] || styleClasses.rounded}`
+  }
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showBookingModal, setShowBookingModal] = useState(false)
@@ -57,6 +85,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   const [selectedPackageForPurchase, setSelectedPackageForPurchase] = useState<any>(null)
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
   const [availableStaff, setAvailableStaff] = useState<any[]>(business.staff || [])
+  const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
@@ -284,8 +313,26 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
 
   const workingHours = formatWorkingHours(business.workingHours || [])
 
+  // Get font family CSS
+  const getFontFamilyStyle = () => {
+    const fontMap: Record<string, string> = {
+      inter: '"Inter", sans-serif',
+      playfair: '"Playfair Display", serif',
+      montserrat: '"Montserrat", sans-serif',
+      roboto: '"Roboto", sans-serif',
+      poppins: '"Poppins", sans-serif',
+      lato: '"Lato", sans-serif',
+      opensans: '"Open Sans", sans-serif',
+      raleway: '"Raleway", sans-serif',
+      nunito: '"Nunito", sans-serif',
+      merriweather: '"Merriweather", serif',
+      sourcesans: '"Source Sans Pro", sans-serif'
+    }
+    return { fontFamily: fontMap[fontFamily] || fontMap.inter }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white" style={getFontFamilyStyle()}>
       {/* Header */}
       <header className="fixed top-0 w-full backdrop-blur-md bg-white/80 border-b border-gray-100 z-50">
         <nav className="container mx-auto px-6 py-4">
@@ -530,36 +577,128 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {business.packages?.map((pkg: any) => (
-                <div key={pkg.id} className="bg-white rounded-lg shadow-lg p-6">
-                  <h3 className="text-xl font-semibold mb-2">{pkg.name}</h3>
-                  <p className="text-gray-600 mb-4">{pkg.description}</p>
-                  <div className="mb-4">
-                    <span className="text-3xl font-bold" style={{ color: colors.primary }}>
-                      ${pkg.price}
-                    </span>
-                    {pkg.originalPrice > pkg.price && (
-                      <span className="text-lg text-gray-400 line-through ml-2">
-                        ${pkg.originalPrice}
-                      </span>
+                <div key={pkg.id} className="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col h-full">
+                  {/* Discount Banner */}
+                  {pkg.discount && pkg.discount > 0 && (
+                    <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-2">
+                      <span className="font-bold text-sm">{Math.round(pkg.discount)}% OFF</span>
+                    </div>
+                  )}
+                  
+                  <div className="p-6 flex flex-col flex-1">
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
+                    
+                    {/* Description */}
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
+                      {pkg.description || 'Special package offer'}
+                    </p>
+                    
+                    {/* Price Section */}
+                    <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {pkg.originalPrice && pkg.originalPrice > pkg.price && (
+                            <span className="text-sm text-gray-500 line-through block">
+                              {formatCurrency(pkg.originalPrice)}
+                            </span>
+                          )}
+                          <span className="text-3xl font-bold" style={{ color: colors.primary }}>
+                            {formatCurrency(pkg.price)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-gray-700">{pkg.sessionCount || 1}</div>
+                          <div className="text-xs text-gray-500">sessions</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Package Details */}
+                    <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-600">{pkg.duration} min</span>
+                      </div>
+                      {pkg.validityDays && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-600">{pkg.validityDays} days</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Services List - Grid Layout when expanded */}
+                    {pkg.services && pkg.services.length > 0 && (
+                      <div className="border-t pt-4 mb-4 flex-1">
+                        <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                          Included Services
+                        </p>
+                        <div className={`${expandedPackages.has(pkg.id) 
+                          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48' 
+                          : 'space-y-1 max-h-24'} overflow-y-auto custom-scrollbar transition-all duration-300`}>
+                          {(expandedPackages.has(pkg.id) ? pkg.services : pkg.services.slice(0, 3)).map((ps: any) => (
+                            <div key={ps.serviceId} className={`flex items-center justify-between text-sm ${
+                              expandedPackages.has(pkg.id) ? 'bg-gray-50 rounded-lg p-2' : ''
+                            }`}>
+                              <span className="text-gray-600 truncate flex-1 text-xs">{ps.service?.name}</span>
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">
+                                {ps.quantity}x
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {pkg.services.length > 3 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setExpandedPackages(prev => {
+                                const newSet = new Set(prev)
+                                if (newSet.has(pkg.id)) {
+                                  newSet.delete(pkg.id)
+                                } else {
+                                  newSet.add(pkg.id)
+                                }
+                                return newSet
+                              })
+                            }}
+                            className="w-full text-xs text-blue-600 hover:text-blue-800 font-medium pt-2 flex items-center justify-center gap-1 transition-colors"
+                          >
+                            {expandedPackages.has(pkg.id) ? (
+                              <>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                                Show less
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                                Show {pkg.services.length - 3} more services
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     )}
+                    
+                    {/* Purchase Button */}
+                    <button
+                      onClick={() => {
+                        setSelectedPackageForPurchase(pkg)
+                        setShowPackageReserveModal(true)
+                      }}
+                      className={getButtonClasses("w-full py-3 text-white font-medium hover:opacity-90 transition mt-auto")}
+                      style={{ 
+                        background: buttonStyle === 'gradient'
+                          ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`
+                          : colors.accent
+                      }}>
+                      Purchase Package
+                    </button>
                   </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    <p>✓ {pkg.sessionCount} sessions included</p>
-                    <p>✓ Valid for {pkg.validityDays} days</p>
-                    {pkg.services?.map((ps: any) => (
-                      <p key={ps.serviceId}>✓ {ps.service?.name} ({ps.quantity}x)</p>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedPackageForPurchase(pkg)
-                      setShowPackageReserveModal(true)
-                    }}
-                    className="w-full py-2 rounded-lg text-white font-medium hover:opacity-90 transition"
-                    style={{ backgroundColor: colors.accent }}
-                  >
-                    Purchase Package
-                  </button>
                 </div>
               ))}
             </div>

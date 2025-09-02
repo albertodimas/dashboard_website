@@ -22,6 +22,10 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [secondaryColor, setSecondaryColor] = useState(currentTheme.secondaryColor || '#1F2937')
   const [accentColor, setAccentColor] = useState(currentTheme.accentColor || '#10B981')
   const [backgroundColor, setBackgroundColor] = useState(currentTheme.backgroundColor || '#FFFFFF')
+  
+  // Typography and button style states
+  const [fontFamily, setFontFamily] = useState(currentTheme.fontFamily || 'inter')
+  const [buttonStyle, setButtonStyle] = useState(currentTheme.buttonStyle || 'rounded')
 
   const publicUrl = business.customSlug 
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.customSlug}`
@@ -95,7 +99,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           primaryColor,
           secondaryColor,
           accentColor,
-          backgroundColor
+          backgroundColor,
+          fontFamily,
+          buttonStyle
         }
       }
       
@@ -119,7 +125,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             primaryColor,
             secondaryColor,
             accentColor,
-            backgroundColor
+            backgroundColor,
+            fontFamily,
+            buttonStyle
           }
         })
         setCustomSlug(data.customSlug || '')
@@ -378,6 +386,237 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                 </div>
                 <div className="text-xs text-gray-500">Calm & trustworthy</div>
               </div>
+
+              {/* Rose Pink Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-pink-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#EC4899')
+                  setSecondaryColor('#831843')
+                  setAccentColor('#14B8A6')
+                  setBackgroundColor('#FDF2F8')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Rose Pink</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#EC4899' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#831843' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#14B8A6' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Soft & feminine</div>
+              </div>
+
+              {/* Sunset Red Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-red-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#DC2626')
+                  setSecondaryColor('#7F1D1D')
+                  setAccentColor('#FBBF24')
+                  setBackgroundColor('#FEF2F2')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Sunset Red</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#DC2626' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7F1D1D' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FBBF24' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Bold & passionate</div>
+              </div>
+
+              {/* Mint Fresh Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-teal-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#14B8A6')
+                  setSecondaryColor('#134E4A')
+                  setAccentColor('#F472B6')
+                  setBackgroundColor('#F0FDFA')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Mint Fresh</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#14B8A6' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#134E4A' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F472B6' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Clean & refreshing</div>
+              </div>
+
+              {/* Golden Hour Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#F59E0B')
+                  setSecondaryColor('#78350F')
+                  setAccentColor('#7C3AED')
+                  setBackgroundColor('#FFFBEB')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Golden Hour</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#78350F' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7C3AED' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Warm & luxurious</div>
+              </div>
+
+              {/* Midnight Blue Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#4F46E5')
+                  setSecondaryColor('#1E1B4B')
+                  setAccentColor('#06B6D4')
+                  setBackgroundColor('#EEF2FF')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Midnight Blue</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#4F46E5' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1E1B4B' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#06B6D4' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Deep & mysterious</div>
+              </div>
+
+              {/* Sky Blue Light Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-sky-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#60A5FA')
+                  setSecondaryColor('#475569')
+                  setAccentColor('#34D399')
+                  setBackgroundColor('#F0F9FF')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Sky Blue Light</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#60A5FA' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#475569' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#34D399' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Light & airy</div>
+              </div>
+
+              {/* Soft Lavender Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#C084FC')
+                  setSecondaryColor('#6B7280')
+                  setAccentColor('#FDA4AF')
+                  setBackgroundColor('#FAF5FF')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Soft Lavender</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#C084FC' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#6B7280' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FDA4AF' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Gentle & soothing</div>
+              </div>
+
+              {/* Peach Blossom Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-orange-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#FDBA74')
+                  setSecondaryColor('#64748B')
+                  setAccentColor('#93C5FD')
+                  setBackgroundColor('#FFF7ED')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Peach Blossom</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FDBA74' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#64748B' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#93C5FD' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Soft & warm</div>
+              </div>
+
+              {/* Mint Cream Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-green-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#86EFAC')
+                  setSecondaryColor('#57534E')
+                  setAccentColor('#FCA5A5')
+                  setBackgroundColor('#F0FDF4')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Mint Cream</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#86EFAC' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#57534E' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FCA5A5' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Fresh & light</div>
+              </div>
+
+              {/* Coral Reef Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-pink-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#FB7185')
+                  setSecondaryColor('#525252')
+                  setAccentColor('#67E8F9')
+                  setBackgroundColor('#FFF1F2')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Coral Reef</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FB7185' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#525252' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#67E8F9' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Vibrant & tropical</div>
+              </div>
+
+              {/* Sand Dune Theme */}
+              <div 
+                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 transition"
+                onClick={() => {
+                  setPrimaryColor('#FCD34D')
+                  setSecondaryColor('#78716C')
+                  setAccentColor('#A78BFA')
+                  setBackgroundColor('#FEFCE8')
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Sand Dune</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FCD34D' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#78716C' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#A78BFA' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Desert & calm</div>
+              </div>
             </div>
           </div>
 
@@ -522,6 +761,406 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               >
                 Accent Button
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Typography Settings */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">📝 Typography</h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Choose a font family that represents your brand personality
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Inter - Modern & Clean */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'inter' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('inter')}
+            >
+              <div className="font-['Inter'] mb-2">
+                <h4 className="text-lg font-bold">Inter</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Modern & clean</p>
+            </div>
+
+            {/* Playfair Display - Elegant */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'playfair' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('playfair')}
+            >
+              <div className="font-['Playfair_Display'] mb-2">
+                <h4 className="text-lg font-bold">Playfair Display</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Elegant & sophisticated</p>
+            </div>
+
+            {/* Montserrat - Professional */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'montserrat' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('montserrat')}
+            >
+              <div className="font-['Montserrat'] mb-2">
+                <h4 className="text-lg font-bold">Montserrat</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Professional & bold</p>
+            </div>
+
+            {/* Roboto - Friendly */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'roboto' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('roboto')}
+            >
+              <div className="font-['Roboto'] mb-2">
+                <h4 className="text-lg font-bold">Roboto</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Friendly & approachable</p>
+            </div>
+
+            {/* Poppins - Geometric */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'poppins' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('poppins')}
+            >
+              <div className="font-['Poppins'] mb-2">
+                <h4 className="text-lg font-bold">Poppins</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Geometric & modern</p>
+            </div>
+
+            {/* Lato - Humanist */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'lato' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('lato')}
+            >
+              <div className="font-['Lato'] mb-2">
+                <h4 className="text-lg font-bold">Lato</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Humanist & warm</p>
+            </div>
+
+            {/* Open Sans - Universal */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'opensans' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('opensans')}
+            >
+              <div className="font-['Open_Sans'] mb-2">
+                <h4 className="text-lg font-bold">Open Sans</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Universal & readable</p>
+            </div>
+
+            {/* Raleway - Elegant Sans */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'raleway' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('raleway')}
+            >
+              <div className="font-['Raleway'] mb-2">
+                <h4 className="text-lg font-bold">Raleway</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Elegant sans-serif</p>
+            </div>
+
+            {/* Nunito - Rounded */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'nunito' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('nunito')}
+            >
+              <div className="font-['Nunito'] mb-2">
+                <h4 className="text-lg font-bold">Nunito</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Rounded & friendly</p>
+            </div>
+
+            {/* Merriweather - Serif */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'merriweather' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('merriweather')}
+            >
+              <div className="font-['Merriweather'] mb-2">
+                <h4 className="text-lg font-bold">Merriweather</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Traditional serif</p>
+            </div>
+
+            {/* Source Sans Pro - Clean */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                fontFamily === 'sourcesans' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setFontFamily('sourcesans')}
+            >
+              <div className="font-['Source_Sans_Pro'] mb-2">
+                <h4 className="text-lg font-bold">Source Sans Pro</h4>
+                <p className="text-sm">The quick brown fox jumps</p>
+              </div>
+              <p className="text-xs text-gray-500">Clean & minimal</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Button Style Settings */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">🔘 Button Styles</h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Choose how your buttons will appear across your site
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {/* Rounded */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'rounded' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('rounded')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Rounded
+              </button>
+              <p className="text-xs text-gray-500 text-center">Soft & friendly</p>
+            </div>
+
+            {/* Square */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'square' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('square')}
+            >
+              <button 
+                className="w-full px-4 py-2 text-white font-medium mb-2"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Square
+              </button>
+              <p className="text-xs text-gray-500 text-center">Sharp & modern</p>
+            </div>
+
+            {/* Pill */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'pill' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('pill')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-full text-white font-medium mb-2"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Pill
+              </button>
+              <p className="text-xs text-gray-500 text-center">Smooth & playful</p>
+            </div>
+
+            {/* Gradient */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'gradient' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('gradient')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2"
+                style={{ 
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)` 
+                }}
+              >
+                Gradient
+              </button>
+              <p className="text-xs text-gray-500 text-center">Dynamic & eye-catching</p>
+            </div>
+
+            {/* Soft Rounded */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'soft-rounded' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('soft-rounded')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-2xl text-white font-medium mb-2"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Soft Rounded
+              </button>
+              <p className="text-xs text-gray-500 text-center">Extra smooth</p>
+            </div>
+
+            {/* Outlined */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'outlined' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('outlined')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-lg font-medium mb-2 border-2"
+                style={{ 
+                  borderColor: primaryColor,
+                  color: primaryColor,
+                  backgroundColor: 'transparent'
+                }}
+              >
+                Outlined
+              </button>
+              <p className="text-xs text-gray-500 text-center">Minimal & clean</p>
+            </div>
+
+            {/* Shadow */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === 'shadow' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('shadow')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2 shadow-lg"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Shadow
+              </button>
+              <p className="text-xs text-gray-500 text-center">Elevated & bold</p>
+            </div>
+
+            {/* 3D Effect */}
+            <div 
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                buttonStyle === '3d' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setButtonStyle('3d')}
+            >
+              <button 
+                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2"
+                style={{ 
+                  backgroundColor: primaryColor,
+                  boxShadow: `0 4px 0 ${primaryColor}80`,
+                  transform: 'translateY(-2px)'
+                }}
+              >
+                3D Effect
+              </button>
+              <p className="text-xs text-gray-500 text-center">Depth & dimension</p>
+            </div>
+          </div>
+
+          {/* Combined Preview */}
+          <div className="mt-6 p-4 border border-gray-200 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Full Preview</h4>
+            <div 
+              className={`p-6 rounded-lg shadow-sm ${
+                fontFamily === 'inter' ? 'font-["Inter"]' :
+                fontFamily === 'playfair' ? 'font-["Playfair_Display"]' :
+                fontFamily === 'montserrat' ? 'font-["Montserrat"]' :
+                fontFamily === 'roboto' ? 'font-["Roboto"]' :
+                fontFamily === 'poppins' ? 'font-["Poppins"]' :
+                fontFamily === 'lato' ? 'font-["Lato"]' :
+                fontFamily === 'opensans' ? 'font-["Open_Sans"]' :
+                fontFamily === 'raleway' ? 'font-["Raleway"]' :
+                fontFamily === 'nunito' ? 'font-["Nunito"]' :
+                fontFamily === 'merriweather' ? 'font-["Merriweather"]' :
+                fontFamily === 'sourcesans' ? 'font-["Source_Sans_Pro"]' :
+                'font-["Inter"]'
+              }`}
+              style={{ backgroundColor }}
+            >
+              <h3 
+                className="text-2xl font-bold mb-2"
+                style={{ color: secondaryColor }}
+              >
+                Your Business Name
+              </h3>
+              <p 
+                className="text-sm mb-4"
+                style={{ color: secondaryColor, opacity: 0.7 }}
+              >
+                Experience our services with your custom theme
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <button 
+                  className={`px-6 py-2 text-white font-medium ${
+                    buttonStyle === 'rounded' ? 'rounded-lg' :
+                    buttonStyle === 'square' ? '' :
+                    buttonStyle === 'pill' ? 'rounded-full' :
+                    buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
+                    buttonStyle === 'outlined' ? 'rounded-lg border-2' :
+                    buttonStyle === 'shadow' ? 'rounded-lg shadow-lg' :
+                    buttonStyle === '3d' ? 'rounded-lg' :
+                    'rounded-lg'
+                  }`}
+                  style={{ 
+                    ...(buttonStyle === 'gradient' ? {
+                      background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)`
+                    } : buttonStyle === 'outlined' ? {
+                      backgroundColor: 'transparent',
+                      borderColor: primaryColor,
+                      color: primaryColor
+                    } : buttonStyle === '3d' ? {
+                      backgroundColor: primaryColor,
+                      boxShadow: `0 4px 0 ${primaryColor}80`,
+                      transform: 'translateY(-2px)'
+                    } : {
+                      backgroundColor: primaryColor
+                    })
+                  }}
+                >
+                  Book Now
+                </button>
+                <button 
+                  className={`px-6 py-2 border-2 font-medium ${
+                    buttonStyle === 'rounded' ? 'rounded-lg' :
+                    buttonStyle === 'square' ? '' :
+                    buttonStyle === 'pill' ? 'rounded-full' :
+                    buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
+                    buttonStyle === 'outlined' ? 'rounded-lg' :
+                    buttonStyle === 'shadow' ? 'rounded-lg shadow-md' :
+                    buttonStyle === '3d' ? 'rounded-lg' :
+                    'rounded-lg'
+                  }`}
+                  style={{ 
+                    borderColor: primaryColor,
+                    color: primaryColor,
+                    ...(buttonStyle === '3d' ? {
+                      boxShadow: `0 3px 0 ${primaryColor}40`,
+                      transform: 'translateY(-1px)'
+                    } : {})
+                  }}
+                >
+                  Learn More
+                </button>
+              </div>
             </div>
           </div>
         </div>

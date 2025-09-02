@@ -11,6 +11,7 @@ import {
   LogIn, LogOut, UserCircle
 } from 'lucide-react'
 import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
+import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 
 interface BusinessLandingProps {
   business: any
@@ -65,6 +66,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const [isLoadingPackages, setIsLoadingPackages] = useState(false)
   const [hasSearchedPackages, setHasSearchedPackages] = useState(false)
   const [myAppointments, setMyAppointments] = useState<any[]>([]) // Citas del cliente logueado
+  const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
   
   // Datos del negocio
   const reviews = business.reviews || []
@@ -77,6 +79,43 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     primary: business.settings?.theme?.primaryColor || '#6366F1',
     accent: business.settings?.theme?.accentColor || '#F59E0B',
     gradient: `linear-gradient(135deg, ${business.settings?.theme?.primaryColor || '#6366F1'} 0%, ${business.settings?.theme?.accentColor || '#F59E0B'} 100%)`
+  }
+  
+  // Font and button styles
+  const fontFamily = business.settings?.theme?.fontFamily || 'inter'
+  const buttonStyle = business.settings?.theme?.buttonStyle || 'rounded'
+  
+  // Button style mapping
+  const getButtonClasses = (baseClasses: string = '') => {
+    const styleClasses = {
+      rounded: 'rounded-lg',
+      square: 'rounded-none',
+      pill: 'rounded-full',
+      gradient: 'rounded-lg',
+      'soft-rounded': 'rounded-2xl',
+      outlined: 'rounded-lg',
+      shadow: 'rounded-lg shadow-lg',
+      '3d': 'rounded-lg'
+    }
+    return `${baseClasses} ${styleClasses[buttonStyle] || styleClasses.rounded}`
+  }
+  
+  // Get font family CSS
+  const getFontFamilyStyle = () => {
+    const fontMap: Record<string, string> = {
+      inter: '"Inter", sans-serif',
+      playfair: '"Playfair Display", serif',
+      montserrat: '"Montserrat", sans-serif',
+      roboto: '"Roboto", sans-serif',
+      poppins: '"Poppins", sans-serif',
+      lato: '"Lato", sans-serif',
+      opensans: '"Open Sans", sans-serif',
+      raleway: '"Raleway", sans-serif',
+      nunito: '"Nunito", sans-serif',
+      merriweather: '"Merriweather", serif',
+      sourcesans: '"Source Sans Pro", sans-serif'
+    }
+    return { fontFamily: fontMap[fontFamily] || fontMap.inter }
   }
 
   // Días de la semana
@@ -465,7 +504,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     : 5
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={getFontFamilyStyle()}>
       {/* Header flotante mejorado */}
       <header className="fixed top-0 w-full backdrop-blur-xl bg-white/70 border-b border-gray-100 z-50 shadow-sm">
         <nav className="container mx-auto px-4 sm:px-6 py-4">
@@ -519,8 +558,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </button>
               <button
                 onClick={() => setShowBookingModal(true)}
-                className="px-4 sm:px-6 py-2.5 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
-                style={{ background: colors.gradient }}
+                className={getButtonClasses("px-4 sm:px-6 py-2.5 font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300")}
+                style={{ 
+                  background: buttonStyle === 'gradient' 
+                    ? colors.gradient 
+                    : colors.primary
+                }}
               >
                 <span className="hidden sm:inline">Reservar Cita</span>
                 <span className="sm:hidden">Reservar</span>
@@ -686,7 +729,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <div>
                 <p className="text-xs text-gray-500">Desde</p>
                 <p className="font-semibold">
-                  ${Math.min(...(business.services?.map((s: any) => s.price) || [0]))}
+                  {formatCurrency(Math.min(...(business.services?.map((s: any) => s.price) || [0])))}
                 </p>
               </div>
             </div>
@@ -806,7 +849,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             <span className="text-sm">{service.duration} min</span>
                           </div>
                           <div className="text-2xl font-bold" style={{ color: colors.primary }}>
-                            ${service.price}
+                            {formatCurrency(service.price)}
                           </div>
                         </div>
                         
@@ -816,8 +859,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             setBookingType('service')
                             setShowBookingModal(true)
                           }}
-                          className="w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"
-                          style={{ background: colors.gradient }}
+                          className={getButtonClasses("w-full py-3 font-semibold text-white transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5")}
+                          style={{ 
+                            background: buttonStyle === 'gradient' 
+                              ? colors.gradient 
+                              : colors.primary
+                          }}
                         >
                           Reservar
                         </button>
@@ -1024,77 +1071,132 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {business.packages.map((pkg: any) => (
-                <div 
-                  key={pkg.id} 
-                  className="relative group bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
-                >
-                  {pkg.discount && (
-                    <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      -{pkg.discount}%
-                    </div>
-                  )}
-                  
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Package className="w-8 h-8" style={{ color: colors.primary }} />
-                      <div>
-                        <h3 className="text-xl font-bold">{pkg.name}</h3>
-                        {pkg.sessionCount && (
-                          <span className="text-sm text-gray-500">
-                            {pkg.sessionCount} sesiones incluidas
+              {business.packages.map((pkg: any) => {
+                const visibleServices = pkg.services?.slice(0, 3) || []
+                const remainingCount = (pkg.services?.length || 0) - 3
+                
+                return (
+                  <div 
+                    key={pkg.id} 
+                    className="relative group bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full"
+                  >
+                    {pkg.discount && (
+                      <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10">
+                        -{formatDiscount(pkg.discount)}%
+                      </div>
+                    )}
+                    
+                    <div className="p-6 flex flex-col flex-1">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Package className="w-8 h-8" style={{ color: colors.primary }} />
+                        <div>
+                          <h3 className="text-xl font-bold">{pkg.name}</h3>
+                          {pkg.sessionCount && (
+                            <span className="text-sm text-gray-500">
+                              {pkg.sessionCount} sesiones incluidas
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <p className="text-gray-600 mb-6 line-clamp-2">
+                        {pkg.description || 'Paquete especial con descuento'}
+                      </p>
+                      
+                      <div className="mb-6">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold" style={{ color: colors.primary }}>
+                            {formatCurrency(pkg.price)}
                           </span>
+                          {pkg.originalPrice && (
+                            <span className="text-lg text-gray-400 line-through">
+                              {formatCurrency(pkg.originalPrice)}
+                            </span>
+                          )}
+                        </div>
+                        {pkg.validityDays && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            Válido por {pkg.validityDays} días
+                          </p>
                         )}
                       </div>
-                    </div>
-                    
-                    <p className="text-gray-600 mb-6">
-                      {pkg.description || 'Paquete especial con descuento'}
-                    </p>
-                    
-                    <div className="mb-6">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold" style={{ color: colors.primary }}>
-                          ${pkg.price}
-                        </span>
-                        {pkg.originalPrice && (
-                          <span className="text-lg text-gray-400 line-through">
-                            ${pkg.originalPrice}
-                          </span>
+                      
+                      <div className="flex-1 mb-6">
+                        <div className={`${expandedPackages.has(pkg.id) 
+                          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48' 
+                          : 'h-24'} overflow-y-auto custom-scrollbar transition-all duration-300`}>
+                          {expandedPackages.has(pkg.id) ? (
+                            pkg.services.map((ps: any, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                                <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span className="text-xs text-gray-700 truncate flex-1">
+                                  {ps.quantity}x {ps.service.name}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <ul className="space-y-2">
+                              {visibleServices.map((ps: any, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                                  <span className="text-sm text-gray-700">
+                                    {ps.quantity}x {ps.service.name}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        {remainingCount > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setExpandedPackages(prev => {
+                                const newSet = new Set(prev)
+                                if (newSet.has(pkg.id)) {
+                                  newSet.delete(pkg.id)
+                                } else {
+                                  newSet.add(pkg.id)
+                                }
+                                return newSet
+                              })
+                            }}
+                            className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium mt-2 flex items-center justify-center gap-1 transition-colors"
+                          >
+                            {expandedPackages.has(pkg.id) ? (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                                Ver menos
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                                Ver {remainingCount} más servicios
+                              </>
+                            )}
+                          </button>
                         )}
                       </div>
-                      {pkg.validityDays && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          Válido por {pkg.validityDays} días
-                        </p>
-                      )}
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedPackage(pkg)
+                          setBookingType('package')
+                          setBookingStep(3) // Jump directly to customer info for packages
+                          setShowBookingModal(true)
+                        }}
+                        className="w-full py-3 rounded-xl font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300 mt-auto"
+                      >
+                        Comprar Paquete
+                      </button>
                     </div>
-
-                    <ul className="space-y-2 mb-6">
-                      {pkg.services?.map((ps: any, idx: number) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">
-                            {ps.quantity}x {ps.service.name}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    <button
-                      onClick={() => {
-                        setSelectedPackage(pkg)
-                        setBookingType('package')
-                        setBookingStep(3) // Jump directly to customer info for packages
-                        setShowBookingModal(true)
-                      }}
-                      className="w-full py-3 rounded-xl font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300"
-                    >
-                      Comprar Paquete
-                    </button>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </section>
@@ -1565,7 +1667,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                           {service.duration} minutos
                                         </p>
                                       </div>
-                                      <p className="font-bold text-lg">${service.price}</p>
+                                      <p className="font-bold text-lg">{formatCurrency(service.price)}</p>
                                     </div>
                                   </button>
                                 ))}
@@ -1593,7 +1695,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                       {service.duration} minutos
                                     </p>
                                   </div>
-                                  <p className="font-bold text-lg">${service.price}</p>
+                                  <p className="font-bold text-lg">{formatCurrency(service.price)}</p>
                                 </div>
                               </button>
                             ))
@@ -1621,10 +1723,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-lg">${pkg.price}</p>
+                                <p className="font-bold text-lg">{formatCurrency(pkg.price)}</p>
                                 {pkg.originalPrice && (
                                   <p className="text-sm text-gray-400 line-through">
-                                    ${pkg.originalPrice}
+                                    {formatCurrency(pkg.originalPrice)}
                                   </p>
                                 )}
                               </div>
@@ -2008,11 +2110,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       <p className="font-bold text-lg mt-2">
                         {bookingType === 'service' && usePackageSession ? (
                           <>
-                            <span className="line-through text-gray-400">${selectedService?.price}</span>
+                            <span className="line-through text-gray-400">{formatCurrency(selectedService?.price)}</span>
                             <span className="ml-2 text-green-600">$0 (Usando paquete)</span>
                           </>
                         ) : (
-                          <>Total: ${selectedService?.price || selectedPackage?.price}</>
+                          <>Total: {formatCurrency(selectedService?.price || selectedPackage?.price)}</>
                         )}
                       </p>
                     </div>
