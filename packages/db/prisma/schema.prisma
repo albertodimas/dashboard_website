@@ -341,6 +341,9 @@ model Customer {
   reviews           Review[]
   staffReviews      StaffReview[]
   packagePurchases  PackagePurchase[]
+  verificationCodes VerificationCode[]
+  passwordHistory   PasswordHistory[]
+  loginAttempts     LoginAttempt[]
 
   @@unique([tenantId, email])
   @@index([email])
@@ -741,4 +744,56 @@ enum PackagePaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+// Email verification and password reset codes
+model VerificationCode {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId        String        @db.Uuid
+  code              String
+  type              VerificationType
+  expiresAt         DateTime
+  usedAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  customer          Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, type])
+  @@index([code])
+  @@map("verification_codes")
+}
+
+enum VerificationType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// Password history to prevent reuse
+model PasswordHistory {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId        String        @db.Uuid
+  passwordHash      String
+  createdAt         DateTime      @default(now())
+
+  customer          Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("password_history")
+}
+
+// Login attempts tracking for security
+model LoginAttempt {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String
+  ipAddress         String?
+  userAgent         String?
+  success           Boolean
+  attemptedAt       DateTime      @default(now())
+  customerId        String?       @db.Uuid
+
+  customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([email, attemptedAt])
+  @@index([customerId])
+  @@map("login_attempts")
 }

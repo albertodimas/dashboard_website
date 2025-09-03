@@ -14,10 +14,12 @@ export default function ClientLoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     name: '',
     phone: ''
   })
   const [error, setError] = useState('')
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([])
 
   useEffect(() => {
     // Obtener la URL de retorno desde los parámetros o del referrer
@@ -33,10 +35,46 @@ export default function ClientLoginPage() {
     }
   }, [searchParams])
 
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = []
+    if (password.length < 8) errors.push('Mínimo 8 caracteres')
+    if (!/[A-Z]/.test(password)) errors.push('Al menos una mayúscula')
+    if (!/[a-z]/.test(password)) errors.push('Al menos una minúscula')
+    if (!/[0-9]/.test(password)) errors.push('Al menos un número')
+    if (!/[!@#$%^&*]/.test(password)) errors.push('Al menos un carácter especial (!@#$%^&*)')
+    return errors
+  }
+
+  const handlePasswordChange = (password: string) => {
+    setFormData({...formData, password})
+    if (!isLogin) {
+      setPasswordErrors(validatePassword(password))
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
+
+    // Validaciones adicionales para registro
+    if (!isLogin) {
+      // Validar contraseña fuerte
+      const pwdErrors = validatePassword(formData.password)
+      if (pwdErrors.length > 0) {
+        setError('La contraseña no cumple con los requisitos de seguridad')
+        setPasswordErrors(pwdErrors)
+        setIsLoading(false)
+        return
+      }
+
+      // Verificar que las contraseñas coincidan
+      if (formData.password !== formData.confirmPassword) {
+        setError('Las contraseñas no coinciden')
+        setIsLoading(false)
+        return
+      }
+    }
 
     try {
       const endpoint = isLogin ? '/api/cliente/auth/login' : '/api/cliente/auth/register'
@@ -49,19 +87,33 @@ export default function ClientLoginPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al procesar solicitud')
+        // Si hay advertencia sobre intentos restantes, mostrarla
+        if (data.warning) {
+          setError(`${data.error}. ${data.warning}`)
+        } else if (data.locked) {
+          setError(data.error)
+        } else {
+          setError(data.error || 'Error al procesar solicitud')
+        }
+        setIsLoading(false)
+        return
       }
 
       // Guardar token en localStorage
       localStorage.setItem('clientToken', data.token)
       localStorage.setItem('clientData', JSON.stringify(data.customer))
       
-      // Redirigir a la página de retorno o al dashboard
-      const redirectTo = searchParams.get('from')
-      if (redirectTo) {
-        router.push(decodeURIComponent(redirectTo))
+      // Si requiere verificación, redirigir a la página de verificación
+      if (data.requiresVerification) {
+        router.push('/cliente/verify')
       } else {
-        router.push('/cliente/dashboard')
+        // Redirigir a la página de retorno o al dashboard
+        const redirectTo = searchParams.get('from')
+        if (redirectTo) {
+          router.push(decodeURIComponent(redirectTo))
+        } else {
+          router.push('/cliente/dashboard')
+        }
       }
     } catch (err: any) {
       setError(err.message)
@@ -136,14 +188,55 @@ export default function ClientLoginPage() {
                 <input
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="••••••••"
                   required
-                  minLength={6}
+                  minLength={isLogin ? 6 : 8}
                 />
               </div>
+              {!isLogin && passwordErrors.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {passwordErrors.map((err, idx) => (
+                    <p key={idx} className="text-xs text-red-500 flex items-center">
+                      <span className="mr-1">✗</span> {err}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {!isLogin && formData.password && passwordErrors.length === 0 && (
+                <p className="mt-2 text-xs text-green-500 flex items-center">
+                  <span className="mr-1">✓</span> Contraseña segura
+                </p>
+              )}
             </div>
+
+            {!isLogin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirmar Contraseña
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <p className="mt-2 text-xs text-red-500">Las contraseñas no coinciden</p>
+                )}
+                {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                  <p className="mt-2 text-xs text-green-500 flex items-center">
+                    <span className="mr-1">✓</span> Las contraseñas coinciden
+                  </p>
+                )}
+              </div>
+            )}
 
             {!isLogin && (
               <div>
@@ -161,9 +254,27 @@ export default function ClientLoginPage() {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
+              <>
+                <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg text-sm mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-red-600 font-medium">{error}</p>
+                    </div>
+                  </div>
+                </div>
+                {isLogin && (error.toLowerCase().includes('credenciales') || error.toLowerCase().includes('contraseña') || error.toLowerCase().includes('bloqueada')) && (
+                  <div className="text-right mb-4">
+                    <Link href="/cliente/forgot-password" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
+                )}
+              </>
             )}
 
             <button
@@ -190,6 +301,14 @@ export default function ClientLoginPage() {
                 onClick={() => {
                   setIsLogin(!isLogin)
                   setError('')
+                  setPasswordErrors([])
+                  setFormData({
+                    email: '',
+                    password: '',
+                    confirmPassword: '',
+                    name: '',
+                    phone: ''
+                  })
                 }}
                 className="ml-2 text-blue-600 hover:text-blue-700 font-semibold"
               >

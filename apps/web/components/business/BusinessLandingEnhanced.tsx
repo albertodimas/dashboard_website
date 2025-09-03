@@ -243,7 +243,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         const data = await response.json()
 
         if (!response.ok) {
-          setLoginError(data.error || 'Error al iniciar sesión')
+          // Manejar advertencias de intentos y bloqueo
+          if (data.warning) {
+            setLoginError(`${data.error}. ${data.warning}`)
+          } else if (data.locked) {
+            setLoginError(data.error)
+          } else {
+            setLoginError(data.error || 'Error al iniciar sesión')
+          }
+          setIsLoggingIn(false) // Importante: detener el estado de carga
           return
         }
 
@@ -2434,6 +2442,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   onClick={() => {
                     setShowLoginModal(false)
                     setLoginError('')
+                    setIsLoggingIn(false)
+                    setLoginForm({ email: '', password: '', name: '', phone: '' })
+                    setVerificationCode('')
+                    setVerificationSent(false)
+                    setLoginMode('login')
                   }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -2442,9 +2455,30 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </div>
 
               {loginError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {loginError}
-                </div>
+                <>
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="w-5 h-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <p className="text-red-700 text-sm font-medium">{loginError}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {loginMode === 'login' && (loginError.toLowerCase().includes('credenciales') || loginError.toLowerCase().includes('contraseña') || loginError.toLowerCase().includes('bloqueada')) && (
+                    <div className="text-right mb-4">
+                      <a 
+                        href="/cliente/forgot-password" 
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </a>
+                    </div>
+                  )}
+                </>
               )}
 
               <form onSubmit={handleLogin} className="space-y-4">

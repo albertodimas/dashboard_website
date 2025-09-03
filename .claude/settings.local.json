@@ -78,7 +78,10 @@
       "mcp__playwright-advanced__playwright_get_visible_html",
       "mcp__playwright-advanced__playwright_close",
       "mcp__playwright-advanced__playwright_press_key",
-      "mcp__filesystem__list_directory"
+      "mcp__filesystem__list_directory",
+      "mcp__ide__executeCode",
+      "Bash(start chrome http://localhost:3000/cliente/forgot-password)",
+      "Bash(start chrome http://localhost:3000/wmc/welcome)"
     ],
     "deny": [],
     "ask": [],
