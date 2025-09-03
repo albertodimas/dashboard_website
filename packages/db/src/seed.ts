@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { hash } from 'argon2'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -55,7 +55,7 @@ async function main() {
     data: {
       tenantId: tenant1.id,
       email: 'owner@luxurycuts.com',
-      passwordHash: await hash('password123'),
+      passwordHash: await bcrypt.hash('password123', 10),
       name: 'John Doe',
       emailVerified: new Date(),
       isActive: true,
@@ -66,7 +66,7 @@ async function main() {
     data: {
       tenantId: tenant2.id,
       email: 'owner@glamournails.com',
-      passwordHash: await hash('password123'),
+      passwordHash: await bcrypt.hash('password123', 10),
       name: 'Jane Smith',
       emailVerified: new Date(),
       isActive: true,

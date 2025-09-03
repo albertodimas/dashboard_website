@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Find customer by email
+    // Find customer by email AND businessId to ensure tenant isolation
     const customer = await prisma.customer.findFirst({
       where: {
-        email: email.toLowerCase()
+        email: email.toLowerCase(),
+        businessId: businessId
       }
     })
 

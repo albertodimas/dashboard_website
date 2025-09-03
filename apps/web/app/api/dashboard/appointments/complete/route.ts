@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { getReviewRequestEmailTemplate } from '@/lib/email-templates'
 import { sendEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const user = await getCurrentUser()
   
-  if (!session?.user) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

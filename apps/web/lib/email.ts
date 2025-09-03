@@ -14,7 +14,7 @@ export async function sendEmail({
   // For development, use MailHog
   if (process.env.NODE_ENV === 'development') {
     try {
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: 'localhost',
         port: 1025,
         ignoreTLS: true,
@@ -65,7 +65,7 @@ export async function sendEmail({
 
   try {
     // Create transporter with Gmail configuration
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
       secure: process.env.EMAIL_SECURE === 'true',

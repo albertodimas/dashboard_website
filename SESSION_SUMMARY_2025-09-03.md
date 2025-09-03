@@ -94,12 +94,12 @@
 ## Configuración de Email
 
 ```env
-EMAIL_FROM=appointmentlab@gmail.com
+EMAIL_FROM=[REDACTED - Configure in .env.local]
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_SECURE=false
-EMAIL_USER=appointmentlab@gmail.com
-EMAIL_PASSWORD=apnx cwmj yujw xkeh
+EMAIL_USER=[REDACTED - Configure in .env.local]
+EMAIL_PASSWORD=[REDACTED - Use Gmail App Password]
 USE_TEST_EMAIL=false
 ```
 

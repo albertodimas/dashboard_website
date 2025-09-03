@@ -81,7 +81,16 @@
       "mcp__filesystem__list_directory",
       "mcp__ide__executeCode",
       "Bash(start chrome http://localhost:3000/cliente/forgot-password)",
-      "Bash(start chrome http://localhost:3000/wmc/welcome)"
+      "Bash(start chrome http://localhost:3000/wmc/welcome)",
+      "Read(C:\\Users\\alber/**)",
+      "Read(C:\\Users\\alber/**)",
+      "Read(C:\\Users\\alber/**)",
+      "Read(C:\\Users\\alber/**)",
+      "Read(C:\\Users\\alber/**)",
+      "Read(C:\\Users\\alber/**)",
+      "mcp__memory__read_graph",
+      "mcp__socket__depscore",
+      "Bash(del backupdatabase_backup_*.sql)"
     ],
     "deny": [],
     "ask": [],

@@ -14,7 +14,7 @@ export async function getEmailTransporter(): Promise<Transporter> {
   if (useTestEmail) {
     // For demo purposes, use Ethereal Email (fake SMTP service)
     const testAccount = await nodemailer.createTestAccount()
-    transporter = nodemailer.createTransporter({
+    transporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
       secure: false,
@@ -29,7 +29,7 @@ export async function getEmailTransporter(): Promise<Transporter> {
       throw new Error('Email configuration is missing')
     }
     
-    transporter = nodemailer.createTransporter({
+    transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT || '587'),
       secure: process.env.EMAIL_SECURE === 'true',

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (useTestEmail) {
       // For demo purposes, use Ethereal Email (fake SMTP service)
       const testAccount = await nodemailer.createTestAccount()
-      transporter = nodemailer.createTransporter({
+      transporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
         secure: false,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      transporter = nodemailer.createTransporter({
+      transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: parseInt(process.env.EMAIL_PORT || '587'),
         secure: process.env.EMAIL_SECURE === 'true',
@@ -73,3 +73,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Ensure Node.js runtime for Nodemailer
+export const runtime = 'nodejs'

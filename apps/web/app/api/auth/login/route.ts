@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@dashboard/db'
-import { cookies } from 'next/headers'
+import { setAuthCookie } from '@/lib/jwt-auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +16,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find user
+    // Find user with proper tenant filtering
     const user = await prisma.user.findFirst({
       where: { email },
-      include: { tenant: true }
+      include: { 
+        tenant: true,
+        business: true
+      }
     })
 
     if (!user) {
@@ -39,22 +42,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create session (simplified version)
-    const sessionToken = Buffer.from(JSON.stringify({
+    // Create secure JWT session
+    await setAuthCookie({
       userId: user.id,
       email: user.email,
-      name: user.name,
-      subdomain: user.tenant?.domain || 'dashboard',
-      role: user.role || 'OWNER'
-    })).toString('base64')
-
-    // Set cookie
-    cookies().set('session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      name: user.name || '',
+      tenantId: user.tenantId || undefined,
+      subdomain: user.tenant?.domain || user.business?.domain || 'dashboard',
+      role: user.business?.role || 'OWNER'
     })
 
     return NextResponse.json({
@@ -63,8 +58,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        subdomain: user.tenant?.domain || 'dashboard',
-        role: user.role || 'OWNER',
+        subdomain: user.tenant?.domain || user.business?.domain || 'dashboard',
+        role: user.business?.role || 'OWNER',
       },
     })
   } catch (error) {

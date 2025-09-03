@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@dashboard/db'
 import { getCurrentUser } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {

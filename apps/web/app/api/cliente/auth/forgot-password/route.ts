@@ -153,3 +153,6 @@ Si no solicitaste este código, puedes ignorar este mensaje de forma segura.
     )
   }
 }
+
+// Asegurar ejecución en Node.js (Prisma + fetch interno)
+export const runtime = 'nodejs'

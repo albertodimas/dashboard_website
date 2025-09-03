@@ -58,3 +58,10 @@ nul
 # Backup files
 *.bak
 .env.local.bak
+backup/*.sql
+backup/*.prisma
+SESSION_SUMMARY_*.md
+
+# Logs
+logs/
+*.log

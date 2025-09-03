@@ -1,21 +1,16 @@
-import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
 import { NextResponse } from 'next/server'
+import { getAuthFromCookie } from './jwt-auth'
 
 export async function getCurrentUser() {
-  const sessionCookie = cookies().get('session')
+  const session = await getAuthFromCookie()
   
-  if (!sessionCookie) {
+  if (!session) {
     return null
   }
 
   try {
-    // Decode session
-    const session = JSON.parse(
-      Buffer.from(sessionCookie.value, 'base64').toString()
-    )
-
-    // Get user with tenant info
+    // Get user with tenant info using secure JWT payload
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
       select: {
