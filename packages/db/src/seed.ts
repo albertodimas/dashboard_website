@@ -6,9 +6,28 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Starting database seed...')
 
-  // Create demo tenants
-  const tenant1 = await prisma.tenant.create({
-    data: {
+  // Create or update demo tenants using upsert
+  const tenant1 = await prisma.tenant.upsert({
+    where: { subdomain: 'luxurycuts' },
+    update: {
+      name: 'Luxury Cuts Barbershop',
+      email: 'admin@luxurycuts.com',
+      phone: '+1234567890',
+      timezone: 'America/New_York',
+      currency: 'USD',
+      locale: 'en',
+      settings: {
+        allowOnlineBooking: true,
+        requireDeposit: true,
+        depositPercentage: 20,
+        cancellationHours: 24,
+        enableWaitlist: true,
+        enableReviews: true,
+        enableHomeService: true,
+        maxAdvanceBookingDays: 30,
+      },
+    },
+    create: {
       name: 'Luxury Cuts Barbershop',
       subdomain: 'luxurycuts',
       email: 'admin@luxurycuts.com',
@@ -29,8 +48,27 @@ async function main() {
     },
   })
 
-  const tenant2 = await prisma.tenant.create({
-    data: {
+  const tenant2 = await prisma.tenant.upsert({
+    where: { subdomain: 'glamournails' },
+    update: {
+      name: 'Glamour Nails Studio',
+      subdomain: 'glamournails',
+      email: 'admin@glamournails.com',
+      phone: '+1234567891',
+      timezone: 'America/Los_Angeles',
+      currency: 'USD',
+      locale: 'en',
+      settings: {
+        allowOnlineBooking: true,
+        requireDeposit: false,
+        cancellationHours: 12,
+        enableWaitlist: true,
+        enableReviews: true,
+        enableHomeService: false,
+        maxAdvanceBookingDays: 14,
+      },
+    },
+    create: {
       name: 'Glamour Nails Studio',
       subdomain: 'glamournails',
       email: 'admin@glamournails.com',
@@ -50,9 +88,14 @@ async function main() {
     },
   })
 
-  // Create owner users
-  const owner1 = await prisma.user.create({
-    data: {
+  // Create or update owner users using upsert
+  const owner1 = await prisma.user.upsert({
+    where: { email: 'owner@luxurycuts.com' },
+    update: {
+      name: 'John Doe',
+      passwordHash: await bcrypt.hash('password123', 10),
+    },
+    create: {
       tenantId: tenant1.id,
       email: 'owner@luxurycuts.com',
       passwordHash: await bcrypt.hash('password123', 10),
@@ -62,8 +105,13 @@ async function main() {
     },
   })
 
-  const owner2 = await prisma.user.create({
-    data: {
+  const owner2 = await prisma.user.upsert({
+    where: { email: 'owner@glamournails.com' },
+    update: {
+      name: 'Jane Smith',
+      passwordHash: await bcrypt.hash('password123', 10),
+    },
+    create: {
       tenantId: tenant2.id,
       email: 'owner@glamournails.com',
       passwordHash: await bcrypt.hash('password123', 10),

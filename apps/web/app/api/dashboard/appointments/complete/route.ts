@@ -32,14 +32,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify the user owns this business
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-      include: { businesses: true }
-    })
-
-    const hasAccess = user?.businesses.some(b => b.id === appointment.businessId)
-    if (!hasAccess) {
+    // Verify the user owns this business by checking tenantId
+    if (appointment.business.tenantId !== user.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

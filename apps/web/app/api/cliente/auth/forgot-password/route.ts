@@ -101,9 +101,9 @@ Si no solicitaste este código, puedes ignorar este mensaje de forma segura.
     `
 
     try {
-      // Usar la API interna para enviar el email
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-      const response = await fetch(`${baseUrl}/api/internal/send-email`, {
+      // Usar la API interna para enviar el email - derivar URL desde el request
+      const origin = request.nextUrl.origin
+      const response = await fetch(`${origin}/api/internal/send-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
