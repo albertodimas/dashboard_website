@@ -74,28 +74,11 @@ export default function LoginPage() {
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 border border-red-200 px-4 py-3 rounded">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <p className="text-red-600 font-medium">{error}</p>
-                    {(error.toLowerCase().includes('invalid') || error.toLowerCase().includes('password') || error.toLowerCase().includes('failed')) && (
-                      <div className="mt-2 text-red-600">
-                        <p className="text-sm">Need help?</p>
-                        <div className="mt-1 flex flex-col sm:flex-row gap-2 sm:gap-4">
-                          <Link href="/forgot-password" className="text-red-700 font-semibold underline hover:text-red-800 text-sm">
-                            → Forgot password?
-                          </Link>
-                          <Link href="/register" className="text-red-700 font-semibold underline hover:text-red-800 text-sm">
-                            → Create new account
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-red-600 font-medium">{error}</p>
                 </div>
               </div>
             )}
@@ -121,17 +104,25 @@ export default function LoginPage() {
                 <label htmlFor="password" className="sr-only">
                   {t('password')}
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                  placeholder={t('password')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm pr-24"
+                    placeholder={t('password')}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <Link 
+                    href="/forgot-password" 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
               </div>
             </div>
 

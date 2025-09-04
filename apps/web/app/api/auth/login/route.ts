@@ -20,8 +20,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findFirst({
       where: { email },
       include: { 
-        tenant: true,
-        business: true
+        tenant: true
       }
     })
 
@@ -48,8 +47,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name || '',
       tenantId: user.tenantId || undefined,
-      subdomain: user.tenant?.domain || user.business?.domain || 'dashboard',
-      role: user.business?.role || 'OWNER'
+      subdomain: user.tenant?.subdomain || 'dashboard',
+      role: 'OWNER'
     })
 
     return NextResponse.json({
@@ -58,8 +57,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        subdomain: user.tenant?.domain || user.business?.domain || 'dashboard',
-        role: user.business?.role || 'OWNER',
+        subdomain: user.tenant?.subdomain || 'dashboard',
+        role: 'OWNER',
       },
     })
   } catch (error) {

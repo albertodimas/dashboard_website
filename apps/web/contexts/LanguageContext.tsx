@@ -19,7 +19,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     
     // Try to update language preference in database if user is logged in
     try {
-      await fetch('/api/dashboard/business', {
+      await fetch('/api/auth/me', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Middleware to handle routing
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
@@ -15,7 +16,8 @@ export function middleware(request: NextRequest) {
   }
   
   // Always let known app routes pass through
-  if (pathname.startsWith('/dashboard/') || 
+  if (pathname === '/dashboard' ||
+      pathname.startsWith('/dashboard/') || 
       pathname.startsWith('/admin/') || 
       pathname.startsWith('/business/') ||
       pathname.startsWith('/business-pages/') ||
@@ -23,6 +25,8 @@ export function middleware(request: NextRequest) {
       pathname.startsWith('/cliente/') ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/register') ||
+      pathname.startsWith('/forgot-password') ||
+      pathname.startsWith('/reset-password') ||
       pathname.startsWith('/book/') ||
       pathname.startsWith('/confirm') ||
       pathname.startsWith('/directory') ||
@@ -57,12 +61,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
-     * - admin
-     * - dashboard
-     * - login
-     * - register
-     * - business (existing business routes)
      */
-    '/((?!api/|_next/static|_next/image|favicon.ico|public|admin|dashboard|login|register|business|cliente).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|public).*)',
   ],
 }

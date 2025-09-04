@@ -11,8 +11,9 @@ export async function sendEmail({
 }) {
   const nodemailer = require('nodemailer')
   
-  // For development, use MailHog
-  if (process.env.NODE_ENV === 'development') {
+  // For development, check if we have Gmail credentials first
+  if (process.env.NODE_ENV === 'development' && !process.env.EMAIL_USER) {
+    // Only use MailHog if no Gmail credentials are configured
     try {
       const transporter = nodemailer.createTransport({
         host: 'localhost',
@@ -46,7 +47,7 @@ export async function sendEmail({
     }
   }
   
-  // Check if email credentials are configured for production
+  // Check if email credentials are configured
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('📧 EMAIL NOT SENT (Gmail not configured)')

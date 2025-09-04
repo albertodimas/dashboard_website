@@ -71,10 +71,13 @@ export default function ForgotPasswordPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/cliente/auth/forgot-password', {
+      const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+        body: JSON.stringify({ 
+          email: formData.email,
+          userType: 'cliente' 
+        })
       })
 
       const data = await response.json()
@@ -119,13 +122,14 @@ export default function ForgotPasswordPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/cliente/auth/reset-password', {
+      const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
           code: formData.code.join(''),
-          newPassword: formData.newPassword
+          newPassword: formData.newPassword,
+          userType: 'cliente'
         })
       })
 
@@ -143,7 +147,7 @@ export default function ForgotPasswordPage() {
       
       // Redirigir después de 3 segundos
       setTimeout(() => {
-        router.push('/cliente/dashboard')
+        window.location.href = '/cliente/dashboard'
       }, 3000)
     } catch (err: any) {
       setError(err.message)
