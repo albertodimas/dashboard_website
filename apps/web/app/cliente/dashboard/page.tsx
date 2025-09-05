@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Package, Calendar, Clock, User, LogOut, ChevronRight, 
-  Gift, MapPin, Phone, Mail, Star, Home, History, Plus
+  Gift, MapPin, Phone, Mail, Star, Home, History, Plus,
+  Building2, Sparkles
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -44,11 +45,30 @@ interface Appointment {
   }
 }
 
+interface Business {
+  id: string
+  name: string
+  description?: string
+  address: string
+  city: string
+  state: string
+  slug: string
+  customSlug?: string
+  businessCategory?: string
+  appointmentCount?: number
+  serviceCount?: number
+  rating?: number
+  reviewCount?: number
+  isPremium?: boolean
+}
+
 export default function ClientDashboard() {
   const router = useRouter()
   const [customer, setCustomer] = useState<any>(null)
   const [packages, setPackages] = useState<Package[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [myBusinesses, setMyBusinesses] = useState<Business[]>([])
+  const [suggestedBusinesses, setSuggestedBusinesses] = useState<Business[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'packages' | 'appointments' | 'profile'>('overview')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -67,19 +87,31 @@ export default function ClientDashboard() {
 
   const fetchDashboardData = async (token: string) => {
     try {
-      const response = await fetch('/api/cliente/dashboard', {
+      // Fetch dashboard data
+      const dashboardResponse = await fetch('/api/cliente/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data')
+      if (dashboardResponse.ok) {
+        const data = await dashboardResponse.json()
+        setPackages(data.packages || [])
+        setAppointments(data.appointments || [])
       }
 
-      const data = await response.json()
-      setPackages(data.packages || [])
-      setAppointments(data.appointments || [])
+      // Fetch businesses data
+      const businessesResponse = await fetch('/api/cliente/businesses', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (businessesResponse.ok) {
+        const businessData = await businessesResponse.json()
+        setMyBusinesses(businessData.myBusinesses || [])
+        setSuggestedBusinesses(businessData.suggestedBusinesses || [])
+      }
     } catch (error) {
       console.error('Error fetching dashboard:', error)
     } finally {
@@ -202,8 +234,8 @@ export default function ClientDashboard() {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setActiveTab('packages')}
+                <Link
+                  href="/cliente/packages"
                   className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors"
                 >
                   <div className="flex items-center space-x-3">
@@ -211,15 +243,15 @@ export default function ClientDashboard() {
                     <span className="font-medium">Ver mis paquetes</span>
                   </div>
                   <ChevronRight className="text-gray-400" size={20} />
-                </button>
+                </Link>
 
                 <Link
-                  href="/b"
+                  href="/cliente/appointments"
                   className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 transition-colors"
                 >
                   <div className="flex items-center space-x-3">
-                    <Plus className="text-green-600" size={24} />
-                    <span className="font-medium">Nueva reserva</span>
+                    <Calendar className="text-green-600" size={24} />
+                    <span className="font-medium">Ver mis citas</span>
                   </div>
                   <ChevronRight className="text-gray-400" size={20} />
                 </Link>
@@ -252,6 +284,98 @@ export default function ClientDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Mis Negocios Section */}
+            {myBusinesses.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Mis Negocios</h2>
+                  <Building2 className="text-gray-400" size={24} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myBusinesses.map((business) => (
+                    <Link
+                      key={business.id}
+                      href={`/b/${business.customSlug || business.slug}`}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all"
+                    >
+                      <h3 className="font-medium text-gray-900 mb-1">{business.name}</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {business.city}, {business.state}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{business.serviceCount || 0} servicios</span>
+                        {business.appointmentCount > 0 && (
+                          <span className="text-blue-600 font-medium">
+                            {business.appointmentCount} citas
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Explorar Otros Servicios Section */}
+            {suggestedBusinesses.length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Descubre Nuevos Servicios</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Negocios recomendados para ti
+                    </p>
+                  </div>
+                  <Sparkles className="text-purple-500" size={24} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {suggestedBusinesses.slice(0, 6).map((business) => (
+                    <Link
+                      key={business.id}
+                      href={`/b/${business.customSlug || business.slug}`}
+                      className="bg-white rounded-lg p-4 hover:shadow-lg transition-shadow"
+                    >
+                      {business.isPremium && (
+                        <span className="inline-block px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full mb-2">
+                          Premium
+                        </span>
+                      )}
+                      <h3 className="font-medium text-gray-900 mb-1">{business.name}</h3>
+                      {business.description && (
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {business.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">
+                          {business.serviceCount || 0} servicios
+                        </span>
+                        {business.rating > 0 && (
+                          <div className="flex items-center">
+                            <Star className="w-3 h-3 text-yellow-500 fill-current mr-1" />
+                            <span className="text-gray-700 font-medium">
+                              {business.rating.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {suggestedBusinesses.length > 6 && (
+                  <div className="mt-4 text-center">
+                    <Link
+                      href="/cliente/businesses"
+                      className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      Ver todos los negocios disponibles
+                      <ChevronRight size={16} className="ml-1" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -261,7 +385,7 @@ export default function ClientDashboard() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">Mis Paquetes</h2>
               <Link
-                href="/b"
+                href="/cliente/businesses"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Comprar Paquete
@@ -274,7 +398,7 @@ export default function ClientDashboard() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No tienes paquetes activos</h3>
                 <p className="text-gray-500 mb-4">Compra un paquete para empezar a disfrutar de nuestros servicios</p>
                 <Link
-                  href="/b"
+                  href="/cliente/businesses"
                   className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Explorar Paquetes
@@ -332,7 +456,7 @@ export default function ClientDashboard() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">Mis Citas</h2>
               <Link
-                href="/b"
+                href="/cliente/businesses"
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 Nueva Cita
@@ -345,7 +469,7 @@ export default function ClientDashboard() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No tienes citas programadas</h3>
                 <p className="text-gray-500 mb-4">Reserva tu primera cita y comienza a disfrutar de nuestros servicios</p>
                 <Link
-                  href="/b"
+                  href="/cliente/businesses"
                   className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
                   Reservar Cita

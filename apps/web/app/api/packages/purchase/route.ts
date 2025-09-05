@@ -131,7 +131,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const whereClause: any = {
+    const whereClause: {
+      customerId: string;
+      status: string;
+      businessId?: string;
+    } = {
       customerId,
       status: 'ACTIVE'
     }

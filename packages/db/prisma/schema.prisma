@@ -39,6 +39,9 @@ enum NotificationType {
   PUSH
 }
 
+// Removemos el enum y usaremos una tabla dinámica
+// enum BusinessCategory - Movido a tabla Category
+
 model Tenant {
   id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name              String
@@ -137,6 +140,8 @@ model Business {
   slug              String
   customSlug        String?       @unique
   businessType      String?       // 'barbershop', 'hair_salon', 'nail_salon', 'gym', 'spa', 'clinic', etc
+  categoryId        String?       @db.Uuid
+  category          Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   description       String?
   logo              String?
   coverImage        String?
@@ -796,4 +801,24 @@ model LoginAttempt {
   @@index([email, attemptedAt])
   @@index([customerId])
   @@map("login_attempts")
+}
+
+// Business categories for organizing and filtering
+model Category {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String        @unique
+  slug              String        @unique
+  description       String?
+  icon              String?       // Icon name or emoji
+  color             String?       // Hex color code
+  isActive          Boolean       @default(true)
+  order             Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  businesses        Business[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("categories")
 }

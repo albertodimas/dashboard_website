@@ -17,9 +17,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate verification code
-    console.log('[REGISTER] Verifying code for', email, 'with code:', verificationCode)
+    // Log without exposing sensitive data
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[REGISTER] Verifying code for user')
+    }
     const isValidCode = verifyCode(email, verificationCode)
-    console.log('[REGISTER] Code validation result:', isValidCode)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[REGISTER] Code validation result:', isValidCode)
+    }
     
     if (!isValidCode) {
       // Get stored data for debugging

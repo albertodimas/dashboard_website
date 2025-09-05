@@ -111,11 +111,19 @@ export async function POST(request: NextRequest) {
         message: 'Contraseña actualizada exitosamente'
       })
     } else {
-      // Para usuarios del sistema, por ahora solo verificamos el código del log
-      // En producción deberíamos tener una tabla de códigos temporales
-      console.log('⚠️ Verificación de código para usuario del sistema')
-      console.log('Email:', user.email)
-      console.log('Código recibido:', code)
+      // Para usuarios del sistema, verificar el código de manera segura
+      const storedCode = verificationStore.get(email)
+      
+      if (!storedCode || storedCode !== code) {
+        console.error('❌ Invalid verification code for system user')
+        return NextResponse.json(
+          { error: 'Código de verificación inválido o expirado' },
+          { status: 400 }
+        )
+      }
+      
+      // Limpiar el código usado
+      verificationStore.delete(email)
       
       // Hashear la nueva contraseña
       const hashedPassword = await bcrypt.hash(newPassword, 10)

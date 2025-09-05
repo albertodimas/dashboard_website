@@ -44,7 +44,10 @@ export async function POST(request: NextRequest) {
 
     // In production, send email with code
     // For now, we'll return it in the response (development only)
-    console.log(`Verification code for ${email}: ${code}`)
+    // Log without exposing sensitive data
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Verification code generated for customer')
+    }
     
     // In a real application, you would send an email here
     // await sendEmail({

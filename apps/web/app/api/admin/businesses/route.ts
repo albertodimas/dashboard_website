@@ -13,6 +13,14 @@ export async function GET() {
             subdomain: true
           }
         },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true
+          }
+        },
         _count: {
           select: {
             appointments: true,
@@ -38,6 +46,9 @@ export async function GET() {
       isBlocked: business.isBlocked,
       blockedReason: business.blockedReason,
       blockedAt: business.blockedAt,
+      businessCategory: business.businessCategory,
+      categoryId: business.categoryId,
+      category: business.category,
       enableStaffModule: business.enableStaffModule,
       enablePackagesModule: business.enablePackagesModule,
       tenantName: business.tenant.name,
@@ -78,6 +89,8 @@ export async function PUT(request: NextRequest) {
     
     if (body.isActive !== undefined) updateData.isActive = body.isActive
     if (body.isPremium !== undefined) updateData.isPremium = body.isPremium
+    if (body.businessCategory !== undefined) updateData.businessCategory = body.businessCategory
+    if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
     if (body.enableStaffModule !== undefined) updateData.enableStaffModule = body.enableStaffModule
     if (body.enablePackagesModule !== undefined) {
       console.log('Setting enablePackagesModule to:', body.enablePackagesModule)

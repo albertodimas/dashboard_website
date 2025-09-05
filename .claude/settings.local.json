@@ -109,7 +109,14 @@
       "mcp__playwright-advanced__playwright_get_visible_html",
       "Bash(dir:*)",
       "mcp__playwright-advanced__playwright_close",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(git rm:*)",
+      "Bash(pnpm prisma migrate dev:*)",
+      "Bash(pnpm prisma:*)",
+      "Bash(pnpm tsx:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma studio:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": [],

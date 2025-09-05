@@ -52,7 +52,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     }
     
     // Don't allow certain reserved paths
-    const reserved = ['api', 'admin', 'dashboard', 'login', 'register', 'business', '_next', 'public', 'assets']
+    const reserved = ['api', 'admin', 'dashboard', 'login', 'register', 'business', 'b', '_next', 'public', 'assets', 'cliente']
     const firstSegment = cleaned.split('/')[0]
     
     if (reserved.includes(firstSegment.toLowerCase())) {
@@ -60,9 +60,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
       return false
     }
     
-    // Check for valid characters (letters, numbers, hyphens, slashes)
+    // Check for valid characters (letters, numbers, hyphens, and slashes)
     if (!/^[a-zA-Z0-9\-\/]+$/.test(cleaned)) {
-      setSlugError('Only letters, numbers, hyphens and slashes allowed')
+      setSlugError('Only letters, numbers, hyphens, and slashes allowed')
       return false
     }
     
@@ -178,7 +178,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                 setCustomSlug(e.target.value)
                 validateSlug(e.target.value)
               }}
-              placeholder="e.g., wmc/inicio or my-business"
+              placeholder="e.g., trade/welcome or my-business"
               className={`flex-1 p-3 border rounded-lg ${
                 slugError ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -191,7 +191,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             </div>
           )}
           <p className="text-sm text-gray-500">
-            Create a custom URL for your business page (e.g., yoursite.com/wmc/inicio)
+            Create a custom URL for your business page (e.g., yoursite.com/trade/welcome)
           </p>
         </div>
 

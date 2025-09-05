@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { Settings } from 'lucide-react'
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  icon: string | null
+  color: string | null
+  isActive: boolean
+}
 
 interface Business {
   id: string
@@ -17,6 +28,8 @@ interface Business {
   isBlocked?: boolean
   blockedReason?: string
   enableStaffModule: boolean
+  businessCategory?: string
+  categoryId?: string
   tenantName: string
   tenantEmail: string
   subdomain: string
@@ -38,6 +51,7 @@ export default function AdminDashboardPage() {
   const [showBlockModal, setShowBlockModal] = useState(false)
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
   const [blockReason, setBlockReason] = useState('payment')
+  const [categories, setCategories] = useState<Category[]>([])
 
   useEffect(() => {
     // Verify admin session via cookie
@@ -48,11 +62,24 @@ export default function AdminDashboardPage() {
       })
       .then(() => {
         loadBusinesses()
+        loadCategories()
       })
       .catch(() => {
         router.push('/admin/login')
       })
   }, [router])
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/categories')
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data.filter((cat: Category) => cat.isActive))
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error)
+    }
+  }
 
   const loadBusinesses = async () => {
     try {
@@ -160,6 +187,30 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const handleCategoryChange = async (businessId: string, categoryId: string) => {
+    try {
+      const response = await fetch('/api/admin/businesses', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: businessId,
+          categoryId: categoryId || null || null
+        }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to update category')
+      }
+      await loadBusinesses()
+    } catch (error) {
+      console.error('Error updating category:', error)
+      alert(t('language') === 'en' 
+        ? 'Failed to update category' 
+        : 'Error al actualizar la categoría')
+    }
+  }
+
   const handleLogout = async () => {
     await fetch('/api/admin/auth/verify', { method: 'DELETE' })
     router.push('/admin/login')
@@ -202,6 +253,13 @@ export default function AdminDashboardPage() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
+              <Link
+                href="/admin/categories"
+                className="flex items-center gap-2 text-gray-300 hover:text-white px-3 py-1 border border-gray-600 rounded hover:border-gray-400"
+              >
+                <Settings className="w-4 h-4" />
+                {t('language') === 'en' ? 'Categories' : 'Categorías'}
+              </Link>
               <span className="text-sm text-gray-300">
                 admin@directory.com
               </span>
@@ -303,6 +361,9 @@ export default function AdminDashboardPage() {
                   {t('language') === 'en' ? 'Business' : 'Negocio'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('language') === 'en' ? 'Category' : 'Categoría'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('language') === 'en' ? 'Contact' : 'Contacto'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -321,6 +382,21 @@ export default function AdminDashboardPage() {
                       <div className="text-sm font-medium text-gray-900">{business.name}</div>
                       <div className="text-sm text-gray-500">{business.city}, {business.state}</div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={business.categoryId || ''}
+                      onChange={(e) => handleCategoryChange(business.id, e.target.value)}
+                      className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={saving}
+                    >
+                      <option value="">Sin categoría</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.icon} {category.name}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{business.email}</div>

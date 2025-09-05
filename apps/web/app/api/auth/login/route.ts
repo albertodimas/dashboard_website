@@ -6,7 +6,7 @@ import { setAuthCookie } from '@/lib/jwt-auth'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password } = body
+    const { email, password, subdomain } = body
 
     // Validate input
     if (!email || !password) {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find user with proper tenant filtering
+    // Find user - for now without tenant filtering until we update frontend
     const user = await prisma.user.findFirst({
       where: { email },
       include: { 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Login error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { error: 'Login failed' },
       { status: 500 }

@@ -7,6 +7,7 @@ import DashboardNav from '@/components/DashboardNav'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
 import { BusinessTypeSelector } from '@/components/business-type-selector'
 import { BusinessType } from '@/lib/business-types'
+import { BusinessCategorySelector } from '@/components/business-category-selector'
 import { countries, cities } from '@/lib/countries'
 import { Camera, User } from 'lucide-react'
 
@@ -37,7 +38,8 @@ export default function SettingsPage() {
     country: '',
     website: '',
     description: '',
-    businessType: BusinessType.OTHER as string
+    businessType: BusinessType.OTHER as string,
+    businessCategory: ''
   })
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -119,6 +121,7 @@ export default function SettingsPage() {
               address: data.address || '',
               city: data.city || '',
               businessType: data.businessType || BusinessType.OTHER,
+              businessCategory: data.businessCategory || '',
               state: data.state || '',
               postalCode: data.postalCode || '',
               country: data.country || '',
@@ -680,6 +683,12 @@ export default function SettingsPage() {
                   value={businessInfo.businessType}
                   onChange={(type) => setBusinessInfo({...businessInfo, businessType: type})}
                   showDescription={false}
+                />
+              </div>
+              <div>
+                <BusinessCategorySelector 
+                  value={businessInfo.businessCategory}
+                  onChange={(category) => setBusinessInfo({...businessInfo, businessCategory: category})}
                 />
               </div>
               <button

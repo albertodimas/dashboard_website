@@ -17,8 +17,12 @@ export async function GET(
     // Check if the identifier is a valid UUID
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(businessIdentifier)
     
-    // Build the where clause based on identifier type
-    let whereClause: any = {}
+    // Build the where clause based on identifier type with proper typing
+    type WhereClause = {
+      OR: Array<{ id?: string; slug?: string; customSlug?: string }>
+    }
+    
+    let whereClause: WhereClause
     if (isUUID) {
       whereClause = {
         OR: [

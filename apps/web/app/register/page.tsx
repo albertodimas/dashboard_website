@@ -85,7 +85,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      console.log('Sending registration with code:', verificationCode)
+      // Registration in progress
       
       // Complete registration with verification code
       const response = await fetch('/api/auth/register', {

@@ -49,7 +49,10 @@ export async function POST(request: NextRequest) {
     // Generate 6-digit verification code
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     
-    console.log('[VERIFICATION] Generated code for', email, ':', code)
+    // Log without exposing sensitive data
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[VERIFICATION] Code generated successfully')
+    }
 
     // Store code in memory
     verificationStore.set(email, code)
