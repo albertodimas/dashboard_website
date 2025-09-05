@@ -65,7 +65,7 @@ export async function GET(
           select: {
             settings: true,
             users: {
-              where: { isAdmin: false },
+              where: { isAdmin: true },
               take: 1,
               select: {
                 id: true,

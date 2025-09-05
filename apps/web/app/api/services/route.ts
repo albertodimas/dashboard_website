@@ -3,17 +3,7 @@ import { prisma } from '@dashboard/db';
 
 export async function GET() {
   try {
-    const services = await prisma.service.findMany({
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
+    const services = await prisma.service.findMany();
 
     const formattedServices = services.map(service => ({
       id: service.id,

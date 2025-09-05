@@ -1,6 +1,11 @@
 {
   "permissions": {
     "allow": [
+      "Read(/D:\\dashboard_website/**)",
+      "Write(/D:\\dashboard_website/**)",
+      "Edit(/D:\\dashboard_website/**)",
+      "MultiEdit(/D:\\dashboard_website/**)",
+      "NotebookEdit(/D:\\dashboard_website/**)",
       "Bash(git reset:*)",
       "Bash(docker-compose up:*)",
       "Bash(pnpm install:*)",
@@ -90,7 +95,21 @@
       "Read(/D:\\dashboard_website\\apps\\web\\app\\api\\public\\business\\[slug]/**)",
       "Read(/D:\\dashboard_website\\apps\\web\\app\\api\\public\\business\\[slug]/**)",
       "Read(/D:\\dashboard_website\\apps\\web\\app\\api\\public\\business\\[slug]/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm prisma studio:*)",
+      "mcp__playwright-advanced__playwright_navigate",
+      "mcp__playwright-advanced__playwright_console_logs",
+      "Bash(docker ps:*)",
+      "mcp__playwright-advanced__playwright_fill",
+      "mcp__playwright-advanced__playwright_click",
+      "mcp__playwright-advanced__playwright_get_visible_text",
+      "mcp__playwright-advanced__playwright_screenshot",
+      "Bash(dir)",
+      "mcp__playwright-advanced__playwright_get_visible_html",
+      "Bash(dir:*)",
+      "mcp__playwright-advanced__playwright_close",
+      "Bash(pnpm add:*)"
     ],
     "deny": [],
     "ask": [],

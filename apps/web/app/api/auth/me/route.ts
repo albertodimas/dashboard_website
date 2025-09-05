@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         name: true,
+        avatar: true,
+        phone: true,
         language: true,
         tenant: {
           select: {
@@ -43,6 +45,8 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
+        avatar: user.avatar,
+        phone: user.phone,
         language: user.language,
         tenantId: user.tenant.id,
         subdomain: user.tenant.subdomain || 'dashboard',

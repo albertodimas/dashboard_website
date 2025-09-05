@@ -238,7 +238,24 @@ export default function SettingsPage() {
         throw new Error('Failed to save business info')
       }
       
-      alert(language === 'en' ? 'Business information saved!' : '¡Información del negocio guardada!')
+      const result = await response.json()
+      
+      // Update businessData with new values
+      if (result.business) {
+        setBusinessData(result.business)
+        
+        // Show success message with new URL if name changed
+        if (result.business.customSlug) {
+          const publicUrl = `${window.location.origin}/b/${result.business.customSlug}`
+          alert(
+            language === 'en' 
+              ? `Business information saved!\nYour public page: ${publicUrl}` 
+              : `¡Información del negocio guardada!\nTu página pública: ${publicUrl}`
+          )
+        } else {
+          alert(language === 'en' ? 'Business information saved!' : '¡Información del negocio guardada!')
+        }
+      }
     } catch (error) {
       console.error('Error saving business info:', error)
       alert(language === 'en' ? 'Failed to save business information' : 'Error al guardar la información del negocio')

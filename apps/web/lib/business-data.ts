@@ -59,7 +59,19 @@ export async function getBusinessDataBySlug(slug: string) {
         },
         tenant: {
           select: {
-            settings: true
+            settings: true,
+            users: {
+              where: {
+                isAdmin: true
+              },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true
+              },
+              take: 1
+            }
           }
         }
       }
@@ -162,7 +174,19 @@ export async function getBusinessDataByCustomSlug(customSlug: string) {
         },
         tenant: {
           select: {
-            settings: true
+            settings: true,
+            users: {
+              where: {
+                isAdmin: true
+              },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true
+              },
+              take: 1
+            }
           }
         }
       }

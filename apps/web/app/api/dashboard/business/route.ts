@@ -48,11 +48,40 @@ export async function PUT(request: NextRequest) {
       return createAuthResponse('Business not found', 404)
     }
 
+    // Generate new customSlug if name changed
+    let customSlug = business.customSlug
+    if (body.name && body.name !== business.name) {
+      // Generate slug from new name
+      const baseSlug = body.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+      
+      // Check if slug is available
+      let slug = baseSlug
+      let counter = 1
+      while (true) {
+        const existing = await prisma.business.findFirst({
+          where: {
+            customSlug: slug,
+            NOT: { id: business.id }
+          }
+        })
+        if (!existing) {
+          customSlug = slug
+          break
+        }
+        slug = `${baseSlug}${counter}`
+        counter++
+      }
+    }
+
     // Update business information
     const updatedBusiness = await prisma.business.update({
       where: { id: business.id },
       data: {
         name: body.name || business.name,
+        businessType: body.businessType || business.businessType,
         email: body.email || business.email,
         phone: body.phone || business.phone,
         address: body.address || business.address,
@@ -62,6 +91,7 @@ export async function PUT(request: NextRequest) {
         country: body.country || business.country,
         website: body.website,
         description: body.description,
+        customSlug: customSlug,
         settings: body.settings || business.settings,
         features: body.features || business.features
       }
@@ -72,6 +102,9 @@ export async function PUT(request: NextRequest) {
       business: {
         id: updatedBusiness.id,
         name: updatedBusiness.name,
+        slug: updatedBusiness.slug,
+        customSlug: updatedBusiness.customSlug,
+        businessType: updatedBusiness.businessType,
         email: updatedBusiness.email,
         phone: updatedBusiness.phone,
         address: updatedBusiness.address,

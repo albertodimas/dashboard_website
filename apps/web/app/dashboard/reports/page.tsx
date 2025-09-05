@@ -48,6 +48,23 @@ interface ServiceStat {
   revenue: number
 }
 
+interface StaffReport {
+  id: string
+  name: string
+  photo: string
+  metrics: {
+    revenue: number
+    previousRevenue: number
+    revenueChange: number
+    appointments: number
+    completedAppointments: number
+    cancelledAppointments: number
+    hoursWorked: number
+    averageTicket: number
+    services: ServiceStat[]
+  }
+}
+
 export default function ReportsPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
@@ -60,6 +77,8 @@ export default function ReportsPage() {
   const [customDateRange, setCustomDateRange] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [staffReports, setStaffReports] = useState<StaffReport[]>([])
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
 
   const loadReports = async () => {
     try {
@@ -80,6 +99,7 @@ export default function ReportsPage() {
       setChartData(data.chartData)
       setServiceStats(data.serviceStats)
       setPeakHours(data.peakHours || [])
+      setStaffReports(data.staffReports || [])
     } catch (error) {
       console.error('Error loading reports:', error)
     } finally {
@@ -317,6 +337,208 @@ export default function ReportsPage() {
           </div>
         </div>
 
+        {/* Staff Reports Section */}
+        {staffReports && staffReports.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              {language === 'en' ? 'Professional Reports' : 'Reportes por Profesional'}
+            </h2>
+            
+            {/* Staff Selector Tabs */}
+            <div className="bg-white rounded-lg shadow mb-4">
+              <div className="p-4 border-b">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedStaffId(null)}
+                    className={`px-4 py-2 rounded-lg ${!selectedStaffId ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    {language === 'en' ? 'All Professionals' : 'Todos los Profesionales'}
+                  </button>
+                  {staffReports.map((staff) => (
+                    <button
+                      key={staff.id}
+                      onClick={() => setSelectedStaffId(staff.id)}
+                      className={`px-4 py-2 rounded-lg flex items-center gap-2 ${selectedStaffId === staff.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >
+                      {staff.photo && (
+                        <img 
+                          src={staff.photo.startsWith('data:') ? staff.photo : `/api/images/${staff.photo}`}
+                          alt={staff.name}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      )}
+                      {staff.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Staff Report Cards */}
+            {selectedStaffId === null ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {staffReports.map((staff) => (
+                  <div key={staff.id} className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center mb-4">
+                      {staff.photo && (
+                        <img 
+                          src={staff.photo.startsWith('data:') ? staff.photo : `/api/images/${staff.photo}`}
+                          alt={staff.name}
+                          className="w-12 h-12 rounded-full object-cover mr-3"
+                        />
+                      )}
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{staff.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {staff.metrics.hoursWorked} {language === 'en' ? 'hours worked' : 'horas trabajadas'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-600">{language === 'en' ? 'Revenue' : 'Ingresos'}</p>
+                        <p className="text-xl font-bold text-gray-900">{formatCurrency(staff.metrics.revenue)}</p>
+                        <p className={`text-sm ${staff.metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercentage(staff.metrics.revenueChange)} vs {language === 'en' ? 'previous' : 'anterior'}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-gray-600">{language === 'en' ? 'Appointments' : 'Citas'}</p>
+                          <p className="font-semibold">{staff.metrics.appointments}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">{language === 'en' ? 'Avg Ticket' : 'Ticket Promedio'}</p>
+                          <p className="font-semibold">{formatCurrency(staff.metrics.averageTicket)}</p>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-gray-600 mb-1">{language === 'en' ? 'Top Services' : 'Servicios Top'}</p>
+                        {staff.metrics.services.slice(0, 3).map((service, idx) => (
+                          <div key={idx} className="text-xs flex justify-between">
+                            <span className="text-gray-700 truncate">{service.name}</span>
+                            <span className="text-gray-900 font-medium">{formatCurrency(service.revenue)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Detailed view for selected staff
+              <div className="bg-white rounded-lg shadow p-6">
+                {(() => {
+                  const staff = staffReports.find(s => s.id === selectedStaffId)
+                  if (!staff) return null
+                  
+                  return (
+                    <div>
+                      <div className="flex items-center mb-6">
+                        {staff.photo && (
+                          <img 
+                            src={staff.photo.startsWith('data:') ? staff.photo : `/api/images/${staff.photo}`}
+                            alt={staff.name}
+                            className="w-16 h-16 rounded-full object-cover mr-4"
+                          />
+                        )}
+                        <div>
+                          <h3 className="text-2xl font-bold text-gray-900">{staff.name}</h3>
+                          <p className="text-gray-500">
+                            {language === 'en' ? 'Professional Report' : 'Reporte del Profesional'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <p className="text-sm text-blue-600">{language === 'en' ? 'Total Revenue' : 'Ingresos Totales'}</p>
+                          <p className="text-2xl font-bold text-blue-900">{formatCurrency(staff.metrics.revenue)}</p>
+                          <p className={`text-sm mt-1 ${staff.metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatPercentage(staff.metrics.revenueChange)}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-green-50 rounded-lg p-4">
+                          <p className="text-sm text-green-600">{language === 'en' ? 'Hours Worked' : 'Horas Trabajadas'}</p>
+                          <p className="text-2xl font-bold text-green-900">{staff.metrics.hoursWorked}</p>
+                          <p className="text-sm text-green-600 mt-1">
+                            {language === 'en' ? 'hours' : 'horas'}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-purple-50 rounded-lg p-4">
+                          <p className="text-sm text-purple-600">{language === 'en' ? 'Total Appointments' : 'Citas Totales'}</p>
+                          <p className="text-2xl font-bold text-purple-900">{staff.metrics.appointments}</p>
+                          <p className="text-sm text-purple-600 mt-1">
+                            {staff.metrics.completedAppointments} {language === 'en' ? 'completed' : 'completadas'}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-yellow-50 rounded-lg p-4">
+                          <p className="text-sm text-yellow-600">{language === 'en' ? 'Average Ticket' : 'Ticket Promedio'}</p>
+                          <p className="text-2xl font-bold text-yellow-900">{formatCurrency(staff.metrics.averageTicket)}</p>
+                          <p className="text-sm text-yellow-600 mt-1">
+                            {language === 'en' ? 'per appointment' : 'por cita'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Service Breakdown */}
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                          {language === 'en' ? 'Service Performance' : 'Rendimiento por Servicio'}
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  {language === 'en' ? 'Service' : 'Servicio'}
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  {language === 'en' ? 'Count' : 'Cantidad'}
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  {language === 'en' ? 'Revenue' : 'Ingresos'}
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  {language === 'en' ? 'Avg Price' : 'Precio Promedio'}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {staff.metrics.services.map((service, idx) => (
+                                <tr key={idx}>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {service.name}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {service.count}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                    {formatCurrency(service.revenue)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {formatCurrency(service.revenue / service.count)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Revenue & Appointments Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -461,22 +683,68 @@ export default function ReportsPage() {
           </h3>
           <div className="flex gap-4">
             <button 
-              onClick={() => {
-                // TODO: Implement PDF export
-                alert(language === 'en' ? 'PDF export coming soon!' : '¡Exportación a PDF próximamente!')
+              onClick={async () => {
+                try {
+                  let url = `/api/dashboard/reports/export?format=excel&period=${period}`
+                  if (customDateRange && startDate && endDate) {
+                    url = `/api/dashboard/reports/export?format=excel&startDate=${startDate}&endDate=${endDate}`
+                  }
+                  
+                  const response = await fetch(url)
+                  if (!response.ok) throw new Error('Export failed')
+                  
+                  const blob = await response.blob()
+                  const downloadUrl = window.URL.createObjectURL(blob)
+                  const link = document.createElement('a')
+                  link.href = downloadUrl
+                  link.download = `report_${new Date().toISOString().split('T')[0]}.xlsx`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                  window.URL.revokeObjectURL(downloadUrl)
+                } catch (error) {
+                  console.error('Export error:', error)
+                  alert(language === 'en' ? 'Failed to export report' : 'Error al exportar el reporte')
+                }
               }}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
             >
-              {language === 'en' ? 'Export as PDF' : 'Exportar como PDF'}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {language === 'en' ? 'Export as Excel' : 'Exportar como Excel'}
             </button>
             <button 
-              onClick={() => {
-                // TODO: Implement Excel export
-                alert(language === 'en' ? 'Excel export coming soon!' : '¡Exportación a Excel próximamente!')
+              onClick={async () => {
+                try {
+                  let url = `/api/dashboard/reports/export?format=csv&period=${period}`
+                  if (customDateRange && startDate && endDate) {
+                    url = `/api/dashboard/reports/export?format=csv&startDate=${startDate}&endDate=${endDate}`
+                  }
+                  
+                  const response = await fetch(url)
+                  if (!response.ok) throw new Error('Export failed')
+                  
+                  const blob = await response.blob()
+                  const downloadUrl = window.URL.createObjectURL(blob)
+                  const link = document.createElement('a')
+                  link.href = downloadUrl
+                  link.download = `report_${new Date().toISOString().split('T')[0]}.csv`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                  window.URL.revokeObjectURL(downloadUrl)
+                } catch (error) {
+                  console.error('Export error:', error)
+                  alert(language === 'en' ? 'Failed to export report' : 'Error al exportar el reporte')
+                }
               }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
             >
-              {language === 'en' ? 'Export as Excel' : 'Exportar como Excel'}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {language === 'en' ? 'Export as CSV' : 'Exportar como CSV'}
             </button>
           </div>
         </div>

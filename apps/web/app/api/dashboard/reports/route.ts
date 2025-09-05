@@ -319,6 +319,137 @@ export async function GET(request: NextRequest) {
       .slice(0, 3)
       .map(([hour]) => parseInt(hour))
 
+    // Get staff reports if staff module is enabled
+    let staffReports = null
+    if (business.enableStaffModule) {
+      // Get all staff members
+      const staffMembers = await prisma.staffMember.findMany({
+        where: {
+          businessId: business.id
+        }
+      })
+
+      // Calculate reports for each staff member
+      staffReports = await Promise.all(staffMembers.map(async (staff) => {
+        const staffAppointments = appointments.filter(apt => apt.staffId === staff.id)
+        const previousStaffAppointments = previousAppointments.filter(apt => apt.staffId === staff.id)
+        
+        // Calculate revenue for this staff member
+        const staffRevenue = staffAppointments.reduce((sum, apt) => {
+          if (apt.status !== 'CANCELLED') {
+            return sum + (apt.totalAmount || 0)
+          }
+          return sum
+        }, 0)
+
+        const previousStaffRevenue = previousStaffAppointments.reduce((sum, apt) => {
+          if (apt.status !== 'CANCELLED') {
+            return sum + (apt.totalAmount || 0)
+          }
+          return sum
+        }, 0)
+
+        // Calculate hours worked (assuming each appointment is 1 hour, adjust as needed)
+        const hoursWorked = staffAppointments.reduce((sum, apt) => {
+          if (apt.status !== 'CANCELLED') {
+            const duration = apt.endTime ? 
+              (apt.endTime.getTime() - apt.startTime.getTime()) / (1000 * 60 * 60) : 
+              1 // Default to 1 hour if no end time
+            return sum + duration
+          }
+          return sum
+        }, 0)
+
+        // Calculate percentage change
+        const revenueChange = previousStaffRevenue > 0 
+          ? ((staffRevenue - previousStaffRevenue) / previousStaffRevenue) * 100 
+          : staffRevenue > 0 ? 100 : 0
+
+        // Calculate service breakdown for this staff
+        const staffServiceStats = staffAppointments.reduce((acc, apt) => {
+          if (apt.service && apt.status !== 'CANCELLED') {
+            const serviceName = apt.service.name
+            if (!acc[serviceName]) {
+              acc[serviceName] = {
+                count: 0,
+                revenue: 0
+              }
+            }
+            acc[serviceName].count++
+            acc[serviceName].revenue += apt.totalAmount || 0
+          }
+          return acc
+        }, {} as Record<string, { count: number; revenue: number }>)
+
+        return {
+          id: staff.id,
+          name: staff.name,
+          photo: staff.photo,
+          metrics: {
+            revenue: staffRevenue,
+            previousRevenue: previousStaffRevenue,
+            revenueChange,
+            appointments: staffAppointments.length,
+            completedAppointments: staffAppointments.filter(apt => apt.status === 'CONFIRMED' || apt.status === 'COMPLETED').length,
+            cancelledAppointments: staffAppointments.filter(apt => apt.status === 'CANCELLED').length,
+            hoursWorked: Math.round(hoursWorked * 10) / 10, // Round to 1 decimal
+            averageTicket: staffAppointments.length > 0 ? staffRevenue / staffAppointments.length : 0,
+            services: Object.entries(staffServiceStats)
+              .map(([name, stats]) => ({ name, ...stats }))
+              .sort((a, b) => b.revenue - a.revenue)
+          }
+        }
+      }))
+
+      // Sort staff by revenue
+      staffReports.sort((a, b) => b.metrics.revenue - a.metrics.revenue)
+    } else {
+      // If staff module is disabled, show owner's report as the sole professional
+      const ownerAppointments = appointments // All appointments belong to owner
+      const ownerRevenue = totalRevenue
+      const hoursWorked = appointments.reduce((sum, apt) => {
+        if (apt.status !== 'CANCELLED') {
+          const duration = apt.endTime ? 
+            (apt.endTime.getTime() - apt.startTime.getTime()) / (1000 * 60 * 60) : 
+            1
+          return sum + duration
+        }
+        return sum
+      }, 0)
+
+      // Get owner info from tenant
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: business.tenantId },
+        include: {
+          users: {
+            where: { isAdmin: true },
+            take: 1
+          }
+        }
+      })
+
+      const owner = tenant?.users[0]
+      
+      staffReports = owner ? [{
+        id: 'owner',
+        name: owner.name,
+        photo: owner.avatar,
+        metrics: {
+          revenue: ownerRevenue,
+          previousRevenue,
+          revenueChange,
+          appointments: totalAppointments,
+          completedAppointments,
+          cancelledAppointments,
+          hoursWorked: Math.round(hoursWorked * 10) / 10,
+          averageTicket: totalAppointments > 0 ? ownerRevenue / totalAppointments : 0,
+          services: Object.entries(serviceStats)
+            .map(([name, stats]) => ({ name, ...stats }))
+            .sort((a, b) => b.revenue - a.revenue)
+        }
+      }] : []
+    }
+
     return NextResponse.json({
       metrics: {
         revenue: {
@@ -348,6 +479,7 @@ export async function GET(request: NextRequest) {
         .map(([name, stats]) => ({ name, ...stats }))
         .sort((a, b) => b.revenue - a.revenue),
       peakHours,
+      staffReports,
       period,
       dateRange: {
         start: start.toISOString(),

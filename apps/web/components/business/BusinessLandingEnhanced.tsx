@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
+import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 
 interface BusinessLandingProps {
   business: any
@@ -74,10 +75,20 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   
   // Si el módulo de staff está deshabilitado y hay owner, mostrar el owner como único profesional
   let staff = business.staff || []
-  if ((!business.enableStaffModule || staff.length === 0) && business.owner) {
+  const owner = business.tenant?.users?.[0]
+  
+  // Debug logging
+  console.log('Owner data:', owner)
+  console.log('Owner avatar:', owner?.avatar)
+  console.log('Staff module enabled:', business.enableStaffModule)
+  console.log('Staff length:', staff.length)
+  
+  if ((!business.enableStaffModule || staff.length === 0) && owner) {
     staff = [{
       id: 'owner',
-      name: business.owner.name,
+      name: owner.name,
+      photo: owner.avatar, // Usando el mismo campo avatar del owner
+      avatar: owner.avatar, // Agregando también como avatar para compatibilidad
       role: business.language === 'es' ? 'Propietario' : 'Owner',
       specialty: business.businessType ? 
         (business.businessType === 'personal_trainer' ? 'Personal Trainer' :
@@ -88,9 +99,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
          business.businessType === 'gym' ? 'Instructor' :
          business.businessType === 'clinic' ? 'Specialist' :
          'Professional') : 'Professional',
-      image: business.owner.avatar,
+      specialties: '',
       isActive: true
     }]
+    console.log('Created staff object:', staff[0])
   }
   
   const workingHours = business.workingHours || []
@@ -680,7 +692,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <ArrowRight className="w-5 h-5" />
               </button>
               <Link
-                href="/cliente/dashboard"
+                href={isAuthenticated ? "/cliente/dashboard" : `/cliente/login?from=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : `/b/${business.customSlug || business.slug}`)}`}
                 className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
               >
                 <User className="w-5 h-5" />
@@ -737,13 +749,37 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5" style={{ color: colors.primary }} />
-              <div>
-                <p className="text-xs text-gray-500">Ubicación</p>
-                <p className="font-semibold">{business.city || 'Ciudad'}</p>
+            {business.address && (
+              <a 
+                href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+                title="Ver en Google Maps"
+              >
+                <div className="relative">
+                  <MapPin className="w-5 h-5" style={{ color: colors.primary }} />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 Cómo llegar</p>
+                  <p className="font-semibold group-hover:underline">
+                    {business.address}
+                    {business.city && `, ${business.city}`}
+                  </p>
+                </div>
+              </a>
+            )}
+            
+            {!business.address && business.city && (
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5" style={{ color: colors.primary }} />
+                <div>
+                  <p className="text-xs text-gray-500">Ubicación</p>
+                  <p className="font-semibold">{business.city}</p>
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="flex items-center gap-3">
               <Phone className="w-5 h-5" style={{ color: colors.primary }} />
@@ -1244,15 +1280,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </h2>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={`grid gap-6 ${staff.length === 1 ? 'max-w-sm mx-auto' : staff.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : staff.length === 3 ? 'sm:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
               {staff.map((member: any) => (
                 <div key={member.id} className="text-center group">
                   <div className="relative mb-4">
                     <div className="w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-200">
                       {member.photo ? (
                         <img 
-                          src={getImageUrl(member.photo, 'avatar', 256)}
-                          srcSet={getImageSrcSet(member.photo, 'avatar')}
+                          src={member.photo.startsWith('data:') ? member.photo : getImageUrl(member.photo, 'avatar', 256)}
+                          srcSet={member.photo.startsWith('data:') ? '' : getImageSrcSet(member.photo, 'avatar')}
                           sizes="128px"
                           alt={member.name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -1367,15 +1403,29 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               
               <div className="space-y-1 mb-2">
                 {business.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
+                  <a 
+                    href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 hover:bg-white/5 p-2 -ml-2 rounded-lg transition-colors group"
+                    title="Ver ruta en Google Maps"
+                  >
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    </div>
                     <div>
-                      <p className="font-semibold text-sm">Dirección</p>
-                      <p className="text-gray-300 text-sm">
+                      <p className="font-semibold text-sm flex items-center gap-1">
+                        Dirección
+                        <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          (Click para ver ruta)
+                        </span>
+                      </p>
+                      <p className="text-gray-300 text-sm group-hover:text-white transition-colors">
                         {business.address}, {business.city}, {business.state}
                       </p>
                     </div>
-                  </div>
+                  </a>
                 )}
                 
                 {business.phone && (
@@ -1457,6 +1507,26 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           </div>
         </div>
       </section>
+
+      {/* Floating Map Button */}
+      {business.address && (
+        <div className="fixed bottom-20 right-4 z-40">
+          <a
+            href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 group"
+            title="Ver ruta en Google Maps"
+          >
+            <div className="relative">
+              <MapPin className="w-5 h-5" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping" />
+            </div>
+            <span className="font-medium text-sm hidden sm:inline">Cómo llegar</span>
+            <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+          </a>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-black py-1 text-center text-gray-400">
@@ -2013,7 +2083,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                               {s.photo ? (
                                 <img
-                                  src={getImageUrl(s.photo, 'avatar', 128)}
+                                  src={s.photo.startsWith('data:') ? s.photo : getImageUrl(s.photo, 'avatar', 128)}
                                   alt={s.name}
                                   className="w-full h-full object-cover object-center"
                                 />
@@ -2028,8 +2098,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             <div className="flex-1">
                               <p className="font-medium">{s.name}</p>
                               <div className="flex items-center gap-2 text-sm text-gray-500">
-                                {s.specialties && s.specialties.length > 0 && (
+                                {s.specialties && Array.isArray(s.specialties) && s.specialties.length > 0 && (
                                   <span>{s.specialties[0]}</span>
+                                )}
+                                {s.specialty && typeof s.specialty === 'string' && (
+                                  <span>{s.specialty}</span>
                                 )}
                                 {s.rating && (
                                   <span className="flex items-center gap-1">
