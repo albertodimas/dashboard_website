@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { getAuthFromCookie } from '@/lib/jwt-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionCookie = cookies().get('session')
+    // Get auth data from cookie using the same JWT library
+    const session = await getAuthFromCookie()
     
-    if (!sessionCookie) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       )
     }
-
-    // Decode session (simplified version)
-    const session = JSON.parse(
-      Buffer.from(sessionCookie.value, 'base64').toString()
-    )
 
     // Get user with language preference from database
     const user = await prisma.user.findUnique({
@@ -54,6 +50,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    console.error('Auth error:', error)
     return NextResponse.json(
       { error: 'Invalid session' },
       { status: 401 }
@@ -63,18 +60,14 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const sessionCookie = cookies().get('session')
+    const session = await getAuthFromCookie()
     
-    if (!sessionCookie) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       )
     }
-
-    const session = JSON.parse(
-      Buffer.from(sessionCookie.value, 'base64').toString()
-    )
 
     const body = await request.json()
     const { language } = body

@@ -41,6 +41,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Determine user role
+    let userRole = 'OWNER'
+    if (user.isAdmin) {
+      userRole = 'ADMIN'
+    } else {
+      // Check if user has membership in a business
+      const membership = await prisma.membership.findFirst({
+        where: { userId: user.id },
+        select: { role: true }
+      })
+      if (membership) {
+        userRole = membership.role
+      }
+    }
+
     // Create secure JWT session
     await setAuthCookie({
       userId: user.id,
@@ -48,7 +63,8 @@ export async function POST(request: NextRequest) {
       name: user.name || '',
       tenantId: user.tenantId || undefined,
       subdomain: user.tenant?.subdomain || 'dashboard',
-      role: 'OWNER'
+      role: userRole,
+      isAdmin: user.isAdmin || false
     })
 
     return NextResponse.json({
@@ -58,7 +74,8 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         subdomain: user.tenant?.subdomain || 'dashboard',
-        role: 'OWNER',
+        role: userRole,
+        isAdmin: user.isAdmin || false
       },
     })
   } catch (error) {

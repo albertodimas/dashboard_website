@@ -7,7 +7,8 @@ const profileSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
   phone: z.string().optional(),
-  language: z.enum(['en', 'es']).optional()
+  language: z.enum(['en', 'es']).optional(),
+  avatar: z.string().optional()
 })
 
 // GET current user profile
@@ -24,7 +25,8 @@ export async function GET() {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      language: user.language || 'en'
+      language: user.language || 'en',
+      avatar: user.avatar
     })
   } catch (error) {
     console.error('Error fetching profile:', error)
@@ -71,14 +73,16 @@ export async function PUT(request: NextRequest) {
         name: validated.name,
         email: validated.email,
         phone: validated.phone,
-        language: validated.language
+        language: validated.language,
+        avatar: validated.avatar
       },
       select: {
         id: true,
         name: true,
         email: true,
         phone: true,
-        language: true
+        language: true,
+        avatar: true
       }
     })
 

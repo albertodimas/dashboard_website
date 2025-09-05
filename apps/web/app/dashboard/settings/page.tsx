@@ -1,11 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
+import { BusinessTypeSelector } from '@/components/business-type-selector'
+import { BusinessType } from '@/lib/business-types'
 import { countries, cities } from '@/lib/countries'
+import { Camera, User } from 'lucide-react'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -18,8 +21,11 @@ export default function SettingsPage() {
     name: '',
     email: '',
     phone: '',
-    language: 'en'
+    language: 'en',
+    avatar: ''
   })
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [businessInfo, setBusinessInfo] = useState({
     name: '',
     email: '',
@@ -30,7 +36,8 @@ export default function SettingsPage() {
     postalCode: '',
     country: '',
     website: '',
-    description: ''
+    description: '',
+    businessType: BusinessType.OTHER as string
   })
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -96,7 +103,8 @@ export default function SettingsPage() {
           name: authData.user.name || '',
           email: authData.user.email || '',
           phone: authData.user.phone || '',
-          language: authData.user.language || 'en'
+          language: authData.user.language || 'en',
+          avatar: authData.user.avatar || ''
         })
         
         try {
@@ -110,6 +118,7 @@ export default function SettingsPage() {
               phone: data.phone || '',
               address: data.address || '',
               city: data.city || '',
+              businessType: data.businessType || BusinessType.OTHER,
               state: data.state || '',
               postalCode: data.postalCode || '',
               country: data.country || '',
@@ -153,6 +162,40 @@ export default function SettingsPage() {
         router.push('/login')
       })
   }, [router])
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert(language === 'en' ? 'Image must be less than 5MB' : 'La imagen debe ser menor a 5MB')
+      return
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert(language === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
+      return
+    }
+    
+    setUploadingAvatar(true)
+    
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64String = reader.result as string
+        setUserProfile(prev => ({ ...prev, avatar: base64String }))
+        setUploadingAvatar(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
+      setUploadingAvatar(false)
+    }
+  }
 
   const handleSaveUserProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -375,6 +418,54 @@ export default function SettingsPage() {
               {language === 'en' ? 'User Profile' : 'Perfil de Usuario'}
             </h2>
             <form onSubmit={handleSaveUserProfile} className="space-y-4">
+              {/* Profile Photo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {language === 'en' ? 'Profile Photo' : 'Foto de Perfil'}
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    {userProfile.avatar ? (
+                      <img
+                        src={userProfile.avatar}
+                        alt="Profile"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
+                        <User className="w-10 h-10 text-gray-400" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1.5 hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' 
+                        ? 'Click the camera icon to upload a new photo. Max size: 5MB'
+                        : 'Haz clic en el ícono de la cámara para subir una nueva foto. Tamaño máx: 5MB'}
+                    </p>
+                    {uploadingAvatar && (
+                      <p className="text-sm text-blue-600">
+                        {language === 'en' ? 'Uploading...' : 'Subiendo...'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   {language === 'en' ? 'Name' : 'Nombre'}
@@ -564,6 +655,16 @@ export default function SettingsPage() {
                   placeholder={language === 'en' ? 'Brief description of your business' : 'Breve descripción de tu negocio'}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {language === 'en' ? 'Business Type' : 'Tipo de Negocio'}
+                </label>
+                <BusinessTypeSelector 
+                  value={businessInfo.businessType}
+                  onChange={(type) => setBusinessInfo({...businessInfo, businessType: type})}
+                  showDescription={false}
+                />
+              </div>
               <button
                 type="submit"
                 disabled={saving}
@@ -732,23 +833,6 @@ export default function SettingsPage() {
                 {language === 'en' ? 'Configure Modules' : 'Configurar Módulos'}
               </a>
             </div>
-            {businessData?.businessType && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  {language === 'en' ? 'Business Type: ' : 'Tipo de Negocio: '}
-                  <span className="font-semibold">
-                    {businessData.businessType === 'personal_trainer' ? 'Personal Trainer' :
-                     businessData.businessType === 'gym' ? 'Gym' :
-                     businessData.businessType === 'barbershop' ? language === 'en' ? 'Barbershop' : 'Barbería' :
-                     businessData.businessType === 'hair_salon' ? language === 'en' ? 'Hair Salon' : 'Peluquería' :
-                     businessData.businessType === 'nail_salon' ? language === 'en' ? 'Nail Salon' : 'Salón de Uñas' :
-                     businessData.businessType === 'spa' ? 'Spa' :
-                     businessData.businessType === 'clinic' ? language === 'en' ? 'Clinic' : 'Clínica' :
-                     language === 'en' ? 'Other' : 'Otro'}
-                  </span>
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Website Settings */}

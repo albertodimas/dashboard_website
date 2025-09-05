@@ -38,6 +38,8 @@ export default function LoginPage() {
       }
 
       // Login successful, redirect to dashboard
+      console.log('Login successful:', data)
+      console.log('Redirecting to /dashboard...')
       router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

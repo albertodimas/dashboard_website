@@ -71,7 +71,28 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Datos del negocio
   const reviews = business.reviews || []
   const galleryItems = business.galleryItems || []
-  const staff = business.staff || []
+  
+  // Si el módulo de staff está deshabilitado y hay owner, mostrar el owner como único profesional
+  let staff = business.staff || []
+  if ((!business.enableStaffModule || staff.length === 0) && business.owner) {
+    staff = [{
+      id: 'owner',
+      name: business.owner.name,
+      role: business.language === 'es' ? 'Propietario' : 'Owner',
+      specialty: business.businessType ? 
+        (business.businessType === 'personal_trainer' ? 'Personal Trainer' :
+         business.businessType === 'barbershop' ? 'Barber' :
+         business.businessType === 'hair_salon' ? 'Stylist' :
+         business.businessType === 'nail_salon' ? 'Nail Technician' :
+         business.businessType === 'spa' ? 'Therapist' :
+         business.businessType === 'gym' ? 'Instructor' :
+         business.businessType === 'clinic' ? 'Specialist' :
+         'Professional') : 'Professional',
+      image: business.owner.avatar,
+      isActive: true
+    }]
+  }
+  
   const workingHours = business.workingHours || []
   
   // Colores del tema

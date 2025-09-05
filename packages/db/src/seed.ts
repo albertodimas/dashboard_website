@@ -90,7 +90,12 @@ async function main() {
 
   // Create or update owner users using upsert
   const owner1 = await prisma.user.upsert({
-    where: { email: 'owner@luxurycuts.com' },
+    where: { 
+      tenantId_email: {
+        tenantId: tenant1.id,
+        email: 'owner@luxurycuts.com'
+      }
+    },
     update: {
       name: 'John Doe',
       passwordHash: await bcrypt.hash('password123', 10),
@@ -106,7 +111,12 @@ async function main() {
   })
 
   const owner2 = await prisma.user.upsert({
-    where: { email: 'owner@glamournails.com' },
+    where: { 
+      tenantId_email: {
+        tenantId: tenant2.id,
+        email: 'owner@glamournails.com'
+      }
+    },
     update: {
       name: 'Jane Smith',
       passwordHash: await bcrypt.hash('password123', 10),
@@ -425,12 +435,25 @@ async function main() {
     ],
   })
 
-  // Create sample customers
+  // Create sample customers using upsert to avoid duplicates
   for (let i = 0; i < 10; i++) {
-    await prisma.customer.create({
-      data: {
-        tenantId: i < 5 ? tenant1.id : tenant2.id,
-        email: `customer${i}@example.com`,
+    const tenantId = i < 5 ? tenant1.id : tenant2.id
+    const email = `customer${i}@example.com`
+    
+    await prisma.customer.upsert({
+      where: {
+        tenantId_email: {
+          tenantId,
+          email,
+        }
+      },
+      update: {
+        name: `Customer ${i}`,
+        phone: `+123456789${i}`,
+      },
+      create: {
+        tenantId,
+        email,
         name: `Customer ${i}`,
         phone: `+123456789${i}`,
         city: i < 5 ? 'New York' : 'Los Angeles',

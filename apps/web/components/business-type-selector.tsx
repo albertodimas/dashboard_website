@@ -29,6 +29,7 @@ export function BusinessTypeSelector({
         {Object.entries(BUSINESS_TYPE_CONFIGS).map(([type, config]) => (
           <button
             key={type}
+            type="button"
             onClick={() => handleSelect(type as BusinessType)}
             className={`
               p-4 rounded-lg border-2 transition-all

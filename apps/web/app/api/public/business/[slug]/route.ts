@@ -63,7 +63,17 @@ export async function GET(
         },
         tenant: {
           select: {
-            settings: true
+            settings: true,
+            users: {
+              where: { isAdmin: false },
+              take: 1,
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                email: true
+              }
+            }
           }
         }
       }
@@ -97,9 +107,13 @@ export async function GET(
       }
     })
 
+    // Get the owner from the tenant's users
+    const owner = business.tenant.users[0] || null
+    
     // Return complete business information
     return NextResponse.json({
       ...business,
+      owner: owner,
       stats: {
         completedAppointments: appointmentCount,
         averageRating: reviewStats._avg.rating || 0,

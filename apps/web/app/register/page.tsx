@@ -3,37 +3,104 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { BusinessTypeSelector } from '@/components/business-type-selector'
-import { BusinessType } from '@/lib/business-types'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const [step, setStep] = useState<'register' | 'verify'>('register')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     name: '',
     tenantName: '',
     subdomain: '',
-    businessType: BusinessType.OTHER as string,
   })
+  const [verificationCode, setVerificationCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = []
+    if (password.length < 8) errors.push('At least 8 characters')
+    if (!/[A-Z]/.test(password)) errors.push('One uppercase letter')
+    if (!/[a-z]/.test(password)) errors.push('One lowercase letter')
+    if (!/[0-9]/.test(password)) errors.push('One number')
+    if (!/[!@#$%^&*]/.test(password)) errors.push('One special character (!@#$%^&*)')
+    return errors
+  }
+
+  const handlePasswordChange = (password: string) => {
+    setFormData({ ...formData, password })
+    setPasswordErrors(validatePassword(password))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    // Validate password strength
+    const errors = validatePassword(formData.password)
+    if (errors.length > 0) {
+      setError('Password does not meet requirements')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Step 1: Send verification code
+      const verifyResponse = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email }),
+      })
+
+      const verifyData = await verifyResponse.json()
+
+      if (!verifyResponse.ok) {
+        throw new Error(verifyData.error || 'Failed to send verification code')
+      }
+
+      // Move to verification step
+      setStep('verify')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
+      console.log('Sending registration with code:', verificationCode)
+      
+      // Complete registration with verification code
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          verificationCode
+        }),
       })
 
       const data = await response.json()
+      console.log('Registration response:', response.status, data)
 
       if (!response.ok) {
         throw new Error(data.error || 'Registration failed')
@@ -42,8 +109,8 @@ export default function RegisterPage() {
       // Registration successful, redirect to login
       router.push('/login?registered=true')
     } catch (err) {
+      console.error('Registration error:', err)
       setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
       setLoading(false)
     }
   }
@@ -65,6 +132,7 @@ export default function RegisterPage() {
             </Link>
           </p>
         </div>
+        {step === 'register' ? (
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
@@ -116,11 +184,49 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 required
+                minLength={8}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                 placeholder="Minimum 8 characters"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) => handlePasswordChange(e.target.value)}
               />
+              {formData.password && passwordErrors.length > 0 && (
+                <div className="mt-2 text-xs text-red-600">
+                  Password needs:
+                  <ul className="list-disc list-inside">
+                    {passwordErrors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {formData.password && passwordErrors.length === 0 && (
+                <div className="mt-1 text-xs text-green-600">✓ Strong password</div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${formData.confirmPassword && formData.password !== formData.confirmPassword ? 'border-red-500' : 'border-gray-300'} placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm`}
+                placeholder="Re-type your password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              />
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <div className="mt-1 text-xs text-red-600">Passwords do not match</div>
+              )}
+              {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                <div className="mt-1 text-xs text-green-600">✓ Passwords match</div>
+              )}
             </div>
 
             <div>
@@ -163,17 +269,6 @@ export default function RegisterPage() {
                 Only lowercase letters, numbers, and hyphens
               </p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Business Type
-              </label>
-              <BusinessTypeSelector 
-                value={formData.businessType}
-                onChange={(type) => setFormData({ ...formData, businessType: type })}
-                showDescription={false}
-              />
-            </div>
           </div>
 
           <div>
@@ -193,6 +288,53 @@ export default function RegisterPage() {
             <a href="#" className="text-primary hover:underline">Privacy Policy</a>
           </div>
         </form>
+        ) : (
+        <form className="mt-8 space-y-6" onSubmit={handleVerification}>
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Verify your email</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              We've sent a verification code to <strong>{formData.email}</strong>
+            </p>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+            <div>
+              <label htmlFor="code" className="block text-sm font-medium text-gray-700">
+                Verification Code
+              </label>
+              <input
+                id="code"
+                name="code"
+                type="text"
+                required
+                maxLength={6}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm text-center text-2xl tracking-widest"
+                placeholder="000000"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+              />
+            </div>
+            <div className="mt-6 space-y-4">
+              <button
+                type="submit"
+                disabled={loading || verificationCode.length !== 6}
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+              >
+                {loading ? 'Verifying...' : 'Complete Registration'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep('register')}
+                className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Back to form
+              </button>
+            </div>
+          </div>
+        </form>
+        )}
       </div>
     </div>
   )
