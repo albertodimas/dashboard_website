@@ -82,11 +82,47 @@ export async function PUT(request: NextRequest) {
         email: true,
         phone: true,
         language: true,
-        avatar: true
+        avatar: true,
+        tenantId: true
       }
     })
 
-    return NextResponse.json(updatedUser)
+    // Si el usuario es el dueño del negocio, sincronizar su avatar con el staff
+    if (validated.avatar !== undefined || validated.name !== user.name) {
+      // Buscar el negocio del usuario
+      const business = await prisma.business.findFirst({
+        where: {
+          tenantId: updatedUser.tenantId
+        }
+      })
+
+      if (business) {
+        // Actualizar el staff que corresponde al dueño
+        // (usualmente el staff con el mismo nombre que el usuario)
+        await prisma.staff.updateMany({
+          where: {
+            businessId: business.id,
+            OR: [
+              { name: user.name }, // Nombre anterior
+              { name: validated.name } // Nombre nuevo
+            ]
+          },
+          data: {
+            name: validated.name,
+            photo: validated.avatar
+          }
+        })
+      }
+    }
+
+    return NextResponse.json({
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      phone: updatedUser.phone,
+      language: updatedUser.language,
+      avatar: updatedUser.avatar
+    })
   } catch (error) {
     console.error('Error updating profile:', error)
     

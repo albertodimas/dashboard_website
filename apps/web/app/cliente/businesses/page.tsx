@@ -158,7 +158,7 @@ export default function ClientBusinessesPage() {
             {filteredBusinesses.map((business) => (
               <Link
                 key={business.id}
-                href={`/b/${business.slug}`}
+                href={`/${business.slug}`}
                 className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-shadow"
               >
                 <div className="p-6">

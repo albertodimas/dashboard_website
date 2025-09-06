@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentUser, getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 
+// Lista de rutas reservadas del sistema que no pueden ser usadas como slugs
+const RESERVED_ROUTES = [
+  'login',
+  'register',
+  'dashboard',
+  'api',
+  'admin',
+  'auth',
+  'business',
+  'settings',
+  'profile',
+  'logout',
+  'signup',
+  'signin',
+  'forgot-password',
+  'reset-password',
+  'verify',
+  'confirm',
+  'public',
+  'static',
+  '_next',
+  'favicon.ico',
+  'robots.txt',
+  'sitemap.xml',
+  'cliente',
+  'client',
+  'book',
+  'directory',
+  'assets',
+  'images',
+  'css',
+  'js',
+  'fonts'
+]
+
 // GET business information
 export async function GET() {
   try {
@@ -17,7 +52,6 @@ export async function GET() {
       slug: business.slug,
       customSlug: business.customSlug,
       businessType: business.businessType,
-      businessCategory: business.businessCategory,
       categoryId: business.categoryId,
       email: business.email,
       phone: business.phone,
@@ -28,6 +62,8 @@ export async function GET() {
       country: business.country,
       website: business.website,
       description: business.description,
+      logo: business.logo,
+      coverImage: business.coverImage,
       settings: business.settings,
       features: business.features,
       enableStaffModule: business.enableStaffModule,
@@ -44,6 +80,8 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     
+    console.log('Received PUT request body:', JSON.stringify(body, null, 2))
+    
     const business = await getCurrentBusiness()
 
     if (!business) {
@@ -59,10 +97,18 @@ export async function PUT(request: NextRequest) {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
       
-      // Check if slug is available
+      // Check if slug is available and not reserved
       let slug = baseSlug
       let counter = 1
       while (true) {
+        // Check if it's a reserved route
+        if (RESERVED_ROUTES.includes(slug.toLowerCase())) {
+          slug = `${baseSlug}${counter}`
+          counter++
+          continue
+        }
+        
+        // Check if another business is using this slug
         const existing = await prisma.business.findFirst({
           where: {
             customSlug: slug,
@@ -84,17 +130,19 @@ export async function PUT(request: NextRequest) {
       data: {
         name: body.name || business.name,
         businessType: body.businessType || business.businessType,
-        businessCategory: body.businessCategory !== undefined ? body.businessCategory : business.businessCategory,
-        categoryId: body.categoryId !== undefined ? body.categoryId : business.categoryId,
+        // businessCategory is managed from admin panel, not from settings
+        // categoryId is managed from admin panel, not from settings
         email: body.email || business.email,
         phone: body.phone || business.phone,
         address: body.address || business.address,
-        city: body.city || business.city,
-        state: body.state || business.state,
+        city: body.city !== undefined ? (body.city || 'Not specified') : business.city,
+        state: body.state !== undefined ? (body.state || 'Not specified') : business.state,
         postalCode: body.postalCode || business.postalCode,
         country: body.country || business.country,
         website: body.website,
         description: body.description,
+        logo: body.logo !== undefined ? body.logo : business.logo,
+        coverImage: body.coverImage !== undefined ? body.coverImage : business.coverImage,
         customSlug: customSlug,
         settings: body.settings || business.settings,
         features: body.features || business.features
@@ -109,7 +157,6 @@ export async function PUT(request: NextRequest) {
         slug: updatedBusiness.slug,
         customSlug: updatedBusiness.customSlug,
         businessType: updatedBusiness.businessType,
-        businessCategory: updatedBusiness.businessCategory,
         categoryId: updatedBusiness.categoryId,
         email: updatedBusiness.email,
         phone: updatedBusiness.phone,
@@ -120,6 +167,8 @@ export async function PUT(request: NextRequest) {
         country: updatedBusiness.country,
         website: updatedBusiness.website,
         description: updatedBusiness.description,
+        logo: updatedBusiness.logo,
+        coverImage: updatedBusiness.coverImage,
         settings: updatedBusiness.settings,
         features: updatedBusiness.features,
         enableStaffModule: updatedBusiness.enableStaffModule,
@@ -143,9 +192,18 @@ export async function PATCH(request: NextRequest) {
       return createAuthResponse('Business not found', 404)
     }
 
-    // If customSlug is being updated, check for uniqueness
+    // If customSlug is being updated, check for uniqueness and reserved routes
     if (body.customSlug !== undefined) {
       if (body.customSlug) {
+        // Check if it's a reserved route
+        if (RESERVED_ROUTES.includes(body.customSlug.toLowerCase())) {
+          return NextResponse.json({ 
+            error: 'This URL is reserved and cannot be used',
+            message: `The URL "${body.customSlug}" is a system reserved route. Please choose a different URL.`
+          }, { status: 400 })
+        }
+        
+        // Check if another business is using this slug
         const existingBusiness = await prisma.business.findFirst({
           where: {
             customSlug: body.customSlug,
@@ -156,7 +214,7 @@ export async function PATCH(request: NextRequest) {
         if (existingBusiness) {
           return NextResponse.json({ 
             error: 'This URL is already taken by another business',
-            message: 'Unique constraint: This URL is already taken'
+            message: 'This URL is already in use. Please choose a different URL.'
           }, { status: 400 })
         }
       }

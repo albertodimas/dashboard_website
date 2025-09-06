@@ -234,7 +234,7 @@ export default function ClientPackagesPage() {
 
                       {canUse && (
                         <Link
-                          href={`/b/${pkg.business.customSlug || pkg.business.slug}`}
+                          href={`/${pkg.business.customSlug || pkg.business.slug}`}
                           className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                         >
                           Usar paquete →

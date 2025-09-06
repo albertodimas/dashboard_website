@@ -1,23 +1,20 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
 import { BusinessTypeSelector } from '@/components/business-type-selector'
 import { BusinessType } from '@/lib/business-types'
-import { BusinessCategorySelector } from '@/components/business-category-selector'
 import { countries, cities } from '@/lib/countries'
 import { Camera, User } from 'lucide-react'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { t, language, setLanguage } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [showModulesSuccess, setShowModulesSuccess] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: '',
     email: '',
@@ -26,7 +23,9 @@ export default function SettingsPage() {
     avatar: ''
   })
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
   const [businessInfo, setBusinessInfo] = useState({
     name: '',
     email: '',
@@ -39,7 +38,8 @@ export default function SettingsPage() {
     website: '',
     description: '',
     businessType: BusinessType.OTHER as string,
-    businessCategory: ''
+    logo: '',
+    coverImage: ''
   })
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -81,18 +81,6 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    // Check if coming from modules page with success
-    if (searchParams.get('modules') === 'updated') {
-      setShowModulesSuccess(true);
-      // Hide message after 5 seconds
-      setTimeout(() => setShowModulesSuccess(false), 5000);
-      
-      // Clean URL
-      const url = new URL(window.location.href);
-      url.searchParams.delete('modules');
-      window.history.replaceState({}, '', url);
-    }
-    
     // Check authentication and load business info from API
     fetch('/api/auth/me')
       .then(res => {
@@ -126,7 +114,9 @@ export default function SettingsPage() {
               postalCode: data.postalCode || '',
               country: data.country || '',
               website: data.website || '',
-              description: data.description || ''
+              description: data.description || '',
+              logo: data.logo || '',
+              coverImage: data.coverImage || ''
             })
 
             // Set available states and cities based on current country and state
@@ -165,6 +155,40 @@ export default function SettingsPage() {
         router.push('/login')
       })
   }, [router])
+
+  const handleBusinessLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert(language === 'en' ? 'Image must be less than 5MB' : 'La imagen debe ser menor a 5MB')
+      return
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert(language === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
+      return
+    }
+    
+    setUploadingLogo(true)
+    
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64String = reader.result as string
+        setBusinessInfo(prev => ({ ...prev, logo: base64String }))
+        setUploadingLogo(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error uploading logo:', error)
+      alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
+      setUploadingLogo(false)
+    }
+  }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -234,7 +258,11 @@ export default function SettingsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(businessInfo),
+        body: JSON.stringify({
+          ...businessInfo,
+          logo: businessInfo.logo,
+          coverImage: businessInfo.coverImage
+        }),
       })
       
       if (!response.ok) {
@@ -249,7 +277,7 @@ export default function SettingsPage() {
         
         // Show success message with new URL if name changed
         if (result.business.customSlug) {
-          const publicUrl = `${window.location.origin}/b/${result.business.customSlug}`
+          const publicUrl = `${window.location.origin}/${result.business.customSlug}`
           alert(
             language === 'en' 
               ? `Business information saved!\nYour public page: ${publicUrl}` 
@@ -385,22 +413,6 @@ export default function SettingsPage() {
             {language === 'en' ? 'Manage your account and application settings' : 'Administra tu cuenta y configuración de la aplicación'}
           </p>
         </div>
-
-        {/* Success message for modules update */}
-        {showModulesSuccess && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex">
-              <svg className="w-5 h-5 text-green-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <p className="text-green-800">
-                {language === 'en' 
-                  ? 'Business modules have been updated successfully!'
-                  : '¡Los módulos del negocio se han actualizado correctamente!'}
-              </p>
-            </div>
-          </div>
-        )}
 
         <div className="space-y-6">
           {/* Language Settings */}
@@ -675,6 +687,56 @@ export default function SettingsPage() {
                   placeholder={language === 'en' ? 'Brief description of your business' : 'Breve descripción de tu negocio'}
                 />
               </div>
+              
+              {/* Business Logo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {language === 'en' ? 'Business Logo' : 'Logo del Negocio'}
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    {businessInfo.logo ? (
+                      <img
+                        src={businessInfo.logo}
+                        alt="Business Logo"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
+                        <Camera className="w-10 h-10 text-gray-400" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                      className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1.5 hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBusinessLogoChange}
+                      className="hidden"
+                    />
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' 
+                        ? 'Click the camera icon to upload your business logo. Max size: 5MB'
+                        : 'Haz clic en el ícono de la cámara para subir el logo de tu negocio. Tamaño máx: 5MB'}
+                    </p>
+                    {uploadingLogo && (
+                      <p className="text-sm text-blue-600">
+                        {language === 'en' ? 'Uploading...' : 'Subiendo...'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {language === 'en' ? 'Business Type' : 'Tipo de Negocio'}
@@ -683,12 +745,6 @@ export default function SettingsPage() {
                   value={businessInfo.businessType}
                   onChange={(type) => setBusinessInfo({...businessInfo, businessType: type})}
                   showDescription={false}
-                />
-              </div>
-              <div>
-                <BusinessCategorySelector 
-                  value={businessInfo.businessCategory}
-                  onChange={(category) => setBusinessInfo({...businessInfo, businessCategory: category})}
                 />
               </div>
               <button
@@ -839,27 +895,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Modules Configuration */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {language === 'en' ? 'Business Modules' : 'Módulos del Negocio'}
-                </h2>
-                <p className="mt-1 text-sm text-gray-600">
-                  {language === 'en' 
-                    ? 'Configure specialized features for your business type'
-                    : 'Configura funciones especializadas para tu tipo de negocio'}
-                </p>
-              </div>
-              <a
-                href="/dashboard/settings/modules"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-              >
-                {language === 'en' ? 'Configure Modules' : 'Configurar Módulos'}
-              </a>
-            </div>
-          </div>
 
           {/* Website Settings */}
           {businessData && (

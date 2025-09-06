@@ -296,7 +296,7 @@ export default function ClientDashboard() {
                   {myBusinesses.map((business) => (
                     <Link
                       key={business.id}
-                      href={`/b/${business.customSlug || business.slug}`}
+                      href={`/${business.customSlug || business.slug}`}
                       className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all"
                     >
                       <h3 className="font-medium text-gray-900 mb-1">{business.name}</h3>
@@ -333,7 +333,7 @@ export default function ClientDashboard() {
                   {suggestedBusinesses.slice(0, 6).map((business) => (
                     <Link
                       key={business.id}
-                      href={`/b/${business.customSlug || business.slug}`}
+                      href={`/${business.customSlug || business.slug}`}
                       className="bg-white rounded-lg p-4 hover:shadow-lg transition-shadow"
                     >
                       {business.isPremium && (
@@ -438,7 +438,7 @@ export default function ClientDashboard() {
                     )}
 
                     <Link
-                      href={`/b/${pkg.package.business.slug}`}
+                      href={`/${pkg.package.business.slug}`}
                       className="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-lg text-center block hover:shadow-lg transition-all"
                     >
                       Usar Paquete

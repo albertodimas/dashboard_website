@@ -303,7 +303,7 @@ export default function ClientAppointmentsPage() {
                  new Date(selectedAppointment.startTime) > new Date() && (
                   <div className="pt-4 border-t space-y-2">
                     <Link
-                      href={`/b/${selectedAppointment.business.customSlug || selectedAppointment.business.slug}`}
+                      href={`/${selectedAppointment.business.customSlug || selectedAppointment.business.slug}`}
                       className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                       onClick={() => setSelectedAppointment(null)}
                     >

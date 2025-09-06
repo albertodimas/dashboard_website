@@ -692,7 +692,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <ArrowRight className="w-5 h-5" />
               </button>
               <Link
-                href={isAuthenticated ? "/cliente/dashboard" : `/cliente/login?from=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : `/b/${business.customSlug || business.slug}`)}`}
+                href={isAuthenticated ? "/cliente/dashboard" : `/cliente/login?from=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : `/${business.customSlug || business.slug}`)}`}
                 className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
               >
                 <User className="w-5 h-5" />
@@ -1300,7 +1300,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         </div>
                       )}
                     </div>
-                    {member.rating && (
+                    {member.rating && member.rating > 0 && (
                       <div className="absolute bottom-0 right-1/2 translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-400 fill-current" />
                         <span className="text-sm font-semibold">{member.rating}</span>
@@ -1309,8 +1309,13 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   </div>
                   
                   <h3 className="font-bold text-lg">{member.name}</h3>
-                  {member.specialties && (
-                    <p className="text-sm text-gray-500 mt-1">{member.specialties}</p>
+                  {member.specialties && 
+                   member.specialties !== '0' && 
+                   member.specialties !== 0 && 
+                   (Array.isArray(member.specialties) ? member.specialties.length > 0 : true) && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {Array.isArray(member.specialties) ? member.specialties.join(', ') : member.specialties}
+                    </p>
                   )}
                 </div>
               ))}

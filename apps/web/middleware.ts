@@ -36,16 +36,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
-  // For custom business pages, rewrite to /b/[slug]
-  if (pathname !== '/' && !pathname.includes('.')) {
-    // For paths with wmc, preserve the full path
-    if (pathname.startsWith('/wmc')) {
-      return NextResponse.rewrite(new URL(`/b${pathname}`, request.url))
-    }
-    // For other custom slugs
-    const slug = pathname.substring(1)
-    return NextResponse.rewrite(new URL(`/b/${slug}`, request.url))
-  }
+  // The middleware is no longer needed for custom business pages
+  // since we moved them to /[slug] which Next.js handles automatically
   
   // For root path and other paths, let them continue normally
   return NextResponse.next()

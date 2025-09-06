@@ -116,7 +116,11 @@
       "Bash(pnpm tsx:*)",
       "Bash(npx prisma generate:*)",
       "Bash(npx prisma studio:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(timeout:*)",
+      "Bash(cmd /c:*)",
+      "Read(//c/Users/alber/Downloads/**)",
+      "mcp__playwright-advanced__playwright_evaluate"
     ],
     "deny": [],
     "ask": [],
