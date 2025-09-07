@@ -9,6 +9,7 @@ import { BusinessTypeSelector } from '@/components/business-type-selector'
 import { BusinessType } from '@/lib/business-types'
 import { countries, cities } from '@/lib/countries'
 import { Camera, User } from 'lucide-react'
+import { compressImage, formatFileSize } from '@/lib/image-resize-client'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -160,12 +161,6 @@ export default function SettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert(language === 'en' ? 'Image must be less than 5MB' : 'La imagen debe ser menor a 5MB')
-      return
-    }
-    
     // Validate file type
     if (!file.type.startsWith('image/')) {
       alert(language === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
@@ -175,14 +170,31 @@ export default function SettingsPage() {
     setUploadingLogo(true)
     
     try {
+      // Show original file size
+      const originalSize = formatFileSize(file.size)
+      console.log(`Original logo size: ${originalSize}`)
+      
+      // Compress image if needed (max 5MB after compression)
+      const compressedFile = await compressImage(file, 5)
+      const compressedSize = formatFileSize(compressedFile.size)
+      console.log(`Compressed logo size: ${compressedSize}`)
+      
       // Convert to base64
       const reader = new FileReader()
       reader.onloadend = async () => {
         const base64String = reader.result as string
         setBusinessInfo(prev => ({ ...prev, logo: base64String }))
         setUploadingLogo(false)
+        
+        // Show success message with compression info if file was compressed
+        if (file.size !== compressedFile.size) {
+          const message = language === 'en' 
+            ? `Logo uploaded successfully! (Compressed from ${originalSize} to ${compressedSize})`
+            : `¡Logo subido exitosamente! (Comprimido de ${originalSize} a ${compressedSize})`
+          console.log(message)
+        }
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(compressedFile)
     } catch (error) {
       console.error('Error uploading logo:', error)
       alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
@@ -194,12 +206,6 @@ export default function SettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert(language === 'en' ? 'Image must be less than 5MB' : 'La imagen debe ser menor a 5MB')
-      return
-    }
-    
     // Validate file type
     if (!file.type.startsWith('image/')) {
       alert(language === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
@@ -209,14 +215,31 @@ export default function SettingsPage() {
     setUploadingAvatar(true)
     
     try {
+      // Show original file size
+      const originalSize = formatFileSize(file.size)
+      console.log(`Original avatar size: ${originalSize}`)
+      
+      // Compress image if needed (max 5MB after compression)
+      const compressedFile = await compressImage(file, 5)
+      const compressedSize = formatFileSize(compressedFile.size)
+      console.log(`Compressed avatar size: ${compressedSize}`)
+      
       // Convert to base64
       const reader = new FileReader()
       reader.onloadend = async () => {
         const base64String = reader.result as string
         setUserProfile(prev => ({ ...prev, avatar: base64String }))
         setUploadingAvatar(false)
+        
+        // Show success message with compression info if file was compressed
+        if (file.size !== compressedFile.size) {
+          const message = language === 'en' 
+            ? `Avatar uploaded successfully! (Compressed from ${originalSize} to ${compressedSize})`
+            : `¡Avatar subido exitosamente! (Comprimido de ${originalSize} a ${compressedSize})`
+          console.log(message)
+        }
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(compressedFile)
     } catch (error) {
       console.error('Error uploading avatar:', error)
       alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
@@ -487,8 +510,8 @@ export default function SettingsPage() {
                     />
                     <p className="text-sm text-gray-500">
                       {language === 'en' 
-                        ? 'Click the camera icon to upload a new photo. Max size: 5MB'
-                        : 'Haz clic en el ícono de la cámara para subir una nueva foto. Tamaño máx: 5MB'}
+                        ? 'Click the camera icon to upload a new photo. Large images will be automatically optimized.'
+                        : 'Haz clic en el ícono de la cámara para subir una nueva foto. Las imágenes grandes se optimizarán automáticamente.'}
                     </p>
                     {uploadingAvatar && (
                       <p className="text-sm text-blue-600">
@@ -725,8 +748,8 @@ export default function SettingsPage() {
                     />
                     <p className="text-sm text-gray-500">
                       {language === 'en' 
-                        ? 'Click the camera icon to upload your business logo. Max size: 5MB'
-                        : 'Haz clic en el ícono de la cámara para subir el logo de tu negocio. Tamaño máx: 5MB'}
+                        ? 'Click the camera icon to upload your business logo. Large images will be automatically optimized.'
+                        : 'Haz clic en el ícono de la cámara para subir el logo de tu negocio. Las imágenes grandes se optimizarán automáticamente.'}
                     </p>
                     {uploadingLogo && (
                       <p className="text-sm text-blue-600">

@@ -6,16 +6,28 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificar token
+    // Verificar token - primero intentar leer de cookie, luego de header
+    let token: string | undefined
+    
+    // Intentar leer de cookie
+    const cookieToken = request.cookies.get('client-token')?.value
+    
+    // Si no hay cookie, intentar leer del header Authorization
     const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    
+    if (cookieToken) {
+      token = cookieToken
+    } else if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    }
+    
+    if (!token) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.substring(7)
     let decoded: any
 
     try {

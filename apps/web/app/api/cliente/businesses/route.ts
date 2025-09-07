@@ -2,99 +2,89 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import jwt from 'jsonwebtoken'
 
-const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || 'development-client-jwt-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificar token
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('🚀 [businesses API] Request received')
+    
+    // Verificar token desde cookies
+    const token = request.cookies.get('client-token')?.value
+    console.log('🔑 [businesses API] Cookie token:', token ? 'Present' : 'Missing')
+    
+    if (!token) {
+      console.error('❌ [businesses API] No valid token cookie found')
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.substring(7)
+    console.log('🔐 [businesses API] Token recibido:', token.substring(0, 20) + '...')
+    
     let decoded: any
 
     try {
-      decoded = jwt.verify(token, CLIENT_JWT_SECRET)
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET)
+      console.log('✅ [businesses API] Token decodificado exitosamente:', {
+        customerId: decoded.customerId,
+        email: decoded.email
+      })
+    } catch (error: any) {
+      console.error('❌ [businesses API] Error verificando token:', error.message)
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
       )
     }
 
-    // Obtener el cliente actual con su tenant y negocios
-    const currentCustomer = await prisma.customer.findUnique({
-      where: {
-        id: decoded.customerId
-      },
-      include: {
-        tenant: {
-          include: {
-            businesses: {
-              where: {
-                isActive: true,
-                isBlocked: false
-              },
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                address: true,
-                city: true,
-                state: true,
-                phone: true,
-                email: true,
-                slug: true,
-                customSlug: true,
-                businessCategory: true,
-                categoryId: true,
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    icon: true,
-                    color: true
-                  }
-                },
-                _count: {
-                  select: {
-                    services: true,
-                    appointments: {
-                      where: {
-                        customerId: decoded.customerId
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    })
+    // Primero obtener el email del customer del token
+    const customerEmail = decoded.email
+    
+    if (!customerEmail) {
+      return NextResponse.json(
+        { error: 'Email no encontrado en el token' },
+        { status: 400 }
+      )
+    }
 
-    if (!currentCustomer) {
+    // Primero obtener un customer para tener la contraseña de referencia
+    console.log('🔍 [businesses API] Buscando customer con ID:', decoded.customerId)
+    const referenceCustomer = await prisma.customer.findUnique({
+      where: { id: decoded.customerId }
+    })
+    
+    if (!referenceCustomer) {
+      console.error('❌ [businesses API] Cliente no encontrado con ID:', decoded.customerId)
       return NextResponse.json(
         { error: 'Cliente no encontrado' },
         { status: 404 }
       )
     }
-
-    // Buscar otros customers con el mismo email y password para el portal unificado
-    const otherCustomers = await prisma.customer.findMany({
-      where: {
-        email: currentCustomer.email,
-        password: currentCustomer.password, // Solo si tienen la misma contraseña
-        id: {
-          not: currentCustomer.id // Excluir el customer actual
-        }
-      },
+    
+    console.log('✅ [businesses API] Reference customer encontrado:', {
+      id: referenceCustomer.id,
+      email: referenceCustomer.email,
+      hasPassword: !!referenceCustomer.password
+    })
+    
+    // Obtener la lista de negocios desregistrados desde metadata
+    const customerMetadata = referenceCustomer.metadata as any || {}
+    const unregisteredBusinesses = customerMetadata.unregisteredBusinesses || []
+    console.log('🚫 [businesses API] Negocios desregistrados:', unregisteredBusinesses)
+    
+    // Buscar TODOS los customers con el mismo email y contraseña para el portal unificado
+    const whereClause: any = {
+      email: customerEmail.toLowerCase()
+    }
+    
+    // Solo filtrar por contraseña si existe
+    if (referenceCustomer.password) {
+      whereClause.password = referenceCustomer.password
+    }
+    
+    const allCustomersWithSameEmail = await prisma.customer.findMany({
+      where: whereClause,
       include: {
         tenant: {
           include: {
@@ -107,6 +97,7 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 description: true,
+                logo: true,
                 address: true,
                 city: true,
                 state: true,
@@ -114,7 +105,7 @@ export async function GET(request: NextRequest) {
                 email: true,
                 slug: true,
                 customSlug: true,
-                businessCategory: true,
+                businessType: true,
                 categoryId: true,
                 category: {
                   select: {
@@ -138,23 +129,44 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Combinar los negocios donde el cliente está registrado
-    const myBusinesses = [
-      ...currentCustomer.tenant.businesses.map(business => ({
-        ...business,
-        appointmentCount: business._count.appointments,
-        serviceCount: business._count.services,
-        customerId: currentCustomer.id // Incluir el customerId para este negocio
-      })),
-      ...otherCustomers.flatMap(customer => 
-        customer.tenant.businesses.map(business => ({
+    console.log('📊 [businesses API] Customers encontrados con mismo email:', allCustomersWithSameEmail.length)
+    allCustomersWithSameEmail.forEach(c => {
+      console.log(`  📦 Customer en tenant: ${c.tenant.name} con ${c.tenant.businesses.length} negocios`)
+    })
+    
+    // Combinar los negocios donde el cliente está registrado y contar appointments por customer
+    const myBusinessesPromises = allCustomersWithSameEmail.flatMap(customer => 
+      customer.tenant.businesses.map(async business => {
+        // Contar appointments específicos de este customer en este negocio
+        const appointmentCount = await prisma.appointment.count({
+          where: {
+            businessId: business.id,
+            customerId: customer.id
+          }
+        })
+        
+        return {
           ...business,
-          appointmentCount: business._count.appointments,
+          appointmentCount,
           serviceCount: business._count.services,
           customerId: customer.id // Incluir el customerId para este negocio
-        }))
-      )
-    ]
+        }
+      })
+    )
+    
+    let myBusinesses = await Promise.all(myBusinessesPromises)
+    
+    // Filtrar los negocios desregistrados
+    myBusinesses = myBusinesses.filter(business => !unregisteredBusinesses.includes(business.id))
+    
+    console.log('🎯 [businesses API] Total de negocios encontrados (después de filtrar desregistrados):', myBusinesses.length)
+    if (myBusinesses.length > 0) {
+      console.log('🏢 [businesses API] Negocios:', myBusinesses.map(b => ({ 
+        name: b.name, 
+        slug: b.customSlug || b.slug,
+        customerId: b.customerId 
+      })))
+    }
 
     // Obtener las categorías de los negocios donde ya está registrado
     const existingCategoryIds = myBusinesses
@@ -193,6 +205,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         description: true,
+        logo: true,
         address: true,
         city: true,
         state: true,
@@ -200,7 +213,7 @@ export async function GET(request: NextRequest) {
         email: true,
         slug: true,
         customSlug: true,
-        businessCategory: true,
+        businessType: true,
         categoryId: true,
         category: {
           select: {
@@ -252,13 +265,21 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
+    const response = {
       success: true,
       myBusinesses,
       suggestedBusinesses: suggestedWithRating
+    }
+    
+    console.log('✅ [businesses API] Respuesta exitosa:', {
+      myBusinessesCount: myBusinesses.length,
+      suggestedBusinessesCount: suggestedWithRating.length
     })
+    
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Error fetching businesses:', error)
+    console.error('❌ [businesses API] Error completo:', error)
+    console.error('❌ [businesses API] Stack trace:', error instanceof Error ? error.stack : 'No stack')
     return NextResponse.json(
       { error: 'Error al obtener negocios' },
       { status: 500 }

@@ -99,18 +99,18 @@ export default function ClientLoginPage() {
         return
       }
 
-      // Guardar token en localStorage
-      localStorage.setItem('clientToken', data.token)
-      localStorage.setItem('clientData', JSON.stringify(data.customer))
+      // Cookie se establece automáticamente desde el servidor
+      // No necesitamos guardar nada en localStorage
       
       // Si requiere verificación, redirigir a la página de verificación
       if (data.requiresVerification) {
         router.push('/cliente/verify')
       } else {
-        // Redirigir a la página de retorno o al dashboard
+        // Siempre redirigir al dashboard, pero pasando el parámetro from si existe
         const redirectTo = searchParams.get('from')
         if (redirectTo) {
-          router.push(decodeURIComponent(redirectTo))
+          // Pasar el negocio de origen al dashboard
+          router.push(`/cliente/dashboard?from=${encodeURIComponent(redirectTo)}`)
         } else {
           router.push('/cliente/dashboard')
         }

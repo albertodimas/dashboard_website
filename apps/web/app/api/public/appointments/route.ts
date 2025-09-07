@@ -436,18 +436,29 @@ export async function GET(request: NextRequest) {
     // Use UTC day to avoid timezone issues with date-only strings
     const dayOfWeek = new Date(date + 'T00:00:00').getDay()
     
-    // Get business-wide working hours first
-    const businessWorkingHours = await prisma.workingHour.findFirst({
-      where: {
-        businessId,
-        staffId: null,
-        dayOfWeek
-      }
+    // Check if staff module is enabled
+    const businessDetails = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { enableStaffModule: true }
     })
     
-    // Get staff-specific working hours if staffId is provided
+    const staffModuleEnabled = businessDetails?.enableStaffModule || false
+    
+    // Get business-wide working hours first (only if staff module is enabled)
+    let businessWorkingHours = null
+    if (staffModuleEnabled) {
+      businessWorkingHours = await prisma.workingHour.findFirst({
+        where: {
+          businessId,
+          staffId: null,
+          dayOfWeek
+        }
+      })
+    }
+    
+    // Get staff-specific working hours if staffId is provided and staff module is enabled
     let staffWorkingHours = null
-    if (staffId) {
+    if (staffId && staffModuleEnabled) {
       staffWorkingHours = await prisma.workingHour.findFirst({
         where: {
           businessId,
@@ -468,13 +479,20 @@ export async function GET(request: NextRequest) {
     }
     
     // Check if business is open this day
-    if (businessWorkingHours && !businessWorkingHours.isActive) {
-      return NextResponse.json({ availableSlots: [] })
-    }
-    
-    // If no working hours found and no schedule settings working days, return empty
-    if (!businessWorkingHours && (!scheduleSettings.workingDays || !scheduleSettings.workingDays.includes(dayOfWeek))) {
-      return NextResponse.json({ availableSlots: [] })
+    if (staffModuleEnabled) {
+      // When staff module is enabled, check working hours
+      if (businessWorkingHours && !businessWorkingHours.isActive) {
+        return NextResponse.json({ availableSlots: [] })
+      }
+      // If no working hours found, business is closed
+      if (!businessWorkingHours) {
+        return NextResponse.json({ availableSlots: [] })
+      }
+    } else {
+      // When staff module is disabled, use schedule settings
+      if (!scheduleSettings.workingDays || !scheduleSettings.workingDays.includes(dayOfWeek)) {
+        return NextResponse.json({ availableSlots: [] })
+      }
     }
     
     // Determine effective working hours
@@ -513,13 +531,21 @@ export async function GET(request: NextRequest) {
     const startOfDay = parseISO(`${date}T00:00:00`)
     const endOfDay = parseISO(`${date}T23:59:59`)
 
+    // When staff module is disabled, get all appointments for the business
+    // When enabled, get appointments for specific staff
+    const appointmentFilter: any = {
+      businessId,
+      startTime: { gte: startOfDay, lte: endOfDay },
+      status: { notIn: ['CANCELLED'] }
+    }
+    
+    // Only filter by staffId if staff module is enabled
+    if (staffModuleEnabled && staffId) {
+      appointmentFilter.staffId = staffId
+    }
+    
     const appointments = await prisma.appointment.findMany({
-      where: {
-        businessId,
-        staffId: staffId || undefined,
-        startTime: { gte: startOfDay, lte: endOfDay },
-        status: { notIn: ['CANCELLED'] }
-      },
+      where: appointmentFilter,
       orderBy: { startTime: 'asc' }
     })
 

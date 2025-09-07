@@ -120,7 +120,9 @@
       "Bash(timeout:*)",
       "Bash(cmd /c:*)",
       "Read(//c/Users/alber/Downloads/**)",
-      "mcp__playwright-advanced__playwright_evaluate"
+      "mcp__playwright-advanced__playwright_evaluate",
+      "Bash(npm install:*)",
+      "mcp__playwright-advanced__playwright_press_key"
     ],
     "deny": [],
     "ask": [],

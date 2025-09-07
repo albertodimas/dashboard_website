@@ -4,7 +4,17 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Settings } from 'lucide-react'
+import { 
+  Settings, 
+  MoreVertical, 
+  Users, 
+  Package, 
+  Ban, 
+  Unlock,
+  Trash2,
+  Edit,
+  Eye
+} from 'lucide-react'
 
 interface Category {
   id: string
@@ -52,6 +62,7 @@ export default function AdminDashboardPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
   const [blockReason, setBlockReason] = useState('payment')
   const [categories, setCategories] = useState<Category[]>([])
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     // Verify admin session via cookie
@@ -68,6 +79,15 @@ export default function AdminDashboardPage() {
         router.push('/admin/login')
       })
   }, [router])
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null)
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [openMenuId])
 
   const loadCategories = async () => {
     try {
@@ -353,8 +373,9 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Businesses Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="bg-white shadow rounded-lg relative">
+          <div className="overflow-x-auto" style={{ minHeight: '400px' }}>
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -375,7 +396,7 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredBusinesses.map((business) => (
+              {filteredBusinesses.map((business, index) => (
                 <tr key={business.id} className={business.isBlocked ? 'bg-red-50' : 'hover:bg-gray-50'}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -442,111 +463,169 @@ export default function AdminDashboardPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={async () => {
-                          try {
-                            setSaving(true)
-                            const newValue = !business.enableStaffModule
-                            const response = await fetch('/api/admin/businesses', {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                id: business.id,
-                                enableStaffModule: newValue
-                              })
-                            })
-                            if (!response.ok) throw new Error('Failed to toggle staff module')
-                            await loadBusinesses()
-                            // Show success message
-                            alert(
-                              newValue 
-                                ? (t('language') === 'en' ? 'Staff module enabled successfully' : 'Módulo de staff habilitado exitosamente')
-                                : (t('language') === 'en' ? 'Staff module disabled successfully' : 'Módulo de staff deshabilitado exitosamente')
-                            )
-                          } catch (error) {
-                            console.error('Error toggling staff module:', error)
-                            alert(t('language') === 'en' ? 'Failed to toggle staff module' : 'Error al cambiar el módulo de staff')
-                          } finally {
-                            setSaving(false)
-                          }
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenMenuId(openMenuId === business.id ? null : business.id)
                         }}
-                        disabled={saving}
-                        className={`text-sm ${business.enableStaffModule ? 'text-blue-600 hover:text-blue-900' : 'text-gray-600 hover:text-gray-900'}`}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                       >
-                        {business.enableStaffModule 
-                          ? (t('language') === 'en' ? 'Disable Staff' : 'Desactivar Staff')
-                          : (t('language') === 'en' ? 'Enable Staff' : 'Activar Staff')}
+                        <MoreVertical className="w-5 h-5 text-gray-600" />
                       </button>
-                      <button 
-                        onClick={async () => {
-                          try {
-                            setSaving(true)
-                            const newValue = !business.enablePackagesModule
-                            const response = await fetch('/api/admin/businesses', {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                id: business.id,
-                                enablePackagesModule: newValue
-                              })
-                            })
-                            if (!response.ok) throw new Error('Failed to toggle packages module')
-                            await loadBusinesses()
-                            // Show success message
-                            alert(
-                              newValue 
-                                ? (t('language') === 'en' ? 'Packages module enabled successfully' : 'Módulo de paquetes habilitado exitosamente')
-                                : (t('language') === 'en' ? 'Packages module disabled successfully' : 'Módulo de paquetes deshabilitado exitosamente')
-                            )
-                          } catch (error) {
-                            console.error('Error toggling packages module:', error)
-                            alert(t('language') === 'en' ? 'Failed to toggle packages module' : 'Error al cambiar el módulo de paquetes')
-                          } finally {
-                            setSaving(false)
-                          }
-                        }}
-                        disabled={saving}
-                        className={`text-sm ${business.enablePackagesModule ? 'text-indigo-600 hover:text-indigo-900' : 'text-gray-600 hover:text-gray-900'}`}
-                      >
-                        {business.enablePackagesModule 
-                          ? (t('language') === 'en' ? 'Disable Packages' : 'Desactivar Paquetes')
-                          : (t('language') === 'en' ? 'Enable Packages' : 'Activar Paquetes')}
-                      </button>
-                      {business.isBlocked ? (
-                        <button 
-                          onClick={() => handleUnblockBusiness(business)}
-                          disabled={saving}
-                          className="text-green-600 hover:text-green-900"
+                      
+                      {openMenuId === business.id && (
+                        <div 
+                          className={`absolute right-0 w-56 bg-white rounded-lg shadow-2xl border border-gray-200 ${
+                            // Abrir hacia arriba solo si es el último elemento Y hay más de 3 elementos
+                            // O si está en las últimas 2 filas cuando hay muchos elementos
+                            (index === filteredBusinesses.length - 1 && filteredBusinesses.length > 3) ||
+                            (filteredBusinesses.length > 10 && index >= filteredBusinesses.length - 2)
+                              ? 'bottom-full mb-1' 
+                              : 'top-full mt-1'
+                          }`}
+                          style={{ zIndex: 9999 }}
                         >
-                          {t('language') === 'en' ? 'Unblock' : 'Desbloquear'}
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => {
-                            setSelectedBusiness(business)
-                            setShowBlockModal(true)
-                          }}
-                          disabled={saving}
-                          className="text-orange-600 hover:text-orange-900"
-                        >
-                          {t('language') === 'en' ? 'Block' : 'Bloquear'}
-                        </button>
+                          <div className="py-1">
+                            {/* Staff Module Toggle */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setSaving(true)
+                                  const newValue = !business.enableStaffModule
+                                  const response = await fetch('/api/admin/businesses', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      id: business.id,
+                                      enableStaffModule: newValue
+                                    })
+                                  })
+                                  if (!response.ok) throw new Error('Failed to toggle staff module')
+                                  await loadBusinesses()
+                                  setOpenMenuId(null)
+                                  alert(
+                                    newValue 
+                                      ? (t('language') === 'en' ? 'Staff module enabled successfully' : 'Módulo de staff habilitado exitosamente')
+                                      : (t('language') === 'en' ? 'Staff module disabled successfully' : 'Módulo de staff deshabilitado exitosamente')
+                                  )
+                                } catch (error) {
+                                  console.error('Error toggling staff module:', error)
+                                  alert(t('language') === 'en' ? 'Failed to toggle staff module' : 'Error al cambiar el módulo de staff')
+                                } finally {
+                                  setSaving(false)
+                                }
+                              }}
+                              disabled={saving}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3"
+                            >
+                              <Users className={`w-4 h-4 ${business.enableStaffModule ? 'text-blue-600' : 'text-gray-400'}`} />
+                              <span className={business.enableStaffModule ? 'text-blue-600' : 'text-gray-700'}>
+                                {business.enableStaffModule 
+                                  ? (t('language') === 'en' ? 'Disable Staff' : 'Desactivar Staff')
+                                  : (t('language') === 'en' ? 'Enable Staff' : 'Activar Staff')}
+                              </span>
+                            </button>
+                            
+                            {/* Packages Module Toggle */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setSaving(true)
+                                  const newValue = !business.enablePackagesModule
+                                  const response = await fetch('/api/admin/businesses', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      id: business.id,
+                                      enablePackagesModule: newValue
+                                    })
+                                  })
+                                  if (!response.ok) throw new Error('Failed to toggle packages module')
+                                  await loadBusinesses()
+                                  setOpenMenuId(null)
+                                  alert(
+                                    newValue 
+                                      ? (t('language') === 'en' ? 'Packages module enabled successfully' : 'Módulo de paquetes habilitado exitosamente')
+                                      : (t('language') === 'en' ? 'Packages module disabled successfully' : 'Módulo de paquetes deshabilitado exitosamente')
+                                  )
+                                } catch (error) {
+                                  console.error('Error toggling packages module:', error)
+                                  alert(t('language') === 'en' ? 'Failed to toggle packages module' : 'Error al cambiar el módulo de paquetes')
+                                } finally {
+                                  setSaving(false)
+                                }
+                              }}
+                              disabled={saving}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3"
+                            >
+                              <Package className={`w-4 h-4 ${business.enablePackagesModule ? 'text-indigo-600' : 'text-gray-400'}`} />
+                              <span className={business.enablePackagesModule ? 'text-indigo-600' : 'text-gray-700'}>
+                                {business.enablePackagesModule 
+                                  ? (t('language') === 'en' ? 'Disable Packages' : 'Desactivar Paquetes')
+                                  : (t('language') === 'en' ? 'Enable Packages' : 'Activar Paquetes')}
+                              </span>
+                            </button>
+                            
+                            <div className="border-t border-gray-100 my-1"></div>
+                            
+                            {/* Block/Unblock */}
+                            {business.isBlocked ? (
+                              <button
+                                onClick={() => {
+                                  handleUnblockBusiness(business)
+                                  setOpenMenuId(null)
+                                }}
+                                disabled={saving}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3"
+                              >
+                                <Unlock className="w-4 h-4 text-green-600" />
+                                <span className="text-green-600">
+                                  {t('language') === 'en' ? 'Unblock' : 'Desbloquear'}
+                                </span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedBusiness(business)
+                                  setShowBlockModal(true)
+                                  setOpenMenuId(null)
+                                }}
+                                disabled={saving}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3"
+                              >
+                                <Ban className="w-4 h-4 text-orange-600" />
+                                <span className="text-orange-600">
+                                  {t('language') === 'en' ? 'Block' : 'Bloquear'}
+                                </span>
+                              </button>
+                            )}
+                            
+                            <div className="border-t border-gray-100 my-1"></div>
+                            
+                            {/* Delete */}
+                            <button
+                              onClick={() => {
+                                handleDeleteBusiness(business)
+                                setOpenMenuId(null)
+                              }}
+                              disabled={saving}
+                              className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-3"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                              <span className="text-red-600">
+                                {t('language') === 'en' ? 'Delete' : 'Eliminar'}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
                       )}
-                      <button 
-                        onClick={() => handleDeleteBusiness(business)}
-                        disabled={saving}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        {t('language') === 'en' ? 'Delete' : 'Eliminar'}
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Block Modal */}

@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-refresh-secret-change-in-production'
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutos
 
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Generar token JWT
+    // Generar tokens JWT (access y refresh)
     const token = jwt.sign(
       { 
         customerId: customer.id,
@@ -154,7 +155,16 @@ export async function POST(request: NextRequest) {
         emailVerified: customer.emailVerified
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '1h' } // Token de acceso de corta duración
+    )
+
+    const refreshToken = jwt.sign(
+      { 
+        customerId: customer.id,
+        type: 'refresh'
+      },
+      REFRESH_SECRET,
+      { expiresIn: '30d' } // Refresh token de larga duración
     )
 
     // Obtener paquetes activos del cliente
@@ -200,9 +210,9 @@ export async function POST(request: NextRequest) {
       take: 5
     })
 
-    return NextResponse.json({
+    // Crear respuesta con cookie HTTP-only
+    const response = NextResponse.json({
       success: true,
-      token,
       customer: {
         id: customer.id,
         name: customer.name,
@@ -213,6 +223,25 @@ export async function POST(request: NextRequest) {
       packages,
       appointments
     })
+
+    // Establecer cookies HTTP-only seguras
+    response.cookies.set('client-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60, // 1 hora
+      path: '/'
+    })
+
+    response.cookies.set('client-refresh-token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict', // Más estricto para refresh token
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+      path: '/'
+    })
+
+    return response
 
   } catch (error) {
     console.error('Login error:', error)

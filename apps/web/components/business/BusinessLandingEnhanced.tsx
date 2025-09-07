@@ -8,11 +8,12 @@ import {
   ChevronLeft, X, Check, Eye, ChevronRight, Heart, Share2, 
   Instagram, Facebook, Twitter, Award, Shield, Sparkles,
   ArrowRight, User, DollarSign, Info, Image as ImageIcon, Gift,
-  LogIn, LogOut, UserCircle
+  LogIn, LogOut, UserCircle, UserCheck, UserPlus
 } from 'lucide-react'
 import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
+import { useClientAuth } from '@/contexts/ClientAuthContext'
 
 interface BusinessLandingProps {
   business: any
@@ -21,9 +22,11 @@ interface BusinessLandingProps {
 export default function BusinessLandingEnhanced({ business }: BusinessLandingProps) {
   const router = useRouter()
   
-  // Estados de autenticación
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [customerData, setCustomerData] = useState<any>(null)
+  // Usar el contexto de autenticación global
+  const { isAuthenticated, clientData, checkAuth, logout, isRegisteredInBusiness } = useClientAuth()
+  const isRegistered = isRegisteredInBusiness(business.id)
+  
+  // Estados de autenticación local (para el modal de login/registro)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loginMode, setLoginMode] = useState<'login' | 'register' | 'verify'>('login')
   const [loginForm, setLoginForm] = useState({
@@ -47,6 +50,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [staff, setStaff] = useState<any[]>([])
+  const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0)
   const [bookingType, setBookingType] = useState<'service' | 'package' | 'use-package'>('service')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -74,21 +79,28 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const galleryItems = business.galleryItems || []
   
   // Si el módulo de staff está deshabilitado y hay owner, mostrar el owner como único profesional
-  let staff = business.staff || []
+  let displayStaff = business.staff || []
   const owner = business.tenant?.users?.[0]
   
   // Debug logging
   console.log('Owner data:', owner)
   console.log('Owner avatar:', owner?.avatar)
   console.log('Staff module enabled:', business.enableStaffModule)
-  console.log('Staff length:', staff.length)
+  console.log('Staff length:', displayStaff.length)
   
-  if ((!business.enableStaffModule || staff.length === 0) && owner) {
-    staff = [{
+  // Si no hay módulo de staff habilitado, mostrar el owner como único trabajador
+  if (!business.enableStaffModule) {
+    // Si hay owner data, usarla; si no, crear un owner por defecto
+    const ownerData = owner || {
+      name: 'Owner',
+      avatar: null
+    }
+    
+    displayStaff = [{
       id: 'owner',
-      name: owner.name,
-      photo: owner.avatar, // Usando el mismo campo avatar del owner
-      avatar: owner.avatar, // Agregando también como avatar para compatibilidad
+      name: ownerData.name,
+      photo: ownerData.avatar, // Usando el mismo campo avatar del owner
+      avatar: ownerData.avatar, // Agregando también como avatar para compatibilidad
       role: business.language === 'es' ? 'Propietario' : 'Owner',
       specialty: business.businessType ? 
         (business.businessType === 'personal_trainer' ? 'Personal Trainer' :
@@ -99,10 +111,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
          business.businessType === 'gym' ? 'Instructor' :
          business.businessType === 'clinic' ? 'Specialist' :
          'Professional') : 'Professional',
-      specialties: '',
-      isActive: true
+      specialties: [], // Array vacío para evitar el "0"
+      isActive: true,
+      rating: undefined // Explicitly set to undefined to avoid any "0" issues
     }]
-    console.log('Created staff object:', staff[0])
+    console.log('Created staff object:', displayStaff[0])
   }
   
   const workingHours = business.workingHours || []
@@ -154,29 +167,25 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Días de la semana
   const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-  // Check authentication on mount
+  // Auto-fill booking data cuando hay cliente autenticado
   useEffect(() => {
-    const token = localStorage.getItem('clientToken')
-    const storedCustomerData = localStorage.getItem('clientData')
-    if (token && storedCustomerData) {
-      try {
-        const customer = JSON.parse(storedCustomerData)
-        setIsAuthenticated(true)
-        setCustomerData(customer)
-        // Auto-fill booking data
-        setBookingData(prev => ({
-          ...prev,
-          customerName: customer.name || '',
-          customerEmail: customer.email || '',
-          customerPhone: customer.phone || ''
-        }))
-        // Load customer packages and appointments
-        loadCustomerData(token)
-      } catch (error) {
-        console.error('Error loading customer data:', error)
+    if (isAuthenticated && clientData) {
+      // Auto-fill booking data
+      setBookingData(prev => ({
+        ...prev,
+        customerName: clientData.name || '',
+        customerEmail: clientData.email || '',
+        customerPhone: clientData.phone || ''
+      }))
+      // Load customer packages and appointments if registered in this business
+      if (isRegistered) {
+        const token = document.cookie.split('; ').find(row => row.startsWith('client-token='))?.split('=')[1]
+        if (token) {
+          loadCustomerData(token)
+        }
       }
     }
-  }, [])
+  }, [isAuthenticated, clientData, isRegistered])
 
   // Load customer packages and appointments
   const loadCustomerData = async (token: string) => {
@@ -251,8 +260,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         localStorage.setItem('clientToken', data.token)
         localStorage.setItem('clientData', JSON.stringify(data.customer))
         
-        setIsAuthenticated(true)
-        setCustomerData(data.customer)
+        // Actualizar el contexto global
+        await checkAuth()
+        
         setShowLoginModal(false)
         
         setBookingData(prev => ({
@@ -291,8 +301,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         localStorage.setItem('clientToken', data.token)
         localStorage.setItem('clientData', JSON.stringify(data.customer))
         
-        setIsAuthenticated(true)
-        setCustomerData(data.customer)
+        // Actualizar el contexto global
+        await checkAuth()
+        
         setShowLoginModal(false)
         
         setBookingData(prev => ({
@@ -314,22 +325,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     }
   }
 
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem('clientToken')
-    localStorage.removeItem('clientData')
-    setIsAuthenticated(false)
-    setCustomerData(null)
-    setCustomerPackages([])
-    setMyAppointments([])
-    setBookingData({
-      customerName: '',
-      customerEmail: '',
-      customerPhone: '',
-      notes: '',
-      paymentMethod: 'CASH'
-    })
-  }
+  // Handle logout ahora se maneja desde el contexto con logout()
 
   // Handle appointment cancellation
   const handleCancelAppointment = async (appointmentId: string) => {
@@ -385,6 +381,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         serviceId: selectedService?.id || selectedPackage?.services[0]?.service?.id,
         date: selectedDate
       })
+      // Solo agregar staffId si hay un staff seleccionado
       if (selectedStaff) {
         params.append('staffId', selectedStaff.id)
       }
@@ -445,8 +442,53 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     }
   }, [selectedDate, selectedService, selectedPackage, selectedStaff])
 
-  // No buscar automáticamente - solo cuando el usuario lo solicite
-  // Este useEffect se puede eliminar ya que ahora usamos onBlur y onKeyPress
+  // Fetch staff when service is selected
+  useEffect(() => {
+    const fetchStaff = async () => {
+      if (!selectedService) {
+        setStaff([])
+        return
+      }
+      
+      try {
+        const response = await fetch(`/api/public/staff/${business.slug || business.customSlug || business.id}?serviceId=${selectedService.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setStaff(data.staff || [])
+          setStaffModuleEnabled(data.moduleEnabled || false)
+        }
+      } catch (error) {
+        console.error('Error fetching staff:', error)
+        setStaff([])
+        setStaffModuleEnabled(false)
+      }
+    }
+    
+    fetchStaff()
+  }, [selectedService, business])
+
+  // Obtener paquetes activos cuando el usuario está autenticado
+  useEffect(() => {
+    const fetchAuthenticatedCustomerPackages = async () => {
+      if (isAuthenticated && clientData?.email) {
+        setIsLoadingPackages(true)
+        try {
+          const response = await fetch(`/api/public/customer/packages?email=${encodeURIComponent(clientData.email)}&businessId=${business.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            setCustomerPackages(data.packages || [])
+            setHasSearchedPackages(true)
+          }
+        } catch (error) {
+          console.error('Error fetching authenticated customer packages:', error)
+        } finally {
+          setIsLoadingPackages(false)
+        }
+      }
+    }
+
+    fetchAuthenticatedCustomerPackages()
+  }, [isAuthenticated, clientData?.email, business.id])
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -550,13 +592,18 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       <header className="fixed top-0 w-full backdrop-blur-xl bg-white/70 border-b border-gray-100 z-50 shadow-sm">
         <nav className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               {business.logo && (
-                <img 
-                  src={getImageUrl(business.logo, 'business', 128)} 
-                  alt={business.name} 
-                  className="h-10 w-10 rounded-full object-cover"
-                />
+                <div className="relative">
+                  <img 
+                    src={business.logo.startsWith('data:') ? business.logo : getImageUrl(business.logo, 'business', 256)} 
+                    srcSet={business.logo.startsWith('data:') ? '' : getImageSrcSet(business.logo, 'business')}
+                    sizes="(max-width: 640px) 48px, 64px"
+                    alt={business.name} 
+                    className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl object-cover shadow-md border-2 border-white/20"
+                    loading="eager"
+                  />
+                </div>
               )}
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold" style={{ color: colors.primary }}>
@@ -569,12 +616,25 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               {/* User menu */}
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
+                  {isRegistered && (
+                    <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-green-100 rounded-full">
+                      <UserCheck className="w-4 h-4 text-green-600" />
+                      <span className="text-xs font-medium text-green-700">Cliente Registrado</span>
+                    </div>
+                  )}
                   <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
                     <UserCircle className="w-5 h-5 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">{customerData?.name}</span>
+                    <span className="text-sm font-medium text-gray-700">{clientData?.name}</span>
                   </div>
+                  <Link
+                    href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
+                    className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                    title="Mi Portal"
+                  >
+                    <UserCircle className="w-5 h-5 text-blue-600" />
+                  </Link>
                   <button
-                    onClick={handleLogout}
+                    onClick={() => logout()}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     title="Cerrar sesión"
                   >
@@ -691,13 +751,23 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 Reservar Ahora
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <Link
-                href={isAuthenticated ? "/cliente/dashboard" : `/cliente/login?from=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : `/${business.customSlug || business.slug}`)}`}
-                className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
-              >
-                <User className="w-5 h-5" />
-                Mi Portal
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
+                  className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
+                >
+                  <UserCircle className="w-5 h-5" />
+                  Mi Portal
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Iniciar Sesión
+                </button>
+              )}
               
               <a
                 href="#services"
@@ -901,6 +971,16 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           {service.category && (
                             <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
                               {service.category}
+                            </span>
+                          )}
+                          {/* Indicador de paquete disponible */}
+                          {customerPackages.some((pkg: any) => 
+                            pkg.remainingSessions > 0 && 
+                            pkg.package.services.some((ps: any) => ps.serviceId === service.id)
+                          ) && (
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full flex items-center gap-1">
+                              <Gift className="w-3 h-3" />
+                              Paquete disponible
                             </span>
                           )}
                         </div>
@@ -1268,7 +1348,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       )}
 
       {/* Staff Section */}
-      {staff.length > 0 && (
+      {displayStaff.length > 0 && (
         <section className="py-2 bg-gray-50">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
@@ -1280,8 +1360,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </h2>
             </div>
 
-            <div className={`grid gap-6 ${staff.length === 1 ? 'max-w-sm mx-auto' : staff.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : staff.length === 3 ? 'sm:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
-              {staff.map((member: any) => (
+            <div className={`grid gap-6 ${displayStaff.length === 1 ? 'max-w-sm mx-auto' : displayStaff.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : displayStaff.length === 3 ? 'sm:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+              {displayStaff.map((member: any) => (
                 <div key={member.id} className="text-center group">
                   <div className="relative mb-4">
                     <div className="w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-200">
@@ -1300,23 +1380,40 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         </div>
                       )}
                     </div>
-                    {member.rating && member.rating > 0 && (
+                    {(member.rating && member.rating > 0) ? (
                       <div className="absolute bottom-0 right-1/2 translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-400 fill-current" />
                         <span className="text-sm font-semibold">{member.rating}</span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                   
                   <h3 className="font-bold text-lg">{member.name}</h3>
-                  {member.specialties && 
-                   member.specialties !== '0' && 
-                   member.specialties !== 0 && 
-                   (Array.isArray(member.specialties) ? member.specialties.length > 0 : true) && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      {Array.isArray(member.specialties) ? member.specialties.join(', ') : member.specialties}
-                    </p>
-                  )}
+                  {(() => {
+                    // Check if specialties exists and is valid
+                    if (!member.specialties) return null;
+                    if (member.specialties === '0' || member.specialties === 0 || member.specialties === '') return null;
+                    
+                    if (Array.isArray(member.specialties)) {
+                      const validSpecialties = member.specialties.filter(s => s && s !== '0' && s !== 0);
+                      if (validSpecialties.length === 0) return null;
+                      return (
+                        <p className="text-sm text-gray-500 mt-1">
+                          {validSpecialties.join(', ')}
+                        </p>
+                      );
+                    }
+                    
+                    if (typeof member.specialties === 'string' && member.specialties.trim() !== '') {
+                      return (
+                        <p className="text-sm text-gray-500 mt-1">
+                          {member.specialties}
+                        </p>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                 </div>
               ))}
             </div>
@@ -1590,7 +1687,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     <label className="text-sm font-medium text-gray-700 mb-3 block">
                       ¿Qué deseas hacer?
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className={`grid gap-3 ${business.packages?.length > 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1'}`}>
                       <button
                         onClick={() => setBookingType('service')}
                         className={`p-4 rounded-xl border-2 transition-all ${
@@ -1605,6 +1702,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         <p className="text-xs text-gray-500 mt-1">Pagar al asistir</p>
                       </button>
                       
+                      {/* Solo mostrar opciones de paquetes si el negocio tiene paquetes */}
+                      {business.packages?.length > 0 && (
+                      <>
                       <button
                         onClick={async () => {
                           setBookingType('use-package')
@@ -1675,6 +1775,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         <p className="font-semibold">Comprar Paquete</p>
                         <p className="text-xs text-gray-500 mt-1">Ofertas especiales</p>
                       </button>
+                      </>
+                      )}
                     </div>
                   </div>
 
@@ -2024,59 +2126,35 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     Volver
                   </button>
 
-                  {/* Staff Selection */}
-                  {(() => {
-                    // Debug: Ver qué contiene el servicio seleccionado
-                    console.log('Selected Service:', selectedService)
-                    console.log('Service Staff:', selectedService?.serviceStaff)
-                    
-                    // Filtrar trabajadores basándose en el servicio seleccionado
-                    const availableStaff = staff.filter((s: any) => {
-                      // Si el servicio tiene serviceStaff, solo mostrar esos trabajadores
-                      if (selectedService?.serviceStaff && selectedService.serviceStaff.length > 0) {
-                        return selectedService.serviceStaff.some((ss: any) => ss.staffId === s.id)
-                      }
-                      // Si no hay serviceStaff, mostrar todos los trabajadores activos
-                      return s.isActive !== false
-                    })
-                    
-                    // Solo mostrar la sección si hay trabajadores disponibles
-                    if (availableStaff.length === 0 && selectedService?.serviceStaff?.length > 0) {
-                      // Si el servicio tiene asignados pero ninguno está en la lista de staff
-                      return null
-                    }
-                    
-                    return (
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-3 block">
-                          Profesional {availableStaff.length > 0 ? '(opcional)' : ''}
-                        </label>
-                        
-                        {/* Opción visual con fotos */}
-                        <div className="space-y-2">
-                          {/* Opción "Cualquier disponible" - solo mostrar si hay trabajadores */}
-                          {availableStaff.length > 0 && (
-                            <div
-                              onClick={() => setSelectedStaff(null)}
-                              className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-300 ${
-                                !selectedStaff ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                              }`}
-                            >
-                              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                                <Users size={20} className="text-gray-500" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium">Cualquier disponible</p>
-                                <p className="text-sm text-gray-500">Se asignará automáticamente</p>
-                              </div>
-                              {!selectedStaff && (
-                                <Check size={20} className="text-blue-500" />
-                              )}
-                            </div>
+                  {/* Staff Selection - Solo mostrar si el módulo está habilitado y hay staff */}
+                  {staffModuleEnabled && staff.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-3 block">
+                        Profesional (opcional)
+                      </label>
+                      
+                      <div className="space-y-2">
+                        {/* Opción "Cualquier disponible" */}
+                        <div
+                          onClick={() => setSelectedStaff(null)}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-300 ${
+                            !selectedStaff ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                            <Users size={20} className="text-gray-500" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">Cualquier disponible</p>
+                            <p className="text-sm text-gray-500">Se asignará automáticamente</p>
+                          </div>
+                          {!selectedStaff && (
+                            <Check size={20} className="text-blue-500" />
                           )}
-                          
-                          {/* Lista de trabajadores con fotos - ya filtrados */}
-                          {availableStaff.map((s: any) => (
+                        </div>
+                        
+                        {/* Lista de trabajadores */}
+                        {staff.map((s: any) => (
                           <div
                             key={s.id}
                             onClick={() => setSelectedStaff(s)}
@@ -2084,7 +2162,6 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                               selectedStaff?.id === s.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             }`}
                           >
-                            {/* Foto del trabajador */}
                             <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                               {s.photo ? (
                                 <img
@@ -2099,15 +2176,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                               )}
                             </div>
                             
-                            {/* Información del trabajador */}
                             <div className="flex-1">
                               <p className="font-medium">{s.name}</p>
                               <div className="flex items-center gap-2 text-sm text-gray-500">
-                                {s.specialties && Array.isArray(s.specialties) && s.specialties.length > 0 && (
+                                {s.specialties && s.specialties.length > 0 && (
                                   <span>{s.specialties[0]}</span>
-                                )}
-                                {s.specialty && typeof s.specialty === 'string' && (
-                                  <span>{s.specialty}</span>
                                 )}
                                 {s.rating && (
                                   <span className="flex items-center gap-1">
@@ -2118,7 +2191,6 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                               </div>
                             </div>
                             
-                            {/* Check mark si está seleccionado */}
                             {selectedStaff?.id === s.id && (
                               <Check size={20} className="text-blue-500" />
                             )}
@@ -2126,8 +2198,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         ))}
                       </div>
                     </div>
-                  )
-                  })()}
+                  )}
 
                   {/* Date Selection */}
                   <div>

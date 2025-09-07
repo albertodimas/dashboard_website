@@ -61,16 +61,17 @@ export async function getBusinessDataBySlug(slug: string) {
           select: {
             settings: true,
             users: {
-              where: {
-                isAdmin: true
-              },
               select: {
                 id: true,
                 name: true,
                 email: true,
-                avatar: true
+                avatar: true,
+                isAdmin: true
               },
-              take: 1
+              take: 1,
+              orderBy: {
+                isAdmin: 'desc' // Priorizar admin si existe, sino tomar el primer usuario
+              }
             }
           }
         }
@@ -176,16 +177,17 @@ export async function getBusinessDataByCustomSlug(customSlug: string) {
           select: {
             settings: true,
             users: {
-              where: {
-                isAdmin: true
-              },
               select: {
                 id: true,
                 name: true,
                 email: true,
-                avatar: true
+                avatar: true,
+                isAdmin: true
               },
-              take: 1
+              take: 1,
+              orderBy: {
+                isAdmin: 'desc' // Priorizar admin si existe, sino tomar el primer usuario
+              }
             }
           }
         }
