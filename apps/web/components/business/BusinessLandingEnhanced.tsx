@@ -179,22 +179,17 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       }))
       // Load customer packages and appointments if registered in this business
       if (isRegistered) {
-        const token = document.cookie.split('; ').find(row => row.startsWith('client-token='))?.split('=')[1]
-        if (token) {
-          loadCustomerData(token)
-        }
+        loadCustomerData()
       }
     }
   }, [isAuthenticated, clientData, isRegistered])
 
   // Load customer packages and appointments
-  const loadCustomerData = async (token: string) => {
+  const loadCustomerData = async () => {
     try {
       // Load packages
       const packagesResponse = await fetch('/api/cliente/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include' // Use cookies instead of token
       })
       if (packagesResponse.ok) {
         const data = await packagesResponse.json()
@@ -256,10 +251,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           return
         }
 
-        // Success - save and continue
-        localStorage.setItem('clientToken', data.token)
-        localStorage.setItem('clientData', JSON.stringify(data.customer))
-        
+        // Success - cookies are set by the server automatically
         // Actualizar el contexto global
         await checkAuth()
         
@@ -298,9 +290,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           return
         }
 
-        localStorage.setItem('clientToken', data.token)
-        localStorage.setItem('clientData', JSON.stringify(data.customer))
-        
+        // Cookies are set by the server automatically
         // Actualizar el contexto global
         await checkAuth()
         
@@ -331,8 +321,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const handleCancelAppointment = async (appointmentId: string) => {
     if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
     
-    const token = localStorage.getItem('clientToken')
-    if (!token) {
+    // Verificar si el usuario está autenticado
+    if (!isAuthenticated) {
       alert('Debes iniciar sesión para cancelar citas')
       return
     }
@@ -341,15 +331,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       const response = await fetch(`/api/appointments/${appointmentId}/cancel`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include' // Incluir cookies
       })
 
       if (response.ok) {
         alert('Cita cancelada exitosamente')
         // Reload appointments
-        await loadCustomerData(token)
+        await loadCustomerData()
       } else {
         const error = await response.json()
         alert(error.message || 'Error al cancelar la cita')
@@ -1710,16 +1700,13 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setBookingType('use-package')
                           
                           // Si el usuario está logueado, cargar sus paquetes automáticamente
-                          const token = localStorage.getItem('clientToken')
-                          if (token && customerData?.email) {
+                          if (isAuthenticated && customerData?.email) {
                             setBookingData(prev => ({ ...prev, customerEmail: customerData.email }))
                             setIsLoadingPackages(true)
                             
                             try {
                               const response = await fetch('/api/cliente/dashboard', {
-                                headers: {
-                                  'Authorization': `Bearer ${token}`
-                                }
+                                credentials: 'include' // Use cookies instead of token
                               })
                               
                               if (response.ok) {

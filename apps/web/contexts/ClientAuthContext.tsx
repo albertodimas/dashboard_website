@@ -100,6 +100,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Llamar a la API para limpiar la cookie del servidor
       await fetch('/api/cliente/auth/logout', {
         method: 'POST',
         credentials: 'include'
@@ -108,12 +109,9 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
       console.error('Error during logout:', error)
     }
     
+    // Limpiar estado local
     setIsAuthenticated(false)
     setClientData(null)
-    
-    // Limpiar localStorage
-    localStorage.removeItem('clientToken')
-    localStorage.removeItem('clientData')
     
     // Redirigir al login
     router.push('/cliente/login')

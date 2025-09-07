@@ -540,10 +540,26 @@ export default function ClientDashboard() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('clientToken')
-    localStorage.removeItem('clientData')
-    router.push('/cliente/login')
+  const handleLogout = async () => {
+    try {
+      // Llamar a la API de logout para limpiar la cookie del servidor
+      const response = await fetch('/api/cliente/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include' // Importante para incluir cookies
+      })
+      
+      if (response.ok) {
+        // Redirigir al login después de limpiar la sesión del servidor
+        router.push('/cliente/login')
+      }
+    } catch (error) {
+      console.error('Error durante logout:', error)
+      // Incluso si hay error, redirigir
+      router.push('/cliente/login')
+    }
   }
 
   const handleUnregisterBusiness = async () => {
