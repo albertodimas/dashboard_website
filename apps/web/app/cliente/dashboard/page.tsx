@@ -494,7 +494,8 @@ export default function ClientDashboard() {
           packagesCount: data.packages?.length || 0,
           appointmentsCount: data.appointments?.length || 0,
           myBusinessesCount: data.myBusinesses?.length || 0,
-          businessesToExploreCount: data.businessesToExplore?.length || 0
+          businessesToExploreCount: data.businessesToExplore?.length || 0,
+          customer: data.customer
         })
         
         // Priorizar paquetes y citas según el negocio referente
@@ -755,7 +756,7 @@ export default function ClientDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{customer?.name}{customer?.lastName ? ` ${customer.lastName}` : ''}</p>
+                <p className="text-sm font-medium text-gray-900">{customer?.name}</p>
                 <p className="text-xs text-gray-500">{customer?.email}</p>
               </div>
               <button

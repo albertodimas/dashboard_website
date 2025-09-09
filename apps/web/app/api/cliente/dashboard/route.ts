@@ -143,6 +143,7 @@ export async function GET(request: NextRequest) {
     console.log('[Dashboard API] Appointments data:', JSON.stringify(appointments, null, 2))
 
     // Obtener datos del cliente
+    console.log('[Dashboard API] Getting customer with ID:', decoded.customerId)
     const customer = await prisma.customer.findUnique({
       where: { id: decoded.customerId },
       select: {
@@ -151,14 +152,32 @@ export async function GET(request: NextRequest) {
         lastName: true,
         email: true,
         phone: true,
+        address: true,
+        city: true,
+        state: true,
+        postalCode: true,
+        tenantId: true,
         createdAt: true
       }
     })
+    console.log('[Dashboard API] Customer found:', customer ? 'Yes' : 'No')
+    if (customer) {
+      console.log('[Dashboard API] Customer data:', JSON.stringify({
+        name: customer.name,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        city: customer.city,
+        state: customer.state,
+        postalCode: customer.postalCode
+      }, null, 2))
+    }
 
     // Obtener negocios donde el cliente está registrado (todos los del mismo tenant)
-    const myBusinesses = await prisma.business.findMany({
+    const myBusinesses = customer?.tenantId ? await prisma.business.findMany({
       where: {
-        tenantId: customer?.tenantId,
+        tenantId: customer.tenantId,
         status: 'ACTIVE'
       },
       select: {
@@ -189,13 +208,13 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-    })
+    }) : []
 
     // Obtener todos los negocios para explorar (de otros tenants)
-    const businessesToExplore = await prisma.business.findMany({
+    const businessesToExplore = customer?.tenantId ? await prisma.business.findMany({
       where: {
         tenantId: {
-          not: customer?.tenantId
+          not: customer.tenantId
         },
         status: 'ACTIVE'
       },
@@ -228,7 +247,7 @@ export async function GET(request: NextRequest) {
         }
       },
       take: 10 // Limitar a 10 negocios para explorar
-    })
+    }) : []
 
     // Preparar la lista de negocios con información adicional
     const myBusinessesWithCounts = await Promise.all(
