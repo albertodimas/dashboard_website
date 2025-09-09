@@ -17,6 +17,7 @@ interface Package {
   package: {
     name: string
     business: {
+      id: string
       name: string
       slug: string
     }
@@ -496,9 +497,38 @@ export default function ClientDashboard() {
           businessesToExploreCount: data.businessesToExplore?.length || 0
         })
         
+        // Priorizar paquetes y citas según el negocio referente
+        const bizIdToUse = preferredBizId || preferredBusinessId || data.referringBusinessId
+        
+        // Ordenar paquetes: los del negocio referente primero
+        let orderedPackages = data.packages || []
+        if (bizIdToUse && orderedPackages.length > 0) {
+          orderedPackages = orderedPackages.sort((a: Package, b: Package) => {
+            const aIsPreferred = a.package.business.id === bizIdToUse
+            const bIsPreferred = b.package.business.id === bizIdToUse
+            if (aIsPreferred && !bIsPreferred) return -1
+            if (!aIsPreferred && bIsPreferred) return 1
+            // Si ambos son del mismo negocio, ordenar por sesiones restantes (mayor primero)
+            return b.remainingSessions - a.remainingSessions
+          })
+        }
+        
+        // Ordenar citas: las del negocio referente primero
+        let orderedAppointments = data.appointments || []
+        if (bizIdToUse && orderedAppointments.length > 0) {
+          orderedAppointments = orderedAppointments.sort((a: Appointment, b: Appointment) => {
+            const aIsPreferred = a.business.id === bizIdToUse
+            const bIsPreferred = b.business.id === bizIdToUse
+            if (aIsPreferred && !bIsPreferred) return -1
+            if (!aIsPreferred && bIsPreferred) return 1
+            // Si ambos son del mismo negocio, ordenar por fecha (más próxima primero)
+            return new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+          })
+        }
+        
         // Set all data from dashboard response
-        setPackages(data.packages || [])
-        setAppointments(data.appointments || [])
+        setPackages(orderedPackages)
+        setAppointments(orderedAppointments)
         
         if (data.customer) {
           setCustomer(data.customer)
@@ -619,7 +649,7 @@ export default function ClientDashboard() {
     setIsUnregistering(true)
     try {
       const response = await fetch('/api/cliente/businesses/unregister', {
-        method: 'DELETE',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId: businessToUnregister.id })
       })

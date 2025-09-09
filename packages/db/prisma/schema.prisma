@@ -138,6 +138,7 @@ model Business {
   galleryItems         GalleryItem[]
   memberships          Membership[]
   packagePurchases     PackagePurchase[]
+  businessCustomers    BusinessCustomer[]
   packages             Package[]
   reviews              Review[]
   services             Service[]
@@ -306,6 +307,7 @@ model Customer {
   reviews           Review[]
   staffReviews      StaffReview[]
   verificationCodes VerificationCode[]
+  businesses        BusinessCustomer[]
 
   @@unique([tenantId, email])
   @@index([email])
@@ -690,6 +692,28 @@ model PasswordHistory {
 
   @@index([customerId])
   @@map("password_history")
+}
+
+model BusinessCustomer {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId   String    @db.Uuid
+  customerId   String    @db.Uuid
+  joinedAt     DateTime  @default(now())
+  isActive     Boolean   @default(true)
+  notes        String?
+  metadata     Json      @default("{}")
+  lastVisit    DateTime?
+  totalVisits  Int       @default(0)
+  totalSpent   Float     @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, customerId])
+  @@index([customerId])
+  @@index([businessId])
+  @@map("business_customers")
 }
 
 model LoginAttempt {

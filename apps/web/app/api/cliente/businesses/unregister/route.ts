@@ -4,8 +4,8 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
-// DELETE - Desregistrar cliente de un negocio
-export async function DELETE(request: NextRequest) {
+// POST - Desregistrar cliente de un negocio
+export async function POST(request: NextRequest) {
   try {
     // Verificar token - primero intentar leer de cookie, luego de header
     let token: string | undefined
@@ -103,10 +103,37 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Como no hay una tabla de relación directa, marcamos al cliente como "desregistrado"
-    // mediante metadata en el cliente o creando un registro de "desregistro"
+    // Buscar la relación BusinessCustomer si existe
+    const businessCustomer = await prisma.businessCustomer.findUnique({
+      where: {
+        businessId_customerId: {
+          businessId,
+          customerId: decoded.customerId
+        }
+      }
+    })
+
+    if (businessCustomer) {
+      // Marcar como inactivo (soft delete)
+      await prisma.businessCustomer.update({
+        where: {
+          businessId_customerId: {
+            businessId,
+            customerId: decoded.customerId
+          }
+        },
+        data: {
+          isActive: false,
+          metadata: {
+            ...(businessCustomer.metadata as any || {}),
+            unregisteredAt: new Date().toISOString(),
+            unregisteredBy: 'customer'
+          }
+        }
+      })
+    }
     
-    // Opción 1: Actualizar metadata del cliente para trackear negocios desregistrados
+    // Actualizar metadata del cliente para trackear negocios desregistrados
     const customer = await prisma.customer.findUnique({
       where: { id: decoded.customerId },
       select: { metadata: true }
@@ -140,6 +167,136 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     console.error('Error al desregistrar del negocio:', error)
+    return NextResponse.json(
+      { error: 'Error al procesar la solicitud' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Re-registrar cliente en un negocio
+export async function PUT(request: NextRequest) {
+  try {
+    // Verificar token
+    const token = request.cookies.get('client-token')?.value
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      )
+    }
+
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, JWT_SECRET)
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      )
+    }
+
+    const { businessId } = await request.json()
+    
+    if (!businessId) {
+      return NextResponse.json(
+        { error: 'El ID del negocio es requerido' },
+        { status: 400 }
+      )
+    }
+
+    console.log('[Re-register] Cliente:', decoded.customerId, 'Negocio:', businessId)
+
+    // Buscar el business
+    const business = await prisma.business.findUnique({
+      where: { id: businessId }
+    })
+
+    if (!business) {
+      return NextResponse.json(
+        { error: 'Negocio no encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Buscar el customer actual
+    const customer = await prisma.customer.findUnique({
+      where: { id: decoded.customerId }
+    })
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Buscar o crear la relación BusinessCustomer
+    const businessCustomer = await prisma.businessCustomer.findUnique({
+      where: {
+        businessId_customerId: {
+          businessId,
+          customerId: decoded.customerId
+        }
+      }
+    })
+
+    if (businessCustomer) {
+      // Reactivar la relación existente
+      await prisma.businessCustomer.update({
+        where: {
+          businessId_customerId: {
+            businessId,
+            customerId: decoded.customerId
+          }
+        },
+        data: {
+          isActive: true,
+          metadata: {
+            ...(businessCustomer.metadata as any || {}),
+            reregisteredAt: new Date().toISOString(),
+            reregisteredBy: 'customer'
+          }
+        }
+      })
+    } else {
+      // Crear nueva relación
+      await prisma.businessCustomer.create({
+        data: {
+          businessId,
+          customerId: decoded.customerId,
+          isActive: true,
+          lastVisit: new Date(),
+          totalVisits: 1
+        }
+      })
+    }
+
+    // Remover de la lista de negocios desregistrados en metadata
+    const currentMetadata = customer.metadata as any || {}
+    let unregisteredBusinesses = currentMetadata.unregisteredBusinesses || []
+    
+    unregisteredBusinesses = unregisteredBusinesses.filter((id: string) => id !== businessId)
+    
+    await prisma.customer.update({
+      where: { id: decoded.customerId },
+      data: {
+        metadata: {
+          ...currentMetadata,
+          unregisteredBusinesses,
+          [`reregisteredTo_${businessId}`]: new Date().toISOString()
+        }
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Te has registrado exitosamente en el negocio'
+    })
+
+  } catch (error) {
+    console.error('Error al re-registrar:', error)
     return NextResponse.json(
       { error: 'Error al procesar la solicitud' },
       { status: 500 }

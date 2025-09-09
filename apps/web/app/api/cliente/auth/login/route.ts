@@ -19,6 +19,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Obtener información del request para el tracking
+    const ipAddress = request.headers.get('x-forwarded-for') || 
+                     request.headers.get('x-real-ip') || 
+                     'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+
+    // Verificar intentos fallidos recientes (rate limiting)
+    const recentFailedAttempts = await prisma.loginAttempt.count({
+      where: {
+        email: email.toLowerCase(),
+        success: false,
+        attemptedAt: {
+          gte: new Date(Date.now() - 15 * 60 * 1000) // Últimos 15 minutos
+        }
+      }
+    })
+
+    if (recentFailedAttempts >= 5) {
+      console.log('[Cliente Login] Rate limit excedido para:', email)
+      return NextResponse.json(
+        { 
+          error: 'Demasiados intentos fallidos. Por favor, espera 15 minutos antes de intentar nuevamente.',
+          retryAfter: 15 * 60 // segundos
+        },
+        { status: 429 }
+      )
+    }
+
     // Si se proporciona businessSlug, buscar el tenant correspondiente
     let tenantId: string | undefined
     if (businessSlug) {
@@ -37,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar cliente por email y opcionalmente por tenant
-    const customer = await prisma.customer.findFirst({
+    let customer = await prisma.customer.findFirst({
       where: {
         email: email.toLowerCase(),
         ...(tenantId ? { tenantId } : {})
@@ -45,8 +73,54 @@ export async function POST(request: NextRequest) {
     })
     
     console.log('[Cliente Login] Customer found:', customer?.id, 'TenantID:', customer?.tenantId)
+    
+    // Si no encontramos el cliente en este tenant pero existe en otro tenant con la misma contraseña,
+    // podemos verificar si es el mismo cliente
+    if (!customer && tenantId) {
+      const customerInOtherTenant = await prisma.customer.findFirst({
+        where: {
+          email: email.toLowerCase()
+        }
+      })
+      
+      if (customerInOtherTenant && customerInOtherTenant.password) {
+        const isValidPassword = await bcrypt.compare(password, customerInOtherTenant.password)
+        if (isValidPassword) {
+          // Es el mismo cliente, crear registro en este tenant
+          customer = await prisma.customer.create({
+            data: {
+              tenantId,
+              email: customerInOtherTenant.email,
+              name: customerInOtherTenant.name,
+              lastName: customerInOtherTenant.lastName,
+              phone: customerInOtherTenant.phone,
+              password: customerInOtherTenant.password,
+              emailVerified: customerInOtherTenant.emailVerified,
+              avatar: customerInOtherTenant.avatar,
+              address: customerInOtherTenant.address,
+              city: customerInOtherTenant.city,
+              state: customerInOtherTenant.state,
+              postalCode: customerInOtherTenant.postalCode,
+              country: customerInOtherTenant.country,
+              metadata: customerInOtherTenant.metadata || {}
+            }
+          })
+          console.log('[Cliente Login] Cliente creado en nuevo tenant:', customer.id)
+        }
+      }
+    }
 
     if (!customer) {
+      // Registrar intento fallido
+      await prisma.loginAttempt.create({
+        data: {
+          email: email.toLowerCase(),
+          ipAddress,
+          userAgent,
+          success: false
+        }
+      })
+      
       return NextResponse.json(
         { 
           error: 'Credenciales inválidas'
@@ -61,6 +135,17 @@ export async function POST(request: NextRequest) {
       : false
 
     if (!isValidPassword) {
+      // Registrar intento fallido con customerId
+      await prisma.loginAttempt.create({
+        data: {
+          email: email.toLowerCase(),
+          ipAddress,
+          userAgent,
+          success: false,
+          customerId: customer.id
+        }
+      })
+      
       return NextResponse.json(
         { 
           error: 'Credenciales inválidas'
@@ -69,7 +154,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Si se está logueando desde una página de negocio, guardar referencia
+    // Registrar intento exitoso
+    await prisma.loginAttempt.create({
+      data: {
+        email: email.toLowerCase(),
+        ipAddress,
+        userAgent,
+        success: true,
+        customerId: customer.id
+      }
+    })
+
+    // Si se está logueando desde una página de negocio, guardar referencia y crear relación
     let referringBusinessId: string | undefined
     if (businessSlug) {
       const business = await prisma.business.findFirst({
@@ -84,6 +180,44 @@ export async function POST(request: NextRequest) {
       if (business) {
         referringBusinessId = business.id
         console.log('[Cliente Login] Accediendo desde el negocio:', business.name)
+        
+        // Verificar si ya existe la relación con este negocio
+        const existingRelation = await prisma.businessCustomer.findUnique({
+          where: {
+            businessId_customerId: {
+              businessId: business.id,
+              customerId: customer.id
+            }
+          }
+        })
+        
+        if (!existingRelation) {
+          // Crear la relación cliente-negocio (auto-registro)
+          await prisma.businessCustomer.create({
+            data: {
+              businessId: business.id,
+              customerId: customer.id,
+              lastVisit: new Date(),
+              totalVisits: 1
+            }
+          })
+          console.log('[Cliente Login] Auto-registro: Cliente registrado en negocio', business.name)
+        } else {
+          // Actualizar última visita y contador
+          await prisma.businessCustomer.update({
+            where: {
+              businessId_customerId: {
+                businessId: business.id,
+                customerId: customer.id
+              }
+            },
+            data: {
+              lastVisit: new Date(),
+              totalVisits: { increment: 1 },
+              isActive: true // Reactivar si estaba desactivado
+            }
+          })
+        }
       }
     }
 

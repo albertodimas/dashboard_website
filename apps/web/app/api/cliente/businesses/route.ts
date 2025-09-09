@@ -8,6 +8,9 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🚀 [businesses API] Request received')
     
+    // Obtener el negocio referente desde la cookie
+    const referringBusinessId = request.cookies.get('referring-business')?.value
+    
     // Verificar token desde cookies
     const token = request.cookies.get('client-token')?.value
     console.log('🔑 [businesses API] Cookie token:', token ? 'Present' : 'Missing')
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
     const unregisteredBusinesses = customerMetadata.unregisteredBusinesses || []
     console.log('🚫 [businesses API] Negocios desregistrados:', unregisteredBusinesses)
     
-    // Buscar TODOS los customers con el mismo email y contraseña para el portal unificado
+    // Buscar TODOS los customers con el mismo email y contraseña
     const whereClause: any = {
       email: customerEmail.toLowerCase()
     }
@@ -86,27 +89,13 @@ export async function GET(request: NextRequest) {
     const allCustomersWithSameEmail = await prisma.customer.findMany({
       where: whereClause,
       include: {
-        tenant: {
+        businesses: {
+          where: {
+            isActive: true
+          },
           include: {
-            businesses: {
-              where: {
-                isActive: true,
-                isBlocked: false
-              },
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                logo: true,
-                address: true,
-                city: true,
-                state: true,
-                phone: true,
-                email: true,
-                slug: true,
-                customSlug: true,
-                businessType: true,
-                categoryId: true,
+            business: {
+              include: {
                 category: {
                   select: {
                     id: true,
@@ -130,13 +119,12 @@ export async function GET(request: NextRequest) {
     })
 
     console.log('📊 [businesses API] Customers encontrados con mismo email:', allCustomersWithSameEmail.length)
-    allCustomersWithSameEmail.forEach(c => {
-      console.log(`  📦 Customer en tenant: ${c.tenant.name} con ${c.tenant.businesses.length} negocios`)
-    })
     
-    // Combinar los negocios donde el cliente está registrado y contar appointments por customer
+    // Combinar los negocios donde el cliente está registrado
     const myBusinessesPromises = allCustomersWithSameEmail.flatMap(customer => 
-      customer.tenant.businesses.map(async business => {
+      customer.businesses.map(async businessCustomer => {
+        const business = businessCustomer.business
+        
         // Contar appointments específicos de este customer en este negocio
         const appointmentCount = await prisma.appointment.count({
           where: {
@@ -146,10 +134,25 @@ export async function GET(request: NextRequest) {
         })
         
         return {
-          ...business,
+          id: business.id,
+          name: business.name,
+          description: business.description,
+          logo: business.logo,
+          address: business.address,
+          city: business.city,
+          state: business.state,
+          phone: business.phone,
+          email: business.email,
+          slug: business.slug,
+          customSlug: business.customSlug,
+          businessType: business.businessType,
+          categoryId: business.categoryId,
+          category: business.category,
           appointmentCount,
           serviceCount: business._count.services,
-          customerId: customer.id // Incluir el customerId para este negocio
+          customerId: customer.id,
+          lastVisit: businessCustomer.lastVisit,
+          totalVisits: businessCustomer.totalVisits
         }
       })
     )
@@ -158,6 +161,19 @@ export async function GET(request: NextRequest) {
     
     // Filtrar los negocios desregistrados
     myBusinesses = myBusinesses.filter(business => !unregisteredBusinesses.includes(business.id))
+    
+    // Priorizar el negocio referente si existe
+    if (referringBusinessId) {
+      myBusinesses = myBusinesses.sort((a, b) => {
+        // El negocio referente va primero
+        if (a.id === referringBusinessId) return -1
+        if (b.id === referringBusinessId) return 1
+        // Luego ordenar por última visita (más reciente primero)
+        const aVisit = a.lastVisit ? new Date(a.lastVisit).getTime() : 0
+        const bVisit = b.lastVisit ? new Date(b.lastVisit).getTime() : 0
+        return bVisit - aVisit
+      })
+    }
     
     console.log('🎯 [businesses API] Total de negocios encontrados (después de filtrar desregistrados):', myBusinesses.length)
     if (myBusinesses.length > 0) {
