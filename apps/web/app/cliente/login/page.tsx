@@ -16,12 +16,21 @@ export default function ClientLoginPage() {
     password: '',
     confirmPassword: '',
     name: '',
+    lastName: '',
     phone: ''
   })
   const [error, setError] = useState('')
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
+    // Verificar si el usuario acaba de verificar su email
+    const verified = searchParams.get('verified')
+    if (verified === 'true') {
+      setSuccessMessage('¡Tu email ha sido verificado exitosamente! Ahora puedes iniciar sesión.')
+      setIsLogin(true)
+    }
+
     // Obtener la URL de retorno desde los parámetros o del referrer
     const from = searchParams.get('from')
     if (from) {
@@ -77,11 +86,37 @@ export default function ClientLoginPage() {
     }
 
     try {
+      // Extraer el business slug del returnUrl si existe
+      let businessSlug: string | undefined
+      const from = searchParams.get('from')
+      if (from) {
+        const decodedFrom = decodeURIComponent(from)
+        console.log('[Cliente Login] From URL:', decodedFrom)
+        
+        // Intentar extraer el slug del negocio de la URL
+        if (decodedFrom.includes('://')) {
+          // URL completa
+          const url = new URL(decodedFrom)
+          const pathMatch = url.pathname.match(/^\/([^\/\?#]+)/)
+          if (pathMatch && pathMatch[1] !== 'cliente') {
+            businessSlug = pathMatch[1]
+          }
+        } else if (decodedFrom.startsWith('/')) {
+          // Path relativo
+          const pathMatch = decodedFrom.match(/^\/([^\/\?#]+)/)
+          if (pathMatch && pathMatch[1] !== 'cliente') {
+            businessSlug = pathMatch[1]
+          }
+        }
+      }
+      
+      console.log('[Cliente Login] Extracted businessSlug:', businessSlug)
+
       const endpoint = isLogin ? '/api/cliente/auth/login' : '/api/cliente/auth/register'
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, businessSlug })
       })
 
       const data = await response.json()
@@ -141,25 +176,51 @@ export default function ClientLoginPage() {
             </p>
           </div>
 
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-700 text-sm text-center">{successMessage}</p>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre completo
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Juan Pérez"
-                    required
-                  />
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Juan"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Apellidos
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Pérez García"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div>

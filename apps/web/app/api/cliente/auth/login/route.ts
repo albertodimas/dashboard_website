@@ -5,18 +5,12 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-refresh-secret-change-in-production'
-const MAX_LOGIN_ATTEMPTS = 5
-const LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutos
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { email, password, businessSlug } = await request.json()
     
-    // Obtener IP y User Agent para tracking
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     'unknown'
-    const userAgent = request.headers.get('user-agent') || 'unknown'
+    console.log('[Cliente Login] Email:', email, 'BusinessSlug:', businessSlug)
 
     if (!email || !password) {
       return NextResponse.json(
@@ -25,69 +19,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar intentos de login recientes
-    const recentAttempts = await prisma.loginAttempt.count({
-      where: {
-        email: email.toLowerCase(),
-        success: false,
-        attemptedAt: {
-          gte: new Date(Date.now() - LOCKOUT_DURATION)
-        }
-      }
-    })
-
-    // Si hay 5 o más intentos fallidos en los últimos 15 minutos, bloquear
-    if (recentAttempts >= MAX_LOGIN_ATTEMPTS) {
-      const lastAttempt = await prisma.loginAttempt.findFirst({
+    // Si se proporciona businessSlug, buscar el tenant correspondiente
+    let tenantId: string | undefined
+    if (businessSlug) {
+      const business = await prisma.business.findFirst({
         where: {
-          email: email.toLowerCase(),
-          success: false
-        },
-        orderBy: { attemptedAt: 'desc' }
+          OR: [
+            { slug: businessSlug },
+            { customSlug: businessSlug }
+          ]
+        }
       })
-
-      const minutesRemaining = Math.ceil(
-        (LOCKOUT_DURATION - (Date.now() - (lastAttempt?.attemptedAt?.getTime() || 0))) / 60000
-      )
-
-      return NextResponse.json(
-        { 
-          error: `Cuenta bloqueada temporalmente por seguridad. Intenta de nuevo en ${minutesRemaining} minutos.`,
-          locked: true,
-          minutesRemaining
-        },
-        { status: 429 }
-      )
+      if (business) {
+        tenantId = business.tenantId
+        console.log('[Cliente Login] Business found:', business.name, 'TenantID:', tenantId)
+      }
     }
 
-    // Buscar cliente por email
+    // Buscar cliente por email y opcionalmente por tenant
     const customer = await prisma.customer.findFirst({
       where: {
-        email: email.toLowerCase()
+        email: email.toLowerCase(),
+        ...(tenantId ? { tenantId } : {})
       }
     })
+    
+    console.log('[Cliente Login] Customer found:', customer?.id, 'TenantID:', customer?.tenantId)
 
     if (!customer) {
-      // Registrar intento fallido
-      await prisma.loginAttempt.create({
-        data: {
-          email: email.toLowerCase(),
-          ipAddress,
-          userAgent,
-          success: false,
-          customerId: null
-        }
-      })
-
-      const attemptsLeft = MAX_LOGIN_ATTEMPTS - recentAttempts - 1
-      
       return NextResponse.json(
         { 
-          error: 'Credenciales inválidas',
-          attemptsLeft: attemptsLeft > 0 ? attemptsLeft : 0,
-          warning: attemptsLeft <= 2 && attemptsLeft > 0 ? 
-            `Te quedan ${attemptsLeft} intento${attemptsLeft === 1 ? '' : 's'} antes de que tu cuenta sea bloqueada temporalmente.` : 
-            undefined
+          error: 'Credenciales inválidas'
         },
         { status: 401 }
       )
@@ -99,52 +61,31 @@ export async function POST(request: NextRequest) {
       : false
 
     if (!isValidPassword) {
-      // Registrar intento fallido
-      await prisma.loginAttempt.create({
-        data: {
-          email: email.toLowerCase(),
-          ipAddress,
-          userAgent,
-          success: false,
-          customerId: customer.id
-        }
-      })
-
-      const attemptsLeft = MAX_LOGIN_ATTEMPTS - recentAttempts - 1
-      
       return NextResponse.json(
         { 
-          error: 'Credenciales inválidas',
-          attemptsLeft: attemptsLeft > 0 ? attemptsLeft : 0,
-          warning: attemptsLeft <= 2 && attemptsLeft > 0 ? 
-            `Te quedan ${attemptsLeft} intento${attemptsLeft === 1 ? '' : 's'} antes de que tu cuenta sea bloqueada temporalmente.` : 
-            undefined
+          error: 'Credenciales inválidas'
         },
         { status: 401 }
       )
     }
 
-    // Login exitoso - registrar intento exitoso
-    await prisma.loginAttempt.create({
-      data: {
-        email: email.toLowerCase(),
-        ipAddress,
-        userAgent,
-        success: true,
-        customerId: customer.id
-      }
-    })
-
-    // Limpiar intentos fallidos antiguos (opcional)
-    await prisma.loginAttempt.deleteMany({
-      where: {
-        customerId: customer.id,
-        success: false,
-        attemptedAt: {
-          lt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Más de 24 horas
+    // Si se está logueando desde una página de negocio, guardar referencia
+    let referringBusinessId: string | undefined
+    if (businessSlug) {
+      const business = await prisma.business.findFirst({
+        where: {
+          OR: [
+            { slug: businessSlug },
+            { customSlug: businessSlug }
+          ]
         }
+      })
+      
+      if (business) {
+        referringBusinessId = business.id
+        console.log('[Cliente Login] Accediendo desde el negocio:', business.name)
       }
-    })
+    }
 
     // Generar tokens JWT (access y refresh)
     const token = jwt.sign(
@@ -216,12 +157,14 @@ export async function POST(request: NextRequest) {
       customer: {
         id: customer.id,
         name: customer.name,
+        lastName: customer.lastName,
         email: customer.email,
         phone: customer.phone,
         emailVerified: customer.emailVerified
       },
       packages,
-      appointments
+      appointments,
+      referringBusinessId // ID del negocio desde donde se logueó
     })
 
     // Establecer cookies HTTP-only seguras
@@ -240,6 +183,17 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 30, // 30 días
       path: '/'
     })
+
+    // Si hay un negocio de referencia, guardarlo en una cookie
+    if (referringBusinessId) {
+      response.cookies.set('referring-business', referringBusinessId, {
+        httpOnly: false, // No httpOnly para que el cliente pueda leerlo
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24, // 24 horas
+        path: '/'
+      })
+    }
 
     return response
 

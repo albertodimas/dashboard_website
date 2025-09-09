@@ -8,11 +8,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name, phone } = await request.json()
+    const { email, password, name, lastName, phone } = await request.json()
 
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !lastName) {
       return NextResponse.json(
-        { error: 'Email, contraseña y nombre son requeridos' },
+        { error: 'Email, contraseña, nombre y apellidos son requeridos' },
         { status: 400 }
       )
     }
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
           data: {
             password: hashedPassword,
             name: name || existingCustomer.name,
+            lastName: lastName || existingCustomer.lastName,
             phone: phone || existingCustomer.phone
           }
         })
@@ -73,19 +74,27 @@ export async function POST(request: NextRequest) {
           { expiresIn: '7d' }
         )
 
-        return NextResponse.json({
+        // Guardar temporalmente el customerId para la verificación
+        const response = NextResponse.json({
           success: true,
-          token,
           customer: {
             id: updatedCustomer.id,
-            name: updatedCustomer.name,
-            email: updatedCustomer.email,
-            phone: updatedCustomer.phone,
-            emailVerified: false
+            email: updatedCustomer.email
           },
           message: 'Cuenta actualizada. Por favor verifica tu email.',
           requiresVerification: true
         })
+
+        // Establecer cookie temporal solo con el ID para verificación
+        response.cookies.set('verification-pending', updatedCustomer.id, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 60 * 15, // 15 minutos para verificar
+          path: '/'
+        })
+
+        return response
       } else {
         return NextResponse.json(
           { error: 'Este email ya está registrado' },
@@ -112,6 +121,7 @@ export async function POST(request: NextRequest) {
         tenantId: defaultTenant.id,
         email: email.toLowerCase(),
         name,
+        lastName,
         phone,
         password: hashedPassword,
         emailVerified: false,
@@ -162,19 +172,27 @@ export async function POST(request: NextRequest) {
       { expiresIn: '7d' }
     )
 
-    return NextResponse.json({
+    // Guardar temporalmente el customerId para la verificación
+    const response = NextResponse.json({
       success: true,
-      token,
       customer: {
         id: newCustomer.id,
-        name: newCustomer.name,
-        email: newCustomer.email,
-        phone: newCustomer.phone,
-        emailVerified: false
+        email: newCustomer.email
       },
       message: 'Cuenta creada exitosamente. Por favor verifica tu email.',
       requiresVerification: true
     })
+
+    // Establecer cookie temporal solo con el ID para verificación
+    response.cookies.set('verification-pending', newCustomer.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 15, // 15 minutos para verificar
+      path: '/'
+    })
+
+    return response
 
   } catch (error) {
     console.error('Register error:', error)

@@ -6,7 +6,7 @@ import {
   Package, Calendar, Clock, User, LogOut, ChevronRight, 
   Gift, MapPin, Phone, Mail, Star, Home, History, Plus,
   Building2, Sparkles, Compass, ShieldCheck, Edit2, Save, X,
-  Trash2, AlertCircle
+  Trash2, AlertCircle, XCircle, ExternalLink
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -38,8 +38,12 @@ interface Appointment {
     duration: number
   }
   business: {
+    id: string
     name: string
     address: string
+    phone?: string
+    slug?: string
+    customSlug?: string
   }
   staff?: {
     name: string
@@ -51,6 +55,7 @@ interface Business {
   name: string
   description?: string
   logo?: string
+  imageUrl?: string
   address: string
   city: string
   state: string
@@ -70,6 +75,9 @@ interface Business {
     color?: string
   }
   customerId?: string
+  phone?: string
+  email?: string
+  zipCode?: string
 }
 
 // Componente de sección de perfil
@@ -80,6 +88,7 @@ function ProfileSection({ customer, onProfileUpdate }: { customer: any, onProfil
   const [success, setSuccess] = useState('')
   const [formData, setFormData] = useState({
     name: customer?.name || '',
+    lastName: customer?.lastName || '',
     phone: customer?.phone || '',
     address: customer?.address || '',
     city: customer?.city || '',
@@ -91,6 +100,7 @@ function ProfileSection({ customer, onProfileUpdate }: { customer: any, onProfil
     if (customer) {
       setFormData({
         name: customer.name || '',
+        lastName: customer.lastName || '',
         phone: customer.phone || '',
         address: customer.address || '',
         city: customer.city || '',
@@ -103,6 +113,7 @@ function ProfileSection({ customer, onProfileUpdate }: { customer: any, onProfil
   const handleCancel = () => {
     setFormData({
       name: customer?.name || '',
+      lastName: customer?.lastName || '',
       phone: customer?.phone || '',
       address: customer?.address || '',
       city: customer?.city || '',
@@ -216,7 +227,7 @@ function ProfileSection({ customer, onProfileUpdate }: { customer: any, onProfil
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre completo *
+            Nombre *
           </label>
           {isEditing ? (
             <input
@@ -224,10 +235,27 @@ function ProfileSection({ customer, onProfileUpdate }: { customer: any, onProfil
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Juan Pérez"
+              placeholder="Juan"
             />
           ) : (
             <p className="text-gray-900 py-2">{customer?.name}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Apellidos
+          </label>
+          {isEditing ? (
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Pérez García"
+            />
+          ) : (
+            <p className="text-gray-900 py-2">{customer?.lastName || 'No especificado'}</p>
           )}
         </div>
 
@@ -354,6 +382,8 @@ export default function ClientDashboard() {
   const [showBusinessSelector, setShowBusinessSelector] = useState(false)
   const [businessToUnregister, setBusinessToUnregister] = useState<Business | null>(null)
   const [isUnregistering, setIsUnregistering] = useState(false)
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [preferredBusinessId, setPreferredBusinessId] = useState<string | null>(() => {
     // Inicializar el preferredBusinessId desde la URL inmediatamente
     if (typeof window !== 'undefined') {
@@ -461,44 +491,26 @@ export default function ClientDashboard() {
         const data = await dashboardResponse.json()
         console.log('✅ [fetchDashboardData] Dashboard data received:', {
           packagesCount: data.packages?.length || 0,
-          appointmentsCount: data.appointments?.length || 0
+          appointmentsCount: data.appointments?.length || 0,
+          myBusinessesCount: data.myBusinesses?.length || 0,
+          businessesToExploreCount: data.businessesToExplore?.length || 0
         })
+        
+        // Set all data from dashboard response
         setPackages(data.packages || [])
         setAppointments(data.appointments || [])
-        // Set customer data from dashboard response
+        
         if (data.customer) {
           setCustomer(data.customer)
         }
-      } else if (dashboardResponse.status === 401) {
-        console.error('❌ [fetchDashboardData] Not authenticated, redirecting to login')
-        router.push('/cliente/login')
-        return
-      } else {
-        console.error('❌ [fetchDashboardData] Dashboard request failed:', dashboardResponse.status)
-      }
-
-      // Fetch businesses data
-      console.log('📡 [fetchDashboardData] Fetching /api/cliente/businesses')
-      const businessesResponse = await fetch('/api/cliente/businesses')
-
-      console.log('📦 [fetchDashboardData] Businesses response status:', businessesResponse.status)
-      console.log('📦 [fetchDashboardData] Businesses response headers:', Object.fromEntries(businessesResponse.headers.entries()))
-      
-      if (businessesResponse.ok) {
-        const businessData = await businessesResponse.json()
-        console.log('✅ [fetchDashboardData] Business data received:', {
-          myBusinesses: businessData.myBusinesses,
-          myBusinessesCount: businessData.myBusinesses?.length || 0,
-          suggestedBusinessesCount: businessData.suggestedBusinesses?.length || 0,
-          success: businessData.success
-        })
         
-        if (businessData.myBusinesses && businessData.myBusinesses.length > 0) {
-          console.log('✅ [fetchDashboardData] Setting myBusinesses with data:', businessData.myBusinesses)
+        // Handle businesses data
+        if (data.myBusinesses && data.myBusinesses.length > 0) {
+          console.log('✅ [fetchDashboardData] Setting myBusinesses with data:', data.myBusinesses)
           
           // Reordenar si hay un negocio preferido
-          let orderedBusinesses = businessData.myBusinesses
-          const bizIdToUse = preferredBizId || preferredBusinessId
+          let orderedBusinesses = data.myBusinesses
+          const bizIdToUse = preferredBizId || preferredBusinessId || data.referringBusinessId
           if (bizIdToUse) {
             console.log('🔍 [fetchDashboardData] Aplicando orden con preferido:', bizIdToUse)
             const preferredIndex = orderedBusinesses.findIndex((b: Business) => 
@@ -524,13 +536,16 @@ export default function ClientDashboard() {
           console.warn('⚠️ [fetchDashboardData] No businesses found for user')
           setMyBusinesses([])
         }
-        setSuggestedBusinesses(businessData.suggestedBusinesses || [])
+        
+        // Set businesses to explore
+        setSuggestedBusinesses(data.businessesToExplore || [])
+        
+      } else if (dashboardResponse.status === 401) {
+        console.error('❌ [fetchDashboardData] Not authenticated, redirecting to login')
+        router.push('/cliente/login')
+        return
       } else {
-        const errorText = await businessesResponse.text()
-        console.error('❌ [fetchDashboardData] Businesses request failed:', {
-          status: businessesResponse.status,
-          error: errorText
-        })
+        console.error('❌ [fetchDashboardData] Dashboard request failed:', dashboardResponse.status)
       }
     } catch (error) {
       console.error('❌ [fetchDashboardData] Error:', error)
@@ -559,6 +574,42 @@ export default function ClientDashboard() {
       console.error('Error durante logout:', error)
       // Incluso si hay error, redirigir
       router.push('/cliente/login')
+    }
+  }
+
+  const handleCancelAppointment = async () => {
+    if (!appointmentToCancel) return
+
+    setIsCancelling(true)
+    try {
+      const response = await fetch('/api/cliente/appointments/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId: appointmentToCancel.id })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || 'Error al cancelar la cita')
+        return
+      }
+
+      // Actualizar la lista de citas
+      setAppointments(appointments.map(apt => 
+        apt.id === appointmentToCancel.id 
+          ? { ...apt, status: 'CANCELLED' }
+          : apt
+      ))
+      setAppointmentToCancel(null)
+      alert('Cita cancelada exitosamente')
+      
+      // Recargar datos
+      fetchDashboardData()
+    } catch (error) {
+      alert('Error al procesar la solicitud')
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -645,9 +696,9 @@ export default function ClientDashboard() {
                     className="flex items-center space-x-3 p-2 hover:bg-green-50 rounded-lg transition-colors"
                     onClick={() => setShowBusinessSelector(false)}
                   >
-                    {business.logo && (
+                    {(business.imageUrl || business.logo) && (
                       <img 
-                        src={business.logo} 
+                        src={business.imageUrl || business.logo} 
                         alt={business.name}
                         className="w-10 h-10 rounded-lg object-cover"
                       />
@@ -674,7 +725,7 @@ export default function ClientDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{customer?.name}</p>
+                <p className="text-sm font-medium text-gray-900">{customer?.name}{customer?.lastName ? ` ${customer.lastName}` : ''}</p>
                 <p className="text-xs text-gray-500">{customer?.email}</p>
               </div>
               <button
@@ -784,27 +835,27 @@ export default function ClientDashboard() {
                   </Link>
                 )}
                 
-                <Link
-                  href="/cliente/appointments"
-                  className="flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors"
+                <button
+                  onClick={() => setActiveTab('appointments')}
+                  className="flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors w-full"
                 >
                   <div className="flex items-center space-x-3">
                     <History className="text-blue-600" size={24} />
                     <span className="font-medium">Mis Citas</span>
                   </div>
                   <ChevronRight className="text-gray-400" size={20} />
-                </Link>
+                </button>
 
-                <Link
-                  href="/cliente/packages"
-                  className="flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors"
+                <button
+                  onClick={() => setActiveTab('packages')}
+                  className="flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors w-full"
                 >
                   <div className="flex items-center space-x-3">
                     <Package className="text-purple-600" size={24} />
                     <span className="font-medium">Mis Paquetes</span>
                   </div>
                   <ChevronRight className="text-gray-400" size={20} />
-                </Link>
+                </button>
               </div>
             </div>
 
@@ -877,9 +928,9 @@ export default function ClientDashboard() {
                           className="block"
                         >
                           <div className="flex items-start space-x-3 mb-3">
-                            {business.logo ? (
+                            {(business.imageUrl || business.logo) ? (
                               <img 
-                                src={business.logo} 
+                                src={business.imageUrl || business.logo} 
                                 alt={business.name}
                                 className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-gray-200"
                               />
@@ -947,9 +998,9 @@ export default function ClientDashboard() {
                               className="bg-white/70 backdrop-blur rounded-lg p-3 hover:bg-white hover:shadow-md transition-all group border border-purple-100"
                             >
                               <div className="flex items-center space-x-2">
-                                {business.logo ? (
+                                {(business.imageUrl || business.logo) ? (
                                   <img 
-                                    src={business.logo} 
+                                    src={business.imageUrl || business.logo} 
                                     alt={business.name}
                                     className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                                   />
@@ -1172,47 +1223,208 @@ export default function ClientDashboard() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {appointments.map((apt) => (
-                  <div key={apt.id} className="bg-white rounded-xl shadow-sm p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex space-x-4">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <Calendar className="text-blue-600" size={24} />
-                        </div>
+              <div className="space-y-6">
+                {/* Separar citas por tiempo y agrupar por negocio */}
+                {(() => {
+                  const now = new Date()
+                  const futureAppointments = appointments.filter(apt => new Date(apt.startTime) >= now)
+                  const pastAppointments = appointments.filter(apt => new Date(apt.startTime) < now)
+                  
+                  // Agrupar por negocio
+                  const groupByBusiness = (apts: Appointment[]) => {
+                    const grouped: { [key: string]: Appointment[] } = {}
+                    apts.forEach(apt => {
+                      const businessName = apt.business.name
+                      if (!grouped[businessName]) {
+                        grouped[businessName] = []
+                      }
+                      grouped[businessName].push(apt)
+                    })
+                    return grouped
+                  }
+                  
+                  const futureGrouped = groupByBusiness(futureAppointments)
+                  const pastGrouped = groupByBusiness(pastAppointments)
+                  
+                  return (
+                    <>
+                      {/* Citas Futuras */}
+                      {futureAppointments.length > 0 && (
                         <div>
-                          <h3 className="font-semibold text-gray-900">{apt.service.name}</h3>
-                          <p className="text-sm text-gray-600 mt-1">{apt.business.name}</p>
-                          <div className="mt-2 space-y-1">
-                            <p className="text-sm text-gray-500 flex items-center">
-                              <Clock className="mr-1" size={14} />
-                              {new Date(apt.startTime).toLocaleString()}
-                            </p>
-                            {apt.staff && (
-                              <p className="text-sm text-gray-500 flex items-center">
-                                <User className="mr-1" size={14} />
-                                Con {apt.staff.name}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-500 flex items-center">
-                              <MapPin className="mr-1" size={14} />
-                              {apt.business.address}
-                            </p>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm mr-3">
+                              Próximas
+                            </span>
+                            {futureAppointments.length} cita{futureAppointments.length !== 1 ? 's' : ''} programada{futureAppointments.length !== 1 ? 's' : ''}
+                          </h3>
+                          <div className="space-y-4">
+                            {Object.entries(futureGrouped).map(([businessName, businessApts]) => (
+                              <div key={businessName} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-3 border-b">
+                                  <h4 className="font-medium text-gray-900 flex items-center">
+                                    <Building2 className="mr-2 text-blue-600" size={18} />
+                                    {businessName}
+                                    <span className="ml-2 text-sm text-gray-500">
+                                      ({businessApts.length} cita{businessApts.length !== 1 ? 's' : ''})
+                                    </span>
+                                  </h4>
+                                </div>
+                                <div className="divide-y">
+                                  {businessApts.map((apt) => (
+                                    <div key={apt.id} className="p-6 hover:bg-gray-50 transition-colors">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex space-x-4">
+                                          <div className="p-3 bg-blue-100 rounded-lg">
+                                            <Calendar className="text-blue-600" size={24} />
+                                          </div>
+                                          <div>
+                                            <h3 className="font-semibold text-gray-900">{apt.service.name}</h3>
+                                            <div className="mt-2 space-y-1">
+                                              <p className="text-sm text-gray-600 flex items-center font-medium">
+                                                <Clock className="mr-1 text-green-600" size={14} />
+                                                {new Date(apt.startTime).toLocaleDateString('es-ES', { 
+                                                  weekday: 'long', 
+                                                  year: 'numeric', 
+                                                  month: 'long', 
+                                                  day: 'numeric' 
+                                                })}
+                                                {' a las '}
+                                                {new Date(apt.startTime).toLocaleTimeString('es-ES', { 
+                                                  hour: '2-digit', 
+                                                  minute: '2-digit' 
+                                                })}
+                                              </p>
+                                              {apt.staff && (
+                                                <p className="text-sm text-gray-500 flex items-center">
+                                                  <User className="mr-1" size={14} />
+                                                  Con {apt.staff.name}
+                                                </p>
+                                              )}
+                                              <p className="text-sm text-gray-500 flex items-center">
+                                                <MapPin className="mr-1" size={14} />
+                                                {apt.business.address}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                          <span className={`px-3 py-1 text-sm rounded-full ${
+                                            apt.status === 'CONFIRMED' 
+                                              ? 'bg-green-100 text-green-700' 
+                                              : apt.status === 'PENDING'
+                                              ? 'bg-yellow-100 text-yellow-700'
+                                              : 'bg-gray-100 text-gray-700'
+                                          }`}>
+                                            {apt.status === 'CONFIRMED' ? 'Confirmada' : 
+                                             apt.status === 'PENDING' ? 'Pendiente' : apt.status}
+                                          </span>
+                                          <div className="flex flex-col gap-1.5">
+                                            <Link
+                                              href={`/${apt.business.customSlug || apt.business.slug}`}
+                                              className="px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center gap-1.5"
+                                            >
+                                              <ExternalLink size={14} />
+                                              Ver negocio
+                                            </Link>
+                                            {new Date(apt.startTime) > new Date() && apt.status === 'CONFIRMED' && (
+                                              <button
+                                                onClick={() => setAppointmentToCancel(apt)}
+                                                className="px-3 py-1.5 text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors flex items-center justify-center gap-1.5"
+                                                title="Cancelar cita"
+                                              >
+                                                <XCircle size={14} />
+                                                Cancelar
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                      <span className={`px-3 py-1 text-sm rounded-full ${
-                        apt.status === 'CONFIRMED' 
-                          ? 'bg-green-100 text-green-700' 
-                          : apt.status === 'CANCELLED'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {apt.status === 'CONFIRMED' ? 'Confirmada' : apt.status === 'CANCELLED' ? 'Cancelada' : 'Pendiente'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                      )}
+                      
+                      {/* Citas Pasadas */}
+                      {pastAppointments.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm mr-3">
+                              Historial
+                            </span>
+                            {pastAppointments.length} cita{pastAppointments.length !== 1 ? 's' : ''} pasada{pastAppointments.length !== 1 ? 's' : ''}
+                          </h3>
+                          <div className="space-y-4">
+                            {Object.entries(pastGrouped).map(([businessName, businessApts]) => (
+                              <div key={businessName} className="bg-white rounded-xl shadow-sm overflow-hidden opacity-75">
+                                <div className="bg-gray-50 px-6 py-3 border-b">
+                                  <h4 className="font-medium text-gray-700 flex items-center">
+                                    <Building2 className="mr-2 text-gray-500" size={18} />
+                                    {businessName}
+                                    <span className="ml-2 text-sm text-gray-500">
+                                      ({businessApts.length} cita{businessApts.length !== 1 ? 's' : ''})
+                                    </span>
+                                  </h4>
+                                </div>
+                                <div className="divide-y">
+                                  {businessApts.map((apt) => (
+                                    <div key={apt.id} className="p-6">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex space-x-4">
+                                          <div className="p-3 bg-gray-100 rounded-lg">
+                                            <History className="text-gray-500" size={24} />
+                                          </div>
+                                          <div>
+                                            <h3 className="font-medium text-gray-700">{apt.service.name}</h3>
+                                            <div className="mt-2 space-y-1">
+                                              <p className="text-sm text-gray-500 flex items-center">
+                                                <Clock className="mr-1" size={14} />
+                                                {new Date(apt.startTime).toLocaleDateString('es-ES', { 
+                                                  weekday: 'short', 
+                                                  year: 'numeric', 
+                                                  month: 'short', 
+                                                  day: 'numeric' 
+                                                })}
+                                                {' - '}
+                                                {new Date(apt.startTime).toLocaleTimeString('es-ES', { 
+                                                  hour: '2-digit', 
+                                                  minute: '2-digit' 
+                                                })}
+                                              </p>
+                                              {apt.staff && (
+                                                <p className="text-sm text-gray-500 flex items-center">
+                                                  <User className="mr-1" size={14} />
+                                                  Con {apt.staff.name}
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <span className={`px-3 py-1 text-sm rounded-full ${
+                                          apt.status === 'COMPLETED' 
+                                            ? 'bg-gray-100 text-gray-600' 
+                                            : apt.status === 'NO_SHOW'
+                                            ? 'bg-red-100 text-red-600'
+                                            : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                          {apt.status === 'COMPLETED' ? 'Completada' : 
+                                           apt.status === 'NO_SHOW' ? 'No asistió' : apt.status}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             )}
           </div>
@@ -1223,6 +1435,90 @@ export default function ClientDashboard() {
           <ProfileSection customer={customer} onProfileUpdate={(updatedCustomer) => setCustomer(updatedCustomer)} />
         )}
       </main>
+
+      {/* Modal de confirmación para cancelar cita */}
+      {appointmentToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-start mb-4">
+              <div className="flex-shrink-0 p-3 bg-amber-100 rounded-full">
+                <AlertCircle className="text-amber-600" size={24} />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  ¿Cancelar esta cita?
+                </h3>
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm text-gray-600">
+                    <strong>Servicio:</strong> {appointmentToCancel.service.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Fecha:</strong> {new Date(appointmentToCancel.startTime).toLocaleDateString('es-ES', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Hora:</strong> {new Date(appointmentToCancel.startTime).toLocaleTimeString('es-ES', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Negocio:</strong> {appointmentToCancel.business.name}
+                  </p>
+                </div>
+                
+                {(() => {
+                  const hoursUntil = (new Date(appointmentToCancel.startTime).getTime() - Date.now()) / (1000 * 60 * 60)
+                  if (hoursUntil < 24) {
+                    return (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-sm text-amber-800 font-medium">
+                          ⚠️ Cancelación tardía
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          Faltan menos de 24 horas para tu cita. Considera contactar directamente al negocio si necesitas reprogramar.
+                        </p>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setAppointmentToCancel(null)}
+                disabled={isCancelling}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+              >
+                No, mantener cita
+              </button>
+              <button
+                onClick={handleCancelAppointment}
+                disabled={isCancelling}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Cancelando...
+                  </>
+                ) : (
+                  <>
+                    <XCircle size={16} className="mr-2" />
+                    Sí, cancelar cita
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmación para desregistro */}
       {businessToUnregister && (

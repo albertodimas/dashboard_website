@@ -147,25 +147,6 @@ export default function LoginPage() {
               </span>
             </div>
 
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-50 text-gray-500">{t('demoAccounts')}</span>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-2 text-sm text-gray-600">
-                <p>
-                  <strong>{t('owner')}:</strong> owner@luxurycuts.com / password123
-                </p>
-                <p>
-                  <strong>{t('owner')}:</strong> owner@glamournails.com / password123
-                </p>
-              </div>
-            </div>
           </form>
         </div>
       </div>

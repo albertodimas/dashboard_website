@@ -10,20 +10,33 @@ export default function VerifyEmailPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [customerId, setCustomerId] = useState<string | null>(null)
+  const [customerEmail, setCustomerEmail] = useState<string>('')
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [checkingAuth, setCheckingAuth] = useState(true)
 
   useEffect(() => {
-    // Obtener datos del cliente del localStorage
-    const clientData = localStorage.getItem('clientData')
-    if (clientData) {
-      const data = JSON.parse(clientData)
-      setCustomerId(data.id)
-    } else {
-      // Si no hay datos, redirigir al login
+    // Verificar si el usuario tiene una sesión activa
+    checkAuthStatus()
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      // Obtener el ID temporal de la cookie de verificación
+      const response = await fetch('/api/cliente/auth/check-verification-pending')
+      if (response.ok) {
+        const data = await response.json()
+        setCustomerEmail(data.email)
+      } else {
+        // Si no hay cookie de verificación pendiente, redirigir al login
+        router.push('/cliente/login')
+      }
+    } catch (error) {
+      console.error('Error checking verification status:', error)
       router.push('/cliente/login')
+    } finally {
+      setCheckingAuth(false)
     }
-  }, [router])
+  }
 
   useEffect(() => {
     // Cooldown timer para reenviar código
@@ -81,8 +94,7 @@ export default function VerifyEmailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: verificationCode,
-          customerId
+          code: verificationCode
         })
       })
 
@@ -91,19 +103,19 @@ export default function VerifyEmailPage() {
       if (!response.ok) {
         throw new Error(data.error || 'Error al verificar código')
       }
-
-      // Actualizar token y datos en localStorage
-      localStorage.setItem('clientToken', data.token)
-      localStorage.setItem('clientData', JSON.stringify(data.customer))
       
       setSuccess(true)
       
-      // Redirigir después de 2 segundos
+      // Redirigir al login después de 2 segundos
       setTimeout(() => {
-        router.push('/cliente/dashboard')
+        router.push('/cliente/login?verified=true')
       }, 2000)
     } catch (err: any) {
       setError(err.message)
+      // Limpiar el código en caso de error
+      setCode(['', '', '', '', '', ''])
+      const firstInput = document.getElementById('code-0')
+      if (firstInput) firstInput.focus()
     } finally {
       setIsLoading(false)
     }
@@ -116,10 +128,10 @@ export default function VerifyEmailPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/cliente/auth/verify', {
-        method: 'PUT',
+      const response = await fetch('/api/cliente/auth/resend-verification', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId })
+        body: JSON.stringify({})
       })
 
       const data = await response.json()
@@ -129,12 +141,8 @@ export default function VerifyEmailPage() {
       }
 
       setResendCooldown(60) // 60 segundos de cooldown
-      setCode(['', '', '', '', '', ''])
-      setError('')
-      
-      // Focus en el primer input
-      const firstInput = document.getElementById('code-0')
-      if (firstInput) firstInput.focus()
+      setError('') // Limpiar errores
+      alert('Código reenviado. Revisa tu email.')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -142,15 +150,26 @@ export default function VerifyEmailPage() {
     }
   }
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Verificando...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <CheckCircle className="text-green-500 mx-auto mb-4" size={64} />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               ¡Email Verificado!
-            </h1>
+            </h2>
             <p className="text-gray-600">
               Tu cuenta ha sido verificada exitosamente. Redirigiendo...
             </p>
@@ -173,72 +192,83 @@ export default function VerifyEmailPage() {
               Verifica tu Email
             </h1>
             <p className="text-gray-600 mt-2">
-              Ingresa el código de 6 dígitos que enviamos a tu correo
+              Hemos enviado un código de 6 dígitos a:
+            </p>
+            <p className="font-semibold text-gray-900 mt-1">
+              {customerEmail}
             </p>
           </div>
 
-          {/* Code Input */}
-          <div className="flex justify-center gap-2 mb-6">
-            {code.map((digit, index) => (
-              <input
-                key={index}
-                id={`code-${index}`}
-                type="text"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleCodeChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                disabled={isLoading || success}
-              />
-            ))}
-          </div>
-
+          {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4 flex items-center">
-              <XCircle className="mr-2" size={20} />
-              {error}
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
+              <XCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Code Input */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Ingresa el código de verificación
+            </label>
+            <div className="flex gap-2 justify-center">
+              {code.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`code-${index}`}
+                  type="text"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleCodeChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  disabled={isLoading}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* Verify Button */}
           <button
             onClick={handleVerify}
             disabled={isLoading || code.join('').length !== 6}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold py-3 rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mb-4"
+            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <RefreshCw className="w-5 h-5 animate-spin" />
             ) : (
               <>
-                Verificar Código
+                Verificar Email
                 <ArrowRight className="ml-2" size={20} />
               </>
             )}
           </button>
 
           {/* Resend Code */}
-          <div className="text-center">
-            <p className="text-gray-600 text-sm mb-2">
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 mb-2">
               ¿No recibiste el código?
             </p>
             <button
               onClick={handleResendCode}
               disabled={isLoading || resendCooldown > 0}
-              className="text-blue-600 hover:text-blue-700 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
-              <RefreshCw className="mr-1" size={16} />
               {resendCooldown > 0 
-                ? `Reenviar en ${resendCooldown}s`
+                ? `Reenviar código en ${resendCooldown}s`
                 : 'Reenviar código'}
             </button>
           </div>
 
-          {/* Info */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-700 text-center">
-              El código expira en 15 minutos. Si no lo encuentras, revisa tu carpeta de spam.
-            </p>
+          {/* Back to Login */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => router.push('/cliente/login')}
+              className="text-sm text-gray-600 hover:text-gray-700"
+            >
+              Volver al inicio de sesión
+            </button>
           </div>
         </div>
       </div>

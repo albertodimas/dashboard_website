@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        lastName: true,
         email: true,
         phone: true,
         address: true,
@@ -115,7 +116,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, phone, address, city, state, postalCode } = body
+    const { name, lastName, phone, address, city, state, postalCode } = body
 
     // Validaciones básicas
     if (!name || name.trim().length < 2) {
@@ -144,6 +145,7 @@ export async function PUT(request: NextRequest) {
       where: { id: decoded.customerId },
       data: {
         name: name.trim(),
+        lastName: lastName ? lastName.trim() : null,
         phone: phone ? phone.trim() : null,
         address: address ? address.trim() : null,
         city: city ? city.trim() : null,
@@ -154,6 +156,7 @@ export async function PUT(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        lastName: true,
         email: true,
         phone: true,
         address: true,

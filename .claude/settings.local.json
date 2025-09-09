@@ -122,7 +122,11 @@
       "Read(//c/Users/alber/Downloads/**)",
       "mcp__playwright-advanced__playwright_evaluate",
       "Bash(npm install:*)",
-      "mcp__playwright-advanced__playwright_press_key"
+      "mcp__playwright-advanced__playwright_press_key",
+      "Bash(npx ts-node:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": [],

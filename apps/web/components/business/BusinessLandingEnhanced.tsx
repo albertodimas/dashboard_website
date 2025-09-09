@@ -268,11 +268,14 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         setMyAppointments(data.appointments || [])
         
       } else {
-        // Normal login
+        // Normal login - incluir el businessSlug para determinar el tenant correcto
         const response = await fetch('/api/cliente/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(loginForm)
+          body: JSON.stringify({
+            ...loginForm,
+            businessSlug: business.customSlug || business.slug
+          })
         })
 
         const data = await response.json()
@@ -606,22 +609,18 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               {/* User menu */}
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
-                  {isRegistered && (
-                    <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-green-100 rounded-full">
-                      <UserCheck className="w-4 h-4 text-green-600" />
-                      <span className="text-xs font-medium text-green-700">Cliente Registrado</span>
-                    </div>
-                  )}
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
-                    <UserCircle className="w-5 h-5 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">{clientData?.name}</span>
-                  </div>
                   <Link
                     href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
-                    className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                    title="Mi Portal"
+                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full hover:from-blue-100 hover:to-purple-100 transition-all group"
+                    title="Ir a Mi Portal"
                   >
-                    <UserCircle className="w-5 h-5 text-blue-600" />
+                    <UserCircle className="w-5 h-5 text-blue-600 group-hover:text-blue-700" />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                      {clientData?.name?.split(' ')[0] || clientData?.name}
+                    </span>
+                    {isRegistered && (
+                      <Check className="w-4 h-4 text-green-600 ml-1" title="Cliente registrado en este negocio" />
+                    )}
                   </Link>
                   <button
                     onClick={() => logout()}
@@ -633,7 +632,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 </div>
               ) : (
                 <button
-                  onClick={() => setShowLoginModal(true)}
+                  onClick={() => {
+                    const currentUrl = encodeURIComponent(window.location.href)
+                    window.location.href = `/cliente/login?from=${currentUrl}`
+                  }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <LogIn className="w-5 h-5 text-gray-600" />
@@ -751,7 +753,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 </Link>
               ) : (
                 <button
-                  onClick={() => setShowLoginModal(true)}
+                  onClick={() => {
+                    const currentUrl = encodeURIComponent(window.location.href)
+                    window.location.href = `/cliente/login?from=${currentUrl}`
+                  }}
                   className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
                 >
                   <LogIn className="w-5 h-5" />

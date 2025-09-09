@@ -6,12 +6,22 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 
 export async function POST(request: NextRequest) {
   try {
-    const { code, customerId } = await request.json()
+    const { code } = await request.json()
 
-    if (!code || !customerId) {
+    if (!code) {
       return NextResponse.json(
-        { error: 'Código y ID de cliente son requeridos' },
+        { error: 'Código es requerido' },
         { status: 400 }
+      )
+    }
+
+    // Obtener el customerId de la cookie temporal
+    const customerId = request.cookies.get('verification-pending')?.value
+
+    if (!customerId) {
+      return NextResponse.json(
+        { error: 'No hay verificación pendiente' },
+        { status: 401 }
       )
     }
 
@@ -32,8 +42,44 @@ export async function POST(request: NextRequest) {
     })
 
     if (!verificationCode) {
+      // Verificar si el código existe pero ya fue usado
+      const usedCode = await prisma.verificationCode.findFirst({
+        where: {
+          customerId,
+          code,
+          type: 'EMAIL_VERIFICATION',
+          usedAt: { not: null }
+        }
+      })
+
+      if (usedCode) {
+        return NextResponse.json(
+          { error: 'Este código ya fue utilizado' },
+          { status: 400 }
+        )
+      }
+
+      // Verificar si el código existe pero expiró
+      const expiredCode = await prisma.verificationCode.findFirst({
+        where: {
+          customerId,
+          code,
+          type: 'EMAIL_VERIFICATION',
+          expiresAt: {
+            lte: new Date()
+          }
+        }
+      })
+
+      if (expiredCode) {
+        return NextResponse.json(
+          { error: 'El código ha expirado. Solicita uno nuevo.' },
+          { status: 400 }
+        )
+      }
+
       return NextResponse.json(
-        { error: 'Código inválido o expirado' },
+        { error: 'Código incorrecto' },
         { status: 400 }
       )
     }
@@ -50,107 +96,21 @@ export async function POST(request: NextRequest) {
       data: { emailVerified: true }
     })
 
-    // Generar nuevo token con emailVerified = true
-    const token = jwt.sign(
-      { 
-        customerId: updatedCustomer.id,
-        email: updatedCustomer.email,
-        name: updatedCustomer.name,
-        emailVerified: true
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    )
-
-    return NextResponse.json({
+    // Limpiar la cookie temporal de verificación
+    const response = NextResponse.json({
       success: true,
-      token,
-      customer: {
-        id: updatedCustomer.id,
-        name: updatedCustomer.name,
-        email: updatedCustomer.email,
-        phone: updatedCustomer.phone,
-        emailVerified: true
-      },
-      message: 'Email verificado exitosamente'
+      message: 'Email verificado exitosamente. Por favor inicia sesión.'
     })
+
+    // Eliminar la cookie de verificación pendiente
+    response.cookies.delete('verification-pending')
+
+    return response
 
   } catch (error) {
     console.error('Verification error:', error)
     return NextResponse.json(
-      { error: 'Error al verificar el código' },
-      { status: 500 }
-    )
-  }
-}
-
-// Endpoint para reenviar código
-export async function PUT(request: NextRequest) {
-  try {
-    const { customerId } = await request.json()
-
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'ID de cliente es requerido' },
-        { status: 400 }
-      )
-    }
-
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId }
-    })
-
-    if (!customer) {
-      return NextResponse.json(
-        { error: 'Cliente no encontrado' },
-        { status: 404 }
-      )
-    }
-
-    // Invalidar códigos anteriores
-    await prisma.verificationCode.updateMany({
-      where: {
-        customerId,
-        type: 'EMAIL_VERIFICATION',
-        usedAt: null
-      },
-      data: { usedAt: new Date() }
-    })
-
-    // Generar nuevo código
-    const { generateVerificationCode } = await import('@/lib/email')
-    const newCode = generateVerificationCode()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
-
-    await prisma.verificationCode.create({
-      data: {
-        customerId,
-        code: newCode,
-        type: 'EMAIL_VERIFICATION',
-        expiresAt
-      }
-    })
-
-    // Enviar nuevo email
-    const { sendEmail, getVerificationEmailTemplate } = await import('@/lib/email')
-    const emailTemplate = getVerificationEmailTemplate(newCode, 'verification')
-    
-    await sendEmail({
-      to: customer.email,
-      subject: emailTemplate.subject,
-      html: emailTemplate.html,
-      text: emailTemplate.text
-    })
-
-    return NextResponse.json({
-      success: true,
-      message: 'Código reenviado exitosamente'
-    })
-
-  } catch (error) {
-    console.error('Resend code error:', error)
-    return NextResponse.json(
-      { error: 'Error al reenviar código' },
+      { error: 'Error al verificar código' },
       { status: 500 }
     )
   }

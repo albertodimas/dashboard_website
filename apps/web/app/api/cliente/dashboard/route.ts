@@ -39,10 +39,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Obtener paquetes activos
+    // Obtener el ID del negocio de referencia si existe
+    const referringBusinessId = request.cookies.get('referring-business')?.value
+
+    // Buscar todos los customers con el mismo email en todos los tenants
+    const allCustomers = await prisma.customer.findMany({
+      where: {
+        email: decoded.email
+      },
+      select: {
+        id: true
+      }
+    })
+    
+    const customerIds = allCustomers.map(c => c.id)
+    console.log('[Dashboard API] Found customers with same email:', customerIds.length)
+
+    // Obtener paquetes activos de TODOS los customers con el mismo email
     const packages = await prisma.packagePurchase.findMany({
       where: {
-        customerId: decoded.customerId,
+        customerId: {
+          in: customerIds
+        },
         status: 'ACTIVE',
         OR: [
           { expiryDate: null },
@@ -78,10 +96,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Obtener citas (excluyendo las canceladas)
+    // Debug: Log del customerId
+    console.log('[Dashboard API] CustomerId from token:', decoded.customerId)
+    console.log('[Dashboard API] Using customerIds:', customerIds)
+    
+    // Obtener citas de TODOS los customers con el mismo email (excluyendo las canceladas)
     const appointments = await prisma.appointment.findMany({
       where: {
-        customerId: decoded.customerId,
+        customerId: {
+          in: customerIds
+        },
         status: {
           not: 'CANCELLED'
         }
@@ -96,9 +120,12 @@ export async function GET(request: NextRequest) {
         },
         business: {
           select: {
+            id: true,
             name: true,
             address: true,
-            phone: true
+            phone: true,
+            slug: true,
+            customSlug: true
           }
         },
         staff: {
@@ -108,10 +135,12 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        startTime: 'desc'
-      },
-      take: 20
+        startTime: 'asc' // Ordenar ascendente para mostrar próximas citas primero
+      }
     })
+    
+    console.log('[Dashboard API] Appointments found:', appointments.length)
+    console.log('[Dashboard API] Appointments data:', JSON.stringify(appointments, null, 2))
 
     // Obtener datos del cliente
     const customer = await prisma.customer.findUnique({
@@ -119,17 +148,145 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        lastName: true,
         email: true,
         phone: true,
         createdAt: true
       }
     })
 
+    // Obtener negocios donde el cliente está registrado (todos los del mismo tenant)
+    const myBusinesses = await prisma.business.findMany({
+      where: {
+        tenantId: customer?.tenantId,
+        status: 'ACTIVE'
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        phone: true,
+        email: true,
+        address: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        slug: true,
+        customSlug: true,
+        imageUrl: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        rating: true,
+        reviewCount: true,
+        _count: {
+          select: {
+            services: true
+          }
+        }
+      }
+    })
+
+    // Obtener todos los negocios para explorar (de otros tenants)
+    const businessesToExplore = await prisma.business.findMany({
+      where: {
+        tenantId: {
+          not: customer?.tenantId
+        },
+        status: 'ACTIVE'
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        phone: true,
+        email: true,
+        address: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        slug: true,
+        customSlug: true,
+        imageUrl: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        rating: true,
+        reviewCount: true,
+        _count: {
+          select: {
+            services: true
+          }
+        }
+      },
+      take: 10 // Limitar a 10 negocios para explorar
+    })
+
+    // Preparar la lista de negocios con información adicional
+    const myBusinessesWithCounts = await Promise.all(
+      myBusinesses.map(async (business) => {
+        // Contar citas del cliente en este negocio
+        const appointmentCount = await prisma.appointment.count({
+          where: {
+            customerId: {
+              in: customerIds
+            },
+            businessId: business.id,
+            status: {
+              not: 'CANCELLED'
+            }
+          }
+        })
+        
+        return {
+          ...business,
+          appointmentCount,
+          serviceCount: business._count?.services || 0
+        }
+      })
+    )
+    
+    // Ordenar paquetes y citas priorizando el negocio de referencia
+    let sortedPackages = packages
+    let sortedAppointments = appointments
+    let sortedBusinesses = myBusinessesWithCounts
+
+    if (referringBusinessId) {
+      // Priorizar paquetes del negocio de referencia
+      sortedPackages = [
+        ...packages.filter(p => p.package.businessId === referringBusinessId),
+        ...packages.filter(p => p.package.businessId !== referringBusinessId)
+      ]
+
+      // Priorizar citas del negocio de referencia
+      sortedAppointments = [
+        ...appointments.filter(a => a.businessId === referringBusinessId),
+        ...appointments.filter(a => a.businessId !== referringBusinessId)
+      ]
+
+      // Priorizar el negocio de referencia en la lista de negocios
+      sortedBusinesses = [
+        ...myBusinessesWithCounts.filter(b => b.id === referringBusinessId),
+        ...myBusinessesWithCounts.filter(b => b.id !== referringBusinessId)
+      ]
+    }
+
     return NextResponse.json({
       success: true,
       customer,
-      packages,
-      appointments
+      packages: sortedPackages,
+      appointments: sortedAppointments,
+      myBusinesses: sortedBusinesses, // Negocios donde está registrado
+      businessesToExplore, // Negocios para explorar
+      referringBusinessId // ID del negocio desde donde accedió
     })
 
   } catch (error) {
