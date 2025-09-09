@@ -1,6 +1,32 @@
 # Tareas Pendientes - Sistema de Clientes
 
-## 🎯 Completado Hoy (09/09/2025)
+## 🎯 Completado Hoy (10/09/2025)
+
+### ✅ Tareas Prioritarias Completadas
+1. **Auto-Registro en Negocios** ✅
+   - Implementado en `/api/cliente/auth/login/route.ts`
+   - Crea automáticamente relación BusinessCustomer cuando el cliente se loguea desde un negocio nuevo
+   - Actualiza contadores de visitas y reactiva relaciones desactivadas
+
+2. **Sistema de Tracking de Intentos de Login** ✅
+   - Modelo LoginAttempt ya existía en el schema
+   - Implementado rate limiting: máximo 5 intentos en 15 minutos
+   - Registra todos los intentos (exitosos y fallidos) con IP y User Agent
+
+3. **Priorización de Contenido por Negocio Referente** ✅
+   - Los negocios del cliente se ordenan con el referente primero
+   - Los paquetes del negocio referente aparecen primero
+   - Las citas del negocio referente aparecen primero
+   - Cookie `referring-business` para mantener contexto
+
+4. **Sistema de Desregistro de Negocios** ✅
+   - Endpoint `/api/cliente/businesses/unregister` con POST y PUT
+   - Soft delete en BusinessCustomer (isActive = false)
+   - Guarda lista de negocios desregistrados en metadata del Customer
+   - Validación: no permite desregistro con citas pendientes o paquetes activos
+   - Botón de desregistro en el dashboard con modal de confirmación
+
+## 🎯 Completado Ayer (09/09/2025)
 
 ### ✅ Correcciones Principales
 1. **Formulario de Registro de Cliente**
@@ -30,54 +56,38 @@
 
 ## 📋 Pendiente para Mañana
 
-### 1. **Auto-Registro en Negocios** 🔴 PRIORITARIO
-   - Cuando un cliente se loguea desde la página de un negocio nuevo, debe registrarse automáticamente
-   - El negocio debe aparecer en "Mis Servicios" no en "Explorar"
-   - Crear relación customer-business automática
-
-### 2. **Sistema de Tracking de Intentos de Login**
-   - Crear modelo `LoginAttempt` en Prisma schema:
-   ```prisma
-   model LoginAttempt {
-     id          String   @id @default(cuid())
-     email       String
-     ipAddress   String?
-     userAgent   String?
-     success     Boolean
-     customerId  String?
-     customer    Customer? @relation(fields: [customerId], references: [id])
-     attemptedAt DateTime @default(now())
-     
-     @@index([email, attemptedAt])
-     @@index([customerId])
-   }
-   ```
-   - Implementar rate limiting y bloqueo temporal después de 5 intentos fallidos
-
-### 3. **Priorización de Contenido en Dashboard**
-   - Los paquetes del negocio referente deben aparecer primero
-   - Las citas del negocio referente deben aparecer primero
-   - Implementar ordenamiento inteligente basado en el negocio de origen
-
-### 4. **Sistema de Desregistro de Negocios**
-   - Permitir al cliente "desregistrarse" de un negocio
-   - Usar campo `metadata` del Customer para guardar lista de negocios desregistrados
-   - Los negocios desregistrados no deben aparecer en "Mis Servicios"
-
-### 5. **Notificaciones y Recordatorios**
+### 1. **Notificaciones y Recordatorios** 🔴 PRIORITARIO
    - Sistema de notificaciones para citas próximas (24h antes)
    - Recordatorio de paquetes por vencer
    - Alertas de sesiones disponibles sin usar
 
-### 6. **Mejoras de UX**
+### 2. **Mejoras de UX**
    - Añadir loading states en todas las operaciones asíncronas
    - Mejorar mensajes de error con acciones sugeridas
    - Implementar toast notifications para feedback visual
 
-### 7. **Seguridad**
+### 3. **Seguridad**
    - Implementar CSRF protection
    - Añadir rate limiting global a todos los endpoints
    - Validar y sanitizar todos los inputs del usuario
+
+### 4. **Sistema de Recuperación de Contraseña**
+   - Endpoint para solicitar recuperación con email
+   - Token temporal con expiración de 1 hora
+   - Página de reset de contraseña
+   - Validación de nueva contraseña
+
+### 5. **Dashboard Métricas del Cliente**
+   - Total gastado por negocio
+   - Número de visitas por negocio
+   - Gráficos de uso de paquetes
+   - Historial de citas completadas
+
+### 6. **Optimización de Performance**
+   - Implementar paginación en listas largas
+   - Lazy loading de imágenes
+   - Caché de datos frecuentes
+   - Optimizar queries de Prisma
 
 ## 🐛 Bugs Conocidos
 1. El campo `tenantId` en Customer puede ser null pero el sistema asume que siempre existe
