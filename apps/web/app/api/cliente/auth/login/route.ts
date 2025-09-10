@@ -134,6 +134,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Elegir el mejor candidato por email y contraseña si existen duplicados
+    const emailCandidates = await prisma.customer.findMany({
+      where: { email: email.toLowerCase() },
+      orderBy: { createdAt: 'desc' }
+    })
+    if (emailCandidates.length > 1) {
+      // Filtrar por contraseña válida
+      const matching: typeof emailCandidates = [] as any
+      for (const c of emailCandidates) {
+        if (c.password && (await bcrypt.compare(password, c.password))) {
+          matching.push(c)
+        }
+      }
+      const pool = matching.length > 0 ? matching : emailCandidates
+      const score = (c: any) =>
+        (c.name && c.name.trim() ? 1 : 0) +
+        (c.lastName && String(c.lastName).trim() ? 1 : 0) +
+        (c.phone && String(c.phone).trim() ? 1 : 0) +
+        (tenantId && c.tenantId === tenantId ? 2 : 0)
+      const best = pool.reduce((a, b) => (score(b) > score(a) ? b : a), pool[0])
+      if (!customer || customer.id !== best.id) {
+        customer = best as any
+        console.log('[Cliente Login] Seleccionado mejor candidato por email/contraseña:', customer.id)
+      }
+    }
+
     // Si existe el cliente en este tenant pero le faltan datos básicos,
     // intentar completarlos con datos de otro tenant (si disponibles)
     if (customer) {

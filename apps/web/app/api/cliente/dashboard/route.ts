@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
       console.log('[Dashboard API] Customer tenantId:', customer.tenantId || 'NULL')
     }
 
-    // Si el customer no existe o está incompleto, intentar completar con otro registro del mismo email
+    // Si el customer no existe o está incompleto, buscar el candidato más completo del mismo email
     if (!customer || !customer.name || !(customer.lastName ?? '').toString().trim()) {
       if (decoded.email) {
         const candidates = await prisma.customer.findMany({
@@ -173,7 +173,8 @@ export async function GET(request: NextRequest) {
           const getScore = (c: any) =>
             (c.name && c.name.trim() ? 1 : 0) +
             (c.lastName && String(c.lastName).trim() ? 1 : 0) +
-            (c.phone && String(c.phone).trim() ? 1 : 0)
+            (c.phone && String(c.phone).trim() ? 1 : 0) +
+            (customer?.tenantId && c.tenantId === customer?.tenantId ? 2 : 0)
           const best = candidates.reduce((a, b) => (getScore(b) > getScore(a) ? b : a), candidates[0])
 
           if (customer) {
