@@ -26,6 +26,13 @@
    - Validación: no permite desregistro con citas pendientes o paquetes activos
    - Botón de desregistro en el dashboard con modal de confirmación
 
+5. **Depuración de Error 500 en Dashboard** ⚠️ PARCIAL
+   - Identificado problema con logs que causaban error 500
+   - Corregido parcialmente eliminando JSON.stringify de objetos grandes
+   - Los datos SÍ están correctos en la BD (verificado con Prisma Studio)
+   - Cliente `a56b7ac6-682a-4412-8add-91a9def260d7` tiene todos los campos correctos
+   - **PENDIENTE**: Aún hay un log misterioso "Customer data: {" que se corta y causa error
+
 ## 🎯 Completado Ayer (09/09/2025)
 
 ### ✅ Correcciones Principales
@@ -55,6 +62,12 @@
    - Cookie `referring-business` para priorizar contenido
 
 ## 📋 Pendiente para Mañana
+
+### 0. **FIX CRÍTICO: Error 500 en Dashboard** 🔴 URGENTE
+   - Encontrar y eliminar el console.log que imprime "Customer data: {" 
+   - Este log aparece en los logs del servidor pero no está en el código fuente
+   - Posiblemente está en algún archivo compilado o en caché
+   - El error impide que los datos del cliente se muestren aunque están correctos en BD
 
 ### 1. **Notificaciones y Recordatorios** 🔴 PRIORITARIO
    - Sistema de notificaciones para citas próximas (24h antes)
