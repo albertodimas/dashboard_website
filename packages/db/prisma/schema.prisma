@@ -14,7 +14,7 @@ model Tenant {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String
   subdomain        String            @unique
-  email            String
+  email            String            @db.Citext
   phone            String?
   timezone         String            @default("UTC")
   currency         String            @default("USD")
@@ -42,7 +42,7 @@ model Tenant {
 model User {
   id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId      String       @db.Uuid
-  email         String
+  email         String       @db.Citext
   emailVerified DateTime?
   passwordHash  String
   name          String
@@ -107,7 +107,7 @@ model Business {
   description          String?
   logo                 String?
   coverImage           String?
-  email                String
+  email                String            @db.Citext
   phone                String
   website              String?
   address              String
@@ -279,7 +279,7 @@ model Addon {
 model Customer {
   id                String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId          String                    @db.Uuid
-  email             String                    @unique
+  email             String                    @db.Citext @unique
   name              String
   phone             String?
   password          String?
@@ -717,7 +717,7 @@ model BusinessCustomer {
 
 model LoginAttempt {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email       String
+  email       String       @db.Citext
   ipAddress   String?
   userAgent   String?
   success     Boolean
