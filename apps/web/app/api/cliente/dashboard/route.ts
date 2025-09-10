@@ -202,50 +202,59 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Obtener negocios donde el cliente está registrado (todos los del mismo tenant)
-    const myBusinesses = customer?.tenantId ? await prisma.business.findMany({
+    // Obtener negocios donde el cliente está registrado (cruzando BusinessCustomer)
+    const relations = await prisma.businessCustomer.findMany({
       where: {
-        tenantId: customer.tenantId,
-        isActive: true,
-        isBlocked: false
+        customerId: { in: customerIds },
+        isActive: true
       },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        phone: true,
-        email: true,
-        address: true,
-        city: true,
-        state: true,
-        slug: true,
-        customSlug: true,
-        imageUrl: true,
-        category: {
+      include: {
+        business: {
           select: {
             id: true,
             name: true,
-            slug: true
-          }
-        },
-        rating: true,
-        reviewCount: true,
-        _count: {
-          select: {
-            services: true
+            description: true,
+            phone: true,
+            email: true,
+            address: true,
+            city: true,
+            state: true,
+            slug: true,
+            customSlug: true,
+            imageUrl: true,
+            category: {
+              select: { id: true, name: true, slug: true }
+            },
+            rating: true,
+            reviewCount: true,
+            _count: { select: { services: true } }
           }
         }
       }
-    }) : []
+    })
+
+    // Normalizar y deduplicar por business.id
+    const seen = new Set<string>()
+    const myBusinesses = relations
+      .filter(r => !!r.business)
+      .map(r => ({
+        ...r.business,
+        lastVisit: r.lastVisit,
+        totalVisits: r.totalVisits
+      }))
+      .filter(b => {
+        if (seen.has(b.id)) return false
+        seen.add(b.id)
+        return true
+      })
 
     // Obtener todos los negocios para explorar (de otros tenants)
-    const businessesToExplore = customer?.tenantId ? await prisma.business.findMany({
+    const registeredIds = myBusinesses.map(b => b.id)
+    const businessesToExplore = await prisma.business.findMany({
       where: {
-        tenantId: {
-          not: customer.tenantId
-        },
         isActive: true,
-        isBlocked: false
+        isBlocked: false,
+        id: { notIn: registeredIds }
       },
       select: {
         id: true,
@@ -259,23 +268,13 @@ export async function GET(request: NextRequest) {
         slug: true,
         customSlug: true,
         imageUrl: true,
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        },
+        category: { select: { id: true, name: true, slug: true } },
         rating: true,
         reviewCount: true,
-        _count: {
-          select: {
-            services: true
-          }
-        }
+        _count: { select: { services: true } }
       },
-      take: 10 // Limitar a 10 negocios para explorar
-    }) : []
+      take: 10
+    })
 
     // Preparar la lista de negocios con información adicional
     const myBusinessesWithCounts = await Promise.all(
