@@ -397,6 +397,7 @@ export default function ClientLoginPage() {
                     password: '',
                     confirmPassword: '',
                     name: '',
+                    lastName: '',
                     phone: ''
                   })
                 }}
