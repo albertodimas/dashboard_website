@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { verifyClientToken } from '@/lib/client-auth'
+import { SignJWT } from 'jose'
 
 export async function GET(request: NextRequest) {
   try {
@@ -163,6 +164,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Si el customer no existe o está incompleto, buscar el candidato más completo del mismo email
+    let issuedFreshTokenForCustomerId: string | null = null
     if (!customer || !customer.name || !(customer.lastName ?? '').toString().trim()) {
       if (decoded.email) {
         const candidates = await prisma.customer.findMany({
@@ -197,6 +199,26 @@ export async function GET(request: NextRequest) {
             // No existe el registro con el id del token (posible cambio reciente). Usar el más completo como fallback
             customer = best as any
             console.warn('[Dashboard API] Usando cliente alternativo por email (id no encontrado)')
+          }
+          // Emitir nuevo token si el id final difiere del token recibido
+          if (customer && decoded.customerId !== customer.id) {
+            const secretStr = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
+            if (secretStr) {
+              const token = await new SignJWT({
+                customerId: customer.id,
+                email: customer.email,
+                name: customer.name,
+                emailVerified: true
+              } as Record<string, unknown>)
+                .setProtectedHeader({ alg: 'HS256' })
+                .setIssuedAt()
+                .setExpirationTime('1h')
+                .sign(new TextEncoder().encode(secretStr))
+              issuedFreshTokenForCustomerId = customer.id
+              // Attach new token to cookies in response later
+              // We defer setting cookie until we create the response object
+              ;
+            }
           }
         }
       }
@@ -308,14 +330,14 @@ export async function GET(request: NextRequest) {
     if (referringBusinessId) {
       // Priorizar paquetes del negocio de referencia
       sortedPackages = [
-        ...packages.filter(p => p.package.businessId === referringBusinessId),
-        ...packages.filter(p => p.package.businessId !== referringBusinessId)
+        ...packages.filter(p => (p as any)?.package?.business?.id === referringBusinessId),
+        ...packages.filter(p => (p as any)?.package?.business?.id !== referringBusinessId)
       ]
 
       // Priorizar citas del negocio de referencia
       sortedAppointments = [
-        ...appointments.filter(a => a.businessId === referringBusinessId),
-        ...appointments.filter(a => a.businessId !== referringBusinessId)
+        ...appointments.filter(a => (a as any).businessId === referringBusinessId),
+        ...appointments.filter(a => (a as any).businessId !== referringBusinessId)
       ]
 
       // Priorizar el negocio de referencia en la lista de negocios
@@ -325,7 +347,7 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       customer,
       packages: sortedPackages,
@@ -334,6 +356,31 @@ export async function GET(request: NextRequest) {
       businessesToExplore, // Negocios para explorar
       referringBusinessId // ID del negocio desde donde accedió
     })
+
+    if (issuedFreshTokenForCustomerId) {
+      // Set updated access token to align future requests
+      response.cookies.set('client-token', (await (async () => {
+        const secretStr = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET!
+        return await new SignJWT({
+          customerId: customer!.id,
+          email: customer!.email,
+          name: customer!.name,
+          emailVerified: true
+        } as Record<string, unknown>)
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('1h')
+          .sign(new TextEncoder().encode(secretStr))
+      })()), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60,
+        path: '/'
+      })
+    }
+
+    return response
 
   } catch (error) {
     console.error('Dashboard error:', error)
