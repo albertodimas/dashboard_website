@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
           include: {
             business: {
               select: {
+                id: true,
                 name: true,
                 slug: true,
                 customSlug: true

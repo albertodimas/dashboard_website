@@ -99,8 +99,9 @@ export async function POST(request: NextRequest) {
     
     // Si no encontramos el cliente en este tenant pero existe en otro tenant con la misma contraseña,
     // podemos verificar si es el mismo cliente
+    let customerInOtherTenant: typeof customer | null = null
     if (!customer && tenantId) {
-      const customerInOtherTenant = await prisma.customer.findFirst({
+      customerInOtherTenant = await prisma.customer.findFirst({
         where: {
           email: email.toLowerCase()
         }
@@ -130,6 +131,42 @@ export async function POST(request: NextRequest) {
           })
           console.log('[Cliente Login] Cliente creado en nuevo tenant:', customer.id)
         }
+      }
+    }
+
+    // Si existe el cliente en este tenant pero le faltan datos básicos,
+    // intentar completarlos con datos de otro tenant (si disponibles)
+    if (customer && tenantId) {
+      // Cargar registro de otro tenant si no lo tenemos aún
+      if (!customerInOtherTenant) {
+        customerInOtherTenant = await prisma.customer.findFirst({
+          where: {
+            email: email.toLowerCase(),
+            NOT: { id: customer.id }
+          }
+        })
+      }
+
+      const needsName = !customer.name || customer.name.trim() === ''
+      const needsLastName = (customer.lastName ?? '').toString().trim() === '' && (customerInOtherTenant?.lastName ?? '').toString().trim() !== ''
+      const needsPhone = (!customer.phone || customer.phone.trim() === '') && (customerInOtherTenant?.phone ?? '').toString().trim() !== ''
+      const needsAddressLike = (!customer.address && customerInOtherTenant?.address) || (!customer.city && customerInOtherTenant?.city) || (!customer.state && customerInOtherTenant?.state) || (!customer.postalCode && customerInOtherTenant?.postalCode)
+
+      if (customerInOtherTenant && (needsName || needsLastName || needsPhone || needsAddressLike)) {
+        const updated = await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            ...(needsName && customerInOtherTenant.name ? { name: customerInOtherTenant.name } : {}),
+            ...(needsLastName ? { lastName: customerInOtherTenant.lastName } : {}),
+            ...(needsPhone ? { phone: customerInOtherTenant.phone } : {}),
+            ...(customer.address ? {} : { address: customerInOtherTenant.address || null }),
+            ...(customer.city ? {} : { city: customerInOtherTenant.city || null }),
+            ...(customer.state ? {} : { state: customerInOtherTenant.state || null }),
+            ...(customer.postalCode ? {} : { postalCode: customerInOtherTenant.postalCode || null })
+          }
+        })
+        customer = updated
+        console.log('[Cliente Login] Perfil completado con datos de otro tenant')
       }
     }
 

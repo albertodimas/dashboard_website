@@ -505,8 +505,11 @@ export default function ClientDashboard() {
         let orderedPackages = data.packages || []
         if (bizIdToUse && orderedPackages.length > 0) {
           orderedPackages = orderedPackages.sort((a: Package, b: Package) => {
-            const aIsPreferred = a.package.business.id === bizIdToUse
-            const bIsPreferred = b.package.business.id === bizIdToUse
+            // Prefer by business id (support both nested id and scalar businessId on package)
+            const aBizId = (a as any)?.package?.business?.id || (a as any)?.package?.businessId
+            const bBizId = (b as any)?.package?.business?.id || (b as any)?.package?.businessId
+            const aIsPreferred = aBizId === bizIdToUse
+            const bIsPreferred = bBizId === bizIdToUse
             if (aIsPreferred && !bIsPreferred) return -1
             if (!aIsPreferred && bIsPreferred) return 1
             // Si ambos son del mismo negocio, ordenar por sesiones restantes (mayor primero)
@@ -518,8 +521,8 @@ export default function ClientDashboard() {
         let orderedAppointments = data.appointments || []
         if (bizIdToUse && orderedAppointments.length > 0) {
           orderedAppointments = orderedAppointments.sort((a: Appointment, b: Appointment) => {
-            const aIsPreferred = a.business.id === bizIdToUse
-            const bIsPreferred = b.business.id === bizIdToUse
+            const aIsPreferred = (a as any)?.business?.id === bizIdToUse
+            const bIsPreferred = (b as any)?.business?.id === bizIdToUse
             if (aIsPreferred && !bIsPreferred) return -1
             if (!aIsPreferred && bIsPreferred) return 1
             // Si ambos son del mismo negocio, ordenar por fecha (más próxima primero)

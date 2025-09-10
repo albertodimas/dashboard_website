@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import jwt from 'jsonwebtoken'
+import { jwtVerify, SignJWT } from 'jose'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+// Use same client token secret as other cliente endpoints
+const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
+if (!CLIENT_JWT_SECRET) {
+  throw new Error('CLIENT_JWT_SECRET or JWT_SECRET environment variable is required')
+}
+const CLIENT_SECRET_BYTES = new TextEncoder().encode(CLIENT_JWT_SECRET)
 
 // GET - Obtener perfil del cliente
 export async function GET(request: NextRequest) {
@@ -32,7 +37,8 @@ export async function GET(request: NextRequest) {
     let decoded: any
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
+      const { payload } = await jwtVerify(token, CLIENT_SECRET_BYTES)
+      decoded = payload
     } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
@@ -107,7 +113,8 @@ export async function PUT(request: NextRequest) {
     let decoded: any
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
+      const { payload } = await jwtVerify(token, CLIENT_SECRET_BYTES)
+      decoded = payload
     } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
@@ -168,16 +175,16 @@ export async function PUT(request: NextRequest) {
     })
 
     // Generar nuevo token con datos actualizados
-    const newToken = jwt.sign(
-      { 
-        customerId: updatedCustomer.id,
-        email: updatedCustomer.email,
-        name: updatedCustomer.name,
-        emailVerified: true
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    )
+    const newToken = await new SignJWT({
+      customerId: updatedCustomer.id,
+      email: updatedCustomer.email,
+      name: updatedCustomer.name,
+      emailVerified: true
+    } as Record<string, unknown>)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('7d')
+      .sign(CLIENT_SECRET_BYTES)
 
     // Crear respuesta con nuevo token
     const response = NextResponse.json({
