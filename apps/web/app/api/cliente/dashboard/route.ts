@@ -140,7 +140,6 @@ export async function GET(request: NextRequest) {
     })
     
     console.log('[Dashboard API] Appointments found:', appointments.length)
-    console.log('[Dashboard API] Appointments data:', JSON.stringify(appointments, null, 2))
 
     // Obtener datos del cliente
     console.log('[Dashboard API] Getting customer with ID:', decoded.customerId)
@@ -162,16 +161,12 @@ export async function GET(request: NextRequest) {
     })
     console.log('[Dashboard API] Customer found:', customer ? 'Yes' : 'No')
     if (customer) {
-      console.log('[Dashboard API] Customer data:', JSON.stringify({
-        name: customer.name,
-        lastName: customer.lastName,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address,
-        city: customer.city,
-        state: customer.state,
-        postalCode: customer.postalCode
-      }, null, 2))
+      console.log('[Dashboard API] Customer name:', customer.name || 'NULL')
+      console.log('[Dashboard API] Customer lastName:', customer.lastName || 'NULL')
+      console.log('[Dashboard API] Customer email:', customer.email || 'NULL')
+      console.log('[Dashboard API] Customer phone:', customer.phone || 'NULL')
+      console.log('[Dashboard API] Customer address:', customer.address || 'NULL')
+      console.log('[Dashboard API] Customer tenantId:', customer.tenantId || 'NULL')
     }
 
     // Obtener negocios donde el cliente está registrado (todos los del mismo tenant)
