@@ -65,3 +65,5 @@ SESSION_SUMMARY_*.md
 # Logs
 logs/
 *.log
+# Temp files
+tmp_*.txt
