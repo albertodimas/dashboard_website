@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Si existe el cliente en este tenant pero le faltan datos básicos,
     // intentar completarlos con datos de otro tenant (si disponibles)
-    if (customer && tenantId) {
+    if (customer) {
       // Cargar registro de otro tenant si no lo tenemos aún
       if (!customerInOtherTenant) {
         customerInOtherTenant = await prisma.customer.findFirst({

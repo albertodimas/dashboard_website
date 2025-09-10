@@ -100,21 +100,28 @@ export default function ClientLoginPage() {
       if (from) {
         const decodedFrom = decodeURIComponent(from)
         console.log('[Cliente Login] From URL:', decodedFrom)
-        
+
+        const extractSlugFromPath = (path: string): string | undefined => {
+          // Primero patrones /business/:slug o /b/:slug
+          const bizMatch = path.match(/\/(?:business|b)\/([^\/\?#]+)/)
+          if (bizMatch && bizMatch[1]) return bizMatch[1]
+          // Luego primer segmento directo, evitando /cliente
+          const dirMatch = path.match(/^\/([^\/\?#]+)/)
+          if (dirMatch && dirMatch[1] !== 'cliente') return dirMatch[1]
+          return undefined
+        }
+
         // Intentar extraer el slug del negocio de la URL
         if (decodedFrom.includes('://')) {
           // URL completa
           const url = new URL(decodedFrom)
-          const pathMatch = url.pathname.match(/^\/([^\/\?#]+)/)
-          if (pathMatch && pathMatch[1] !== 'cliente') {
-            businessSlug = pathMatch[1]
-          }
+          businessSlug = extractSlugFromPath(url.pathname)
         } else if (decodedFrom.startsWith('/')) {
           // Path relativo
-          const pathMatch = decodedFrom.match(/^\/([^\/\?#]+)/)
-          if (pathMatch && pathMatch[1] !== 'cliente') {
-            businessSlug = pathMatch[1]
-          }
+          businessSlug = extractSlugFromPath(decodedFrom)
+        } else {
+          // Texto plano (posible slug)
+          businessSlug = decodedFrom
         }
       }
       
