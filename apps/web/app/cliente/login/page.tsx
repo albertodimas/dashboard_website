@@ -131,13 +131,33 @@ export default function ClientLoginPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        // Si hay advertencia sobre intentos restantes, mostrarla
-        if (data.warning) {
+        // Mensajes claros por estado
+        if (response.status === 401) {
+          setError('Credenciales inválidas. Verifica tu email y contraseña.')
+        } else if (response.status === 429) {
+          // Intentar obtener el tiempo de espera restante
+          const headerRetry = response.headers.get('Retry-After')
+          const retryAfterSec = Number.isFinite(Number(headerRetry))
+            ? Number(headerRetry)
+            : (typeof data?.retryAfter === 'number' ? data.retryAfter : undefined)
+
+          if (retryAfterSec && retryAfterSec > 0) {
+            const minutes = Math.floor(retryAfterSec / 60)
+            const seconds = retryAfterSec % 60
+            const human = minutes > 0
+              ? `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}${seconds > 0 ? ` y ${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}` : ''}`
+              : `${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}`
+            setError(`Demasiados intentos. Intenta nuevamente en ${human}.`)
+          } else {
+            setError(data?.error || 'Demasiados intentos. Intenta más tarde.')
+          }
+        } else if (data?.warning) {
+          // Si hay advertencia sobre intentos restantes, mostrarla
           setError(`${data.error}. ${data.warning}`)
-        } else if (data.locked) {
+        } else if (data?.locked) {
           setError(data.error)
         } else {
-          setError(data.error || 'Error al procesar solicitud')
+          setError(data?.error || 'Error al procesar solicitud')
         }
         setIsLoading(false)
         return
