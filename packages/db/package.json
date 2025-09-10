@@ -9,6 +9,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
+    "db:consolidate-customers": "tsx scripts/consolidate-customers-global.ts",
     "db:seed": "tsx src/seed.ts",
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit"

@@ -279,7 +279,7 @@ model Addon {
 model Customer {
   id                String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId          String                    @db.Uuid
-  email             String
+  email             String                    @unique
   name              String
   phone             String?
   password          String?
@@ -309,7 +309,6 @@ model Customer {
   verificationCodes VerificationCode[]
   businesses        BusinessCustomer[]
 
-  @@unique([tenantId, email])
   @@index([email])
   @@map("customers")
 }
