@@ -87,52 +87,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Buscar cliente por email y opcionalmente por tenant
+    // Buscar cliente por email. Preferir tenant si se resolvió, pero permitir global
     let customer = await prisma.customer.findFirst({
       where: {
         email: email.toLowerCase(),
         ...(tenantId ? { tenantId } : {})
       }
     })
+    // Si no aparece en este tenant, permitir el registro global (sin clonar)
+    if (!customer) {
+      const anyCustomer = await prisma.customer.findFirst({ where: { email: email.toLowerCase() } })
+      if (anyCustomer) {
+        customer = anyCustomer
+      }
+    }
     
     console.log('[Cliente Login] Customer lookup complete')
     
     // Si no encontramos el cliente en este tenant pero existe en otro tenant con la misma contraseña,
     // podemos verificar si es el mismo cliente
+    // Ya no clonamos clientes entre tenants. Siempre usamos el registro global por email
     let customerInOtherTenant: typeof customer | null = null
-    if (!customer && tenantId) {
-      customerInOtherTenant = await prisma.customer.findFirst({
-        where: {
-          email: email.toLowerCase()
-        }
-      })
-      
-      if (customerInOtherTenant && customerInOtherTenant.password) {
-        const isValidPassword = await bcrypt.compare(password, customerInOtherTenant.password)
-        if (isValidPassword) {
-          // Es el mismo cliente, crear registro en este tenant
-          customer = await prisma.customer.create({
-            data: {
-              tenantId,
-              email: customerInOtherTenant.email,
-              name: customerInOtherTenant.name,
-              lastName: customerInOtherTenant.lastName,
-              phone: customerInOtherTenant.phone,
-              password: customerInOtherTenant.password,
-              emailVerified: customerInOtherTenant.emailVerified,
-              avatar: customerInOtherTenant.avatar,
-              address: customerInOtherTenant.address,
-              city: customerInOtherTenant.city,
-              state: customerInOtherTenant.state,
-              postalCode: customerInOtherTenant.postalCode,
-              country: customerInOtherTenant.country,
-              metadata: customerInOtherTenant.metadata || {}
-            }
-          })
-          console.log('[Cliente Login] Cliente creado en nuevo tenant:', customer.id)
-        }
-      }
-    }
 
     // Elegir el mejor candidato por email y contraseña si existen duplicados
     const emailCandidates = await prisma.customer.findMany({

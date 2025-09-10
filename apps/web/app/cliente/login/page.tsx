@@ -158,6 +158,9 @@ export default function ClientLoginPage() {
           } else {
             setError(data?.error || 'Demasiados intentos. Intenta más tarde.')
           }
+        } else if (response.status === 409) {
+          setError(data?.error || 'Este email ya tiene una cuenta. Inicia sesión o restablece tu contraseña.')
+          setIsLogin(true)
         } else if (data?.warning) {
           // Si hay advertencia sobre intentos restantes, mostrarla
           setError(`${data.error}. ${data.warning}`)

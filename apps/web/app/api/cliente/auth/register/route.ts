@@ -39,48 +39,35 @@ export async function POST(request: NextRequest) {
       tenantId = defaultTenant.id
     }
 
-    // Verificar si ya existe en ESTE tenant
-    const existingCustomer = await prisma.customer.findFirst({
-      where: {
-        tenantId,
-        email: email.toLowerCase()
-      }
+    // Verificar si ya existe en CUALQUIER tenant (registro global por email)
+    const existingAny = await prisma.customer.findFirst({
+      where: { email: email.toLowerCase() }
     })
 
-    if (existingCustomer) {
-      // Si existe pero no tiene contraseña, actualizar datos básicos + contraseña
-      if (!existingCustomer.password) {
+    if (existingAny) {
+      // Si existe pero no tiene contraseña (importado), completar y verificar
+      if (!existingAny.password) {
         const hashedPassword = await bcrypt.hash(password, 10)
         const updatedCustomer = await prisma.customer.update({
-          where: { id: existingCustomer.id },
+          where: { id: existingAny.id },
           data: {
             password: hashedPassword,
-            name: name || existingCustomer.name,
-            lastName: lastName || existingCustomer.lastName,
-            phone: phone || existingCustomer.phone
+            name: name || existingAny.name,
+            lastName: lastName || existingAny.lastName,
+            phone: phone || existingAny.phone,
+            source: existingAny.source || 'PORTAL'
           }
         })
 
-        // Generar y guardar código de verificación en Redis
         const verificationCode = generateVerificationCode()
         await setCode(updatedCustomer.email, verificationCode)
 
-        // Enviar email de verificación
         const emailTemplate = getVerificationEmailTemplate(verificationCode, 'verification')
-        await sendEmail({
-          to: updatedCustomer.email,
-          subject: emailTemplate.subject,
-          html: emailTemplate.html,
-          text: emailTemplate.text
-        })
+        await sendEmail({ to: updatedCustomer.email, subject: emailTemplate.subject, html: emailTemplate.html, text: emailTemplate.text })
 
-        // Guardar temporalmente el customerId para la verificación
         const response = NextResponse.json({
           success: true,
-          customer: {
-            id: updatedCustomer.id,
-            email: updatedCustomer.email
-          },
+          customer: { id: updatedCustomer.id, email: updatedCustomer.email },
           message: 'Cuenta actualizada. Por favor verifica tu email.',
           requiresVerification: true
         })
@@ -94,9 +81,10 @@ export async function POST(request: NextRequest) {
         return response
       }
 
+      // Ya existe con contraseña: no crear duplicado; guiar a login
       return NextResponse.json(
-        { error: 'Este email ya está registrado' },
-        { status: 400 }
+        { error: 'Este email ya tiene una cuenta. Inicia sesión o restablece tu contraseña.', alreadyRegistered: true },
+        { status: 409 }
       )
     }
 
