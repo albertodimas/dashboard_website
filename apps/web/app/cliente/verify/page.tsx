@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, ArrowRight, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
 
 export default function VerifyEmailPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -109,9 +110,14 @@ export default function VerifyEmailPage() {
       
       setSuccess(true)
       
-      // Redirigir al login después de 2 segundos
+      // Redirigir al login después de 2 segundos, preservando "from" si existe
       setTimeout(() => {
-        router.push('/cliente/login?verified=true')
+        const from = searchParams.get('from')
+        if (from) {
+          router.push(`/cliente/login?verified=true&from=${encodeURIComponent(from)}`)
+        } else {
+          router.push('/cliente/login?verified=true')
+        }
       }, 2000)
     } catch (err: any) {
       setError(err.message)

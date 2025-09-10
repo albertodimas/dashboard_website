@@ -175,7 +175,12 @@ export default function ClientLoginPage() {
       
       // Si requiere verificación, redirigir a la página de verificación
       if (data.requiresVerification) {
-        router.push('/cliente/verify')
+        const fromParam = searchParams.get('from')
+        if (fromParam) {
+          router.push(`/cliente/verify?from=${encodeURIComponent(fromParam)}`)
+        } else {
+          router.push('/cliente/verify')
+        }
       } else {
         // Siempre redirigir al dashboard, pero pasando el parámetro from si existe
         const redirectTo = searchParams.get('from')
