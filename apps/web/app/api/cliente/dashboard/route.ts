@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener datos del cliente
     console.log('[Dashboard API] Getting customer with ID:', decoded.customerId)
-    const customer = await prisma.customer.findUnique({
+    let customer = await prisma.customer.findUnique({
       where: { id: decoded.customerId },
       select: {
         id: true,
@@ -160,6 +160,45 @@ export async function GET(request: NextRequest) {
       console.log('[Dashboard API] Customer phone:', customer.phone || 'NULL')
       console.log('[Dashboard API] Customer address:', customer.address || 'NULL')
       console.log('[Dashboard API] Customer tenantId:', customer.tenantId || 'NULL')
+    }
+
+    // Si el customer no existe o está incompleto, intentar completar con otro registro del mismo email
+    if (!customer || !customer.name || !(customer.lastName ?? '').toString().trim()) {
+      if (decoded.email) {
+        const candidates = await prisma.customer.findMany({
+          where: { email: decoded.email.toLowerCase() },
+          orderBy: { createdAt: 'desc' }
+        })
+        if (candidates.length > 0) {
+          const getScore = (c: any) =>
+            (c.name && c.name.trim() ? 1 : 0) +
+            (c.lastName && String(c.lastName).trim() ? 1 : 0) +
+            (c.phone && String(c.phone).trim() ? 1 : 0)
+          const best = candidates.reduce((a, b) => (getScore(b) > getScore(a) ? b : a), candidates[0])
+
+          if (customer) {
+            const data: any = {}
+            if (!customer.name && best.name) data.name = best.name
+            if (!(customer.lastName ?? '').toString().trim() && (best as any).lastName) data.lastName = (best as any).lastName
+            if (!customer.phone && (best as any).phone) data.phone = (best as any).phone
+            if (!customer.address && (best as any).address) data.address = (best as any).address
+            if (!customer.city && (best as any).city) data.city = (best as any).city
+            if (!customer.state && (best as any).state) data.state = (best as any).state
+            if (!customer.postalCode && (best as any).postalCode) data.postalCode = (best as any).postalCode
+            if (Object.keys(data).length > 0) {
+              customer = await prisma.customer.update({ where: { id: customer.id }, data, select: {
+                id: true, name: true, lastName: true, email: true, phone: true, address: true,
+                city: true, state: true, postalCode: true, tenantId: true, createdAt: true
+              } })
+              console.log('[Dashboard API] Perfil completado desde otro registro por email')
+            }
+          } else {
+            // No existe el registro con el id del token (posible cambio reciente). Usar el más completo como fallback
+            customer = best as any
+            console.warn('[Dashboard API] Usando cliente alternativo por email (id no encontrado)')
+          }
+        }
+      }
     }
 
     // Obtener negocios donde el cliente está registrado (todos los del mismo tenant)

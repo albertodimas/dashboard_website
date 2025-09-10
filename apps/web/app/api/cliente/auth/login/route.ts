@@ -170,6 +170,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Si no se resolvió tenantId, elegir el registro más "completo" por email
+    if (!tenantId) {
+      const candidates = await prisma.customer.findMany({
+        where: { email: email.toLowerCase() },
+        orderBy: { createdAt: 'desc' }
+      })
+      if (candidates.length > 0) {
+        const score = (c: any) =>
+          (c.name && c.name.trim() ? 1 : 0) +
+          (c.lastName && String(c.lastName).trim() ? 1 : 0) +
+          (c.phone && String(c.phone).trim() ? 1 : 0)
+        const best = candidates.reduce((a, b) => (score(b) > score(a) ? b : a), candidates[0])
+        if (!customer || best.id !== customer.id) {
+          customer = best
+          console.log('[Cliente Login] Seleccionado registro más completo por email (sin tenant)')
+        }
+      }
+    }
+
     if (!customer) {
       // Registrar intento fallido
       await prisma.loginAttempt.create({
