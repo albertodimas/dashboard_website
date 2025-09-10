@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@dashboard/db'
-import { verifyCode, clearVerificationCode } from '../send-verification/route'
+import { verifyCode, clearCode } from '@/lib/verification-redis'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email, password, confirmPassword, name, tenantName, subdomain, businessType, verificationCode } = body
+    const schema = z.object({
+      email: z.string().email(),
+      password: z.string().min(8),
+      confirmPassword: z.string().min(8),
+      name: z.string().min(1),
+      tenantName: z.string().optional(),
+      subdomain: z.string().optional(),
+      businessType: z.string().optional(),
+      verificationCode: z.string().regex(/^\d{6}$/),
+    }).refine((d) => d.password === d.confirmPassword, { message: 'Passwords do not match', path: ['confirmPassword'] })
+    const { email, password, confirmPassword, name, tenantName, subdomain, businessType, verificationCode } = schema.parse(await request.json())
 
-    // Validate input
-    if (!email || !password || !name || !verificationCode) {
-      return NextResponse.json(
-        { error: 'All fields are required including verification code' },
-        { status: 400 }
+    // Rate limit by IP (5 registrations / hour)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'auth:register:system', 5, 60 * 60)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many attempts', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 3600) } }
       )
     }
 
@@ -21,17 +34,12 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.log('[REGISTER] Verifying code for user')
     }
-    const isValidCode = verifyCode(email, verificationCode)
+    const isValidCode = await verifyCode(email, verificationCode)
     if (process.env.NODE_ENV === 'development') {
       console.log('[REGISTER] Code validation result:', isValidCode)
     }
     
     if (!isValidCode) {
-      // Get stored data for debugging
-      const { verificationStore } = require('@/lib/verification-store')
-      const stored = verificationStore.get(email)
-      console.log('[REGISTER] Stored data for', email, ':', stored)
-      
       return NextResponse.json(
         { error: 'Invalid or expired verification code' },
         { status: 400 }
@@ -115,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Note: Business and Membership models will be created when those tables are added to the schema
 
     // Clear the verification code after successful registration
-    clearVerificationCode(email)
+    await clearCode(email)
 
     return NextResponse.json({
       success: true,

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { verifyClientToken } from '@/lib/client-auth'
 
 // POST - Desregistrar cliente de un negocio
 export async function POST(request: NextRequest) {
@@ -29,15 +27,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let decoded: any
-
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      )
+    const decoded = await verifyClientToken(token)
+    if (!decoded) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
     // Obtener el businessId del body
@@ -187,14 +179,9 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    let decoded: any
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      )
+    const decoded = await verifyClientToken(token)
+    if (!decoded) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
     const { businessId } = await request.json()

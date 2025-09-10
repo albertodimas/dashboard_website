@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,15 +18,12 @@ export async function POST(request: NextRequest) {
       Buffer.from(sessionCookie.value, 'base64').toString()
     )
 
-    const body = await request.json()
-    const { purchaseId, appointmentId } = body
-
-    if (!purchaseId || !appointmentId) {
-      return NextResponse.json(
-        { error: 'Purchase ID and Appointment ID are required' },
-        { status: 400 }
-      )
+    const bodySchema = z.object({ purchaseId: z.string().uuid(), appointmentId: z.string().uuid() })
+    const parsed = bodySchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
     }
+    const { purchaseId, appointmentId } = parsed.data
 
     // Start a transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
@@ -135,15 +133,12 @@ export async function DELETE(request: NextRequest) {
       Buffer.from(sessionCookie.value, 'base64').toString()
     )
 
-    const body = await request.json()
-    const { appointmentId } = body
-
-    if (!appointmentId) {
-      return NextResponse.json(
-        { error: 'Appointment ID is required' },
-        { status: 400 }
-      )
+    const delSchema = z.object({ appointmentId: z.string().uuid() })
+    const parsed = delSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
     }
+    const { appointmentId } = parsed.data
 
     // Start a transaction
     const result = await prisma.$transaction(async (tx) => {

@@ -456,7 +456,7 @@ export default function AdminDashboardPage() {
                           {t('language') === 'en' ? 'Staff Module' : 'Módulo Staff'}
                         </span>
                       )}
-                      {business.enablePackagesModule && (
+                        {(business as any).enablePackagesModule && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                           {t('language') === 'en' ? 'Packages Module' : 'Módulo Paquetes'}
                         </span>
@@ -532,13 +532,13 @@ export default function AdminDashboardPage() {
                               onClick={async () => {
                                 try {
                                   setSaving(true)
-                                  const newValue = !business.enablePackagesModule
+                                    const newValue = !(business as any).enablePackagesModule
                                   const response = await fetch('/api/admin/businesses', {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                       id: business.id,
-                                      enablePackagesModule: newValue
+                                        enablePackagesModule: newValue
                                     })
                                   })
                                   if (!response.ok) throw new Error('Failed to toggle packages module')
@@ -559,9 +559,9 @@ export default function AdminDashboardPage() {
                               disabled={saving}
                               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3"
                             >
-                              <Package className={`w-4 h-4 ${business.enablePackagesModule ? 'text-indigo-600' : 'text-gray-400'}`} />
-                              <span className={business.enablePackagesModule ? 'text-indigo-600' : 'text-gray-700'}>
-                                {business.enablePackagesModule 
+                                <Package className={`w-4 h-4 ${(business as any).enablePackagesModule ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                <span className={(business as any).enablePackagesModule ? 'text-indigo-600' : 'text-gray-700'}>
+                                  {(business as any).enablePackagesModule 
                                   ? (t('language') === 'en' ? 'Disable Packages' : 'Desactivar Paquetes')
                                   : (t('language') === 'en' ? 'Enable Packages' : 'Activar Paquetes')}
                               </span>

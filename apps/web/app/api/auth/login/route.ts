@@ -2,17 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@dashboard/db'
 import { setAuthCookie } from '@/lib/jwt-auth'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email, password, subdomain } = body
+    const schema = z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+      subdomain: z.string().min(1).optional(),
+    })
+    const { email, password /*, subdomain*/ } = schema.parse(await request.json())
 
-    // Validate input
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
+    // Rate limit by IP (10 attempts / 5 minutes)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'auth:login:system', 10, 60 * 5)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many attempts', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 300) } }
       )
     }
 

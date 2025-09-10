@@ -44,6 +44,14 @@ export default function ClientLoginPage() {
     }
   }, [searchParams])
 
+  // Si venimos de un token inválido, mostrar mensaje claro
+  useEffect(() => {
+    const auth = searchParams.get('auth')
+    if (auth === 'invalid') {
+      setError('Tu sesión anterior expiró o no es válida. Inicia sesión nuevamente.')
+    }
+  }, [searchParams])
+
   const validatePassword = (password: string): string[] => {
     const errors: string[] = []
     if (password.length < 8) errors.push('Mínimo 8 caracteres')
@@ -116,6 +124,7 @@ export default function ClientLoginPage() {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ ...formData, businessSlug })
       })
 

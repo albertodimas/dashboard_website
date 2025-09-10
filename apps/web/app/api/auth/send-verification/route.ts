@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { sendEmail } from '@/lib/email'
-import { verificationStore } from '@/lib/verification-store'
+import { checkRateLimit, setCode } from '@/lib/verification-redis'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email } = body
+    const schema = z.object({ email: z.string().email() })
+    const { email } = schema.parse(await request.json())
 
-    // Validate input
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      )
-    }
-
-    // Check if email is valid format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
+    // Rate limit by IP (5 codes / 15 minutes)
+    const ip = getClientIP(request)
+    const ipRate = await limitByIP(ip, 'auth:send-code:system', 5, 60 * 15)
+    if (!ipRate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many attempts', retryAfter: ipRate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(ipRate.retryAfterSec || 900) } }
       )
     }
 
@@ -37,8 +32,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check rate limiting
-    const rateLimit = verificationStore.checkRateLimit(email)
+    // Check rate limiting (Redis)
+    const rateLimit = await checkRateLimit(email)
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: `Too many attempts. Please try again in ${rateLimit.minutesLeft} minutes` },
@@ -54,12 +49,13 @@ export async function POST(request: NextRequest) {
       console.log('[VERIFICATION] Code generated successfully')
     }
 
-    // Store code in memory
-    verificationStore.set(email, code)
+    // Store code in Redis with TTL
+    await setCode(email, code)
     
-    // Verify it was stored
-    const stored = verificationStore.get(email)
-    console.log('[VERIFICATION] Stored verification data:', stored)
+    // Silent dev log
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[VERIFICATION] Code stored (Redis)')
+    }
 
     // Send verification email
     try {
@@ -104,10 +100,4 @@ export async function POST(request: NextRequest) {
 }
 
 // Export verification functions for use in registration
-export function verifyCode(email: string, code: string): boolean {
-  return verificationStore.verify(email, code)
-}
-
-export function clearVerificationCode(email: string) {
-  verificationStore.clear(email)
-}
+// Deprecated exports removed in favor of Redis-backed module

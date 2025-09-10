@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         city: true,
         state: true,
         postalCode: true,
-        registeredBusinesses: true
+        // registeredBusinesses was removed; include fields as needed
       }
     })
     

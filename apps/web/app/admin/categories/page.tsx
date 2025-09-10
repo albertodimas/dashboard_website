@@ -481,10 +481,10 @@ export default function CategoriesPage() {
                         <button
                           onClick={() => handleDelete(category.id, category.name)}
                           className="text-red-600 hover:text-red-900"
-                          disabled={category._count?.businesses && category._count.businesses > 0}
+                          disabled={!!(category._count?.businesses && category._count.businesses > 0)}
                         >
                           <Trash2 className={`w-5 h-5 ${
-                            category._count?.businesses && category._count.businesses > 0
+                            (category._count?.businesses && category._count.businesses > 0)
                               ? 'opacity-50 cursor-not-allowed'
                               : ''
                           }`} />

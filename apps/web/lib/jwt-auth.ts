@@ -8,7 +8,7 @@ if (!process.env.JWT_SECRET) {
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 
-export interface JWTPayload {
+export interface AppJWTPayload {
   userId: string
   email: string
   name: string
@@ -19,8 +19,8 @@ export interface JWTPayload {
   exp?: number
 }
 
-export async function createJWT(payload: JWTPayload) {
-  const token = await new SignJWT(payload)
+export async function createJWT(payload: AppJWTPayload) {
+  const token = await new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -29,17 +29,17 @@ export async function createJWT(payload: JWTPayload) {
   return token
 }
 
-export async function verifyJWT(token: string): Promise<JWTPayload | null> {
+export async function verifyJWT(token: string): Promise<AppJWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload as JWTPayload
+    return payload as unknown as AppJWTPayload
   } catch (error) {
     console.error('JWT verification failed:', error)
     return null
   }
 }
 
-export async function setAuthCookie(payload: JWTPayload) {
+export async function setAuthCookie(payload: AppJWTPayload) {
   const token = await createJWT(payload)
   
   cookies().set('auth-token', token, {
@@ -53,7 +53,7 @@ export async function setAuthCookie(payload: JWTPayload) {
   return token
 }
 
-export async function getAuthFromCookie(): Promise<JWTPayload | null> {
+export async function getAuthFromCookie(): Promise<AppJWTPayload | null> {
   const cookieStore = cookies()
   const token = cookieStore.get('auth-token')
   

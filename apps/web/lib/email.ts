@@ -3,11 +3,15 @@ export async function sendEmail({
   subject,
   html,
   text,
+  from,
+  attachments,
 }: {
   to: string
   subject: string
   html: string
   text?: string
+  from?: string
+  attachments?: Array<{ filename: string; content: string | Buffer; contentType?: string }>
 }) {
   const nodemailer = require('nodemailer')
   
@@ -22,11 +26,12 @@ export async function sendEmail({
       })
       
       const info = await transporter.sendMail({
-        from: process.env.EMAIL_FROM || '"Sistema de Reservas" <noreply@localhost>',
+        from: from || process.env.EMAIL_FROM || '"Dashboard" <noreply@localhost>',
         to,
         subject,
         html,
         text,
+        attachments,
       })
 
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
@@ -81,11 +86,12 @@ export async function sendEmail({
     
     // Send email
     const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: from || process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to,
       subject,
       html,
       text,
+      attachments,
     })
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
+import dynamic from 'next/dynamic'
+const BusinessLandingEnhanced = dynamic(() => import('@/components/business/BusinessLandingEnhanced'), { ssr: false })
 import { getBusinessDataByCustomSlug } from '@/lib/business-data'
 
 interface CustomPageProps {

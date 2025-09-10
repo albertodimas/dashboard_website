@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { z } from 'zod'
+import { trackError } from '@/lib/observability'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 const reviewSchema = z.object({
   appointmentId: z.string().uuid(),
@@ -10,6 +12,15 @@ const reviewSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit by IP: 5 reviews / hour
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'public:review:submit', 5, 60 * 60)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many reviews from this IP', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 3600) } }
+      )
+    }
     const body = await request.json()
     const validated = reviewSchema.parse(body)
 
@@ -68,7 +79,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error submitting review:', error)
+    trackError(error, { route: 'review/submit' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

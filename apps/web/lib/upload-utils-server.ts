@@ -1,6 +1,6 @@
 // Utilidades de upload para el servidor (con módulos de Node.js)
 import sharp from 'sharp'
-import { writeFile, mkdir } from 'fs/promises'
+import { mkdir, rm } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 
@@ -35,7 +35,8 @@ export async function processAndSaveImage(
   type: ImageType = 'avatar'
 ): Promise<string> {
   try {
-    console.log('Processing image with ID:', id, 'Type:', type)
+    const safeId = id.replace(/[^A-Za-z0-9_-]/g, '') || generateImageId(type === 'avatar' ? 'staff' : type)
+    const safeType: ImageType = (['avatar', 'gallery', 'service', 'business'] as const).includes(type) ? type : 'avatar'
     
     // Convertir base64 a Buffer si es necesario
     const buffer = typeof file === 'string' 
@@ -45,14 +46,22 @@ export async function processAndSaveImage(
     console.log('Buffer size:', buffer.length)
 
     // Obtener configuración según el tipo
-    const sizes = IMAGE_SIZES[type]
-    const quality = QUALITY_SETTINGS[type]
+    const sizes = IMAGE_SIZES[safeType]
+    const quality = QUALITY_SETTINGS[safeType]
     
-    // Crear directorio si no existe
-    // En desarrollo, usar __dirname para obtener la ruta correcta
-    const publicDir = path.join(process.cwd(), 'public', type === 'avatar' ? 'avatars' : type)
-    console.log('Public directory:', publicDir)
-    console.log('Current working directory:', process.cwd())
+    // Resolver ruta de public de forma robusta en monorepo:
+    // 1) apps/web/public (preferida), 2) ./public si existe
+    const appPublic = path.join(process.cwd(), 'apps', 'web', 'public')
+    const rootPublic = path.join(process.cwd(), 'public')
+    const basePublic = existsSync(appPublic) ? appPublic : (existsSync(rootPublic) ? rootPublic : appPublic)
+    const publicDir = path.join(basePublic, safeType === 'avatar' ? 'avatars' : safeType)
+    // Cleanup legacy directories created by incorrect Windows paths
+    for (const legacy of ['D:dashboard_websiteappswebpublicavatars', 'D:dashboard_websiteappswebpublicgallery', 'D:dashboard_websiteappswebpublicservices', 'D:dashboard_websiteappswebpublicbusiness']) {
+      const abs = path.join(process.cwd(), legacy)
+      if (existsSync(abs)) {
+        await rm(abs, { recursive: true, force: true })
+      }
+    }
     
     if (!existsSync(publicDir)) {
       console.log('Creating directory:', publicDir)
@@ -61,7 +70,7 @@ export async function processAndSaveImage(
 
     // Procesar cada tamaño
     const promises = sizes.map(async (size) => {
-      const filename = `${id}_${size}.webp`
+      const filename = `${safeId}_${size}.webp`
       const filepath = path.join(publicDir, filename)
       
       console.log('Processing size:', size, 'to file:', filepath)
@@ -79,7 +88,7 @@ export async function processAndSaveImage(
     })
 
     // También guardar el original optimizado
-    const originalFilename = `${id}_original.webp`
+    const originalFilename = `${safeId}_original.webp`
     const originalPath = path.join(publicDir, originalFilename)
     
     await sharp(buffer)
@@ -89,7 +98,7 @@ export async function processAndSaveImage(
     await Promise.all(promises)
     
     // Retornar solo el ID (sin extensión)
-    return id
+    return safeId
   } catch (error) {
     console.error('Error processing image:', error)
     throw new Error('Failed to process image')

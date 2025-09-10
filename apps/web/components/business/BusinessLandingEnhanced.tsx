@@ -143,7 +143,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       shadow: 'rounded-lg shadow-lg',
       '3d': 'rounded-lg'
     }
-    return `${baseClasses} ${styleClasses[buttonStyle] || styleClasses.rounded}`
+    const key = buttonStyle as keyof typeof styleClasses
+    return `${baseClasses} ${styleClasses[key] || styleClasses.rounded}`
   }
   
   // Get font family CSS
@@ -1390,7 +1391,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     if (member.specialties === '0' || member.specialties === 0 || member.specialties === '') return null;
                     
                     if (Array.isArray(member.specialties)) {
-                      const validSpecialties = member.specialties.filter(s => s && s !== '0' && s !== 0);
+                      const validSpecialties = member.specialties.filter((s: any) => s && s !== '0' && s !== 0);
                       if (validSpecialties.length === 0) return null;
                       return (
                         <p className="text-sm text-gray-500 mt-1">
@@ -1705,8 +1706,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setBookingType('use-package')
                           
                           // Si el usuario está logueado, cargar sus paquetes automáticamente
-                          if (isAuthenticated && customerData?.email) {
-                            setBookingData(prev => ({ ...prev, customerEmail: customerData.email }))
+                          if (isAuthenticated && clientData?.email) {
+                            setBookingData(prev => ({ ...prev, customerEmail: clientData.email }))
                             setIsLoadingPackages(true)
                             
                             try {
@@ -2802,4 +2803,3 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     </div>
   )
 }// Force reload
-

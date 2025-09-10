@@ -2,20 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import bcrypt from 'bcryptjs'
 import { generateClientToken } from '@/lib/client-auth'
+import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis } from '@/lib/verification-redis'
 import { setAuthCookie } from '@/lib/jwt-auth'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, code, newPassword, userType = 'user' } = await request.json()
+    const schema = z.object({
+      email: z.string().email(),
+      code: z.string().regex(/^\d{6}$/),
+      newPassword: z.string().min(8),
+      userType: z.union([z.literal('user'), z.literal('customer'), z.literal('cliente')]).optional().default('user')
+    })
+    const { email, code, newPassword, userType } = schema.parse(await request.json())
 
-    if (!email || !code || !newPassword) {
-      return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
-        { status: 400 }
+    // Rate limit by IP (10 resets / 15 minutes)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'auth:reset:system', 10, 60 * 15)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many attempts', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 900) } }
       )
     }
 
-    console.log(`Processing reset password for ${userType}:`, email)
+    console.log(`Processing reset password for ${userType}`)
 
     // Buscar usuario o cliente según el tipo
     let user: any = null
@@ -112,9 +124,9 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Para usuarios del sistema, verificar el código de manera segura
-      const storedCode = verificationStore.get(email)
+      const ok = await verifyCodeRedis(email, code)
       
-      if (!storedCode || storedCode !== code) {
+      if (!ok) {
         console.error('❌ Invalid verification code for system user')
         return NextResponse.json(
           { error: 'Código de verificación inválido o expirado' },
@@ -123,7 +135,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Limpiar el código usado
-      verificationStore.delete(email)
+      await clearCodeRedis(email)
       
       // Hashear la nueva contraseña
       const hashedPassword = await bcrypt.hash(newPassword, 10)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { jwtVerify } from 'jose'
 
 // Rutas protegidas del cliente que requieren autenticación
 const protectedClientRoutes = [
@@ -16,11 +17,24 @@ const publicClientRoutes = [
   '/cliente/login',
   '/cliente/register',
   '/cliente/forgot-password',
+  '/cliente/verify',
   '/cliente/verify-email'
 ]
 
 // Middleware to handle routing and authentication
-export function middleware(request: NextRequest) {
+async function verifyClientJWT(token: string): Promise<boolean> {
+  try {
+    const secretStr = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
+    if (!secretStr) return false
+    const secret = new TextEncoder().encode(secretStr)
+    await jwtVerify(token, secret)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
   // Always let API routes pass through without any processing
@@ -48,21 +62,34 @@ export function middleware(request: NextRequest) {
     
     // If user has token and is on public route (login/register), redirect to dashboard
     if (isPublicRoute && token) {
-      // Validate token is not expired (basic check)
-      try {
-        // For now, just check if token exists
-        // In production, you should validate the JWT properly
+      const valid = await verifyClientJWT(token)
+      if (valid) {
         const dashboardUrl = new URL('/cliente/dashboard', request.url)
         const from = request.nextUrl.searchParams.get('from')
-        if (from) {
-          dashboardUrl.searchParams.set('from', from)
-        }
+        if (from) dashboardUrl.searchParams.set('from', from)
         return NextResponse.redirect(dashboardUrl)
-      } catch {
-        // If token validation fails, let them continue to login
-        const response = NextResponse.next()
-        response.cookies.delete('client-token')
-        return response
+      } else {
+        // Token inválido: limpiar y marcar motivo en query
+        const url = new URL(request.url)
+        url.searchParams.set('auth', 'invalid')
+        const res = NextResponse.redirect(url)
+        res.cookies.delete('client-token')
+        res.cookies.delete('client-refresh-token')
+        return res
+      }
+    }
+    
+    // If protected and token provided, validate
+    if (isProtectedRoute && token) {
+      const valid = await verifyClientJWT(token)
+      if (!valid) {
+        const loginUrl = new URL('/cliente/login', request.url)
+        loginUrl.searchParams.set('from', pathname)
+        loginUrl.searchParams.set('auth', 'invalid')
+        const res = NextResponse.redirect(loginUrl)
+        res.cookies.delete('client-token')
+        res.cookies.delete('client-refresh-token')
+        return res
       }
     }
   }

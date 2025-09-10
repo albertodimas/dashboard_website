@@ -46,7 +46,7 @@ export async function GET() {
       isBlocked: business.isBlocked,
       blockedReason: business.blockedReason,
       blockedAt: business.blockedAt,
-      businessCategory: business.businessCategory,
+      businessCategory: (business as any).businessCategory ?? (business as any).category?.name ?? null,
       categoryId: business.categoryId,
       category: business.category,
       enableStaffModule: business.enableStaffModule,

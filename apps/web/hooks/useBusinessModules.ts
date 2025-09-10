@@ -30,12 +30,14 @@ export function useBusinessModules({ businessType, customModules }: UseBusinessM
   }, [businessType, customModules]);
 
   // Función para verificar si un módulo está habilitado
-  const isModuleEnabled = (moduleName: string, feature?: string): boolean => {
+  const isModuleEnabled = (moduleName: keyof BusinessModules | string, feature?: string): boolean => {
     if (moduleName === 'base') {
-      return feature ? modules.base[feature] : true;
+      const f = feature as keyof BusinessModules['base'] | undefined
+      return f ? Boolean(modules.base[f]) : true;
     }
-    
-    const module = modules[moduleName];
+
+    // Access dynamic module safely
+    const module = (modules as any)[moduleName];
     if (!module || !module.enabled) return false;
     
     if (feature) {
@@ -46,24 +48,24 @@ export function useBusinessModules({ businessType, customModules }: UseBusinessM
   };
 
   // Función para activar/desactivar un módulo
-  const toggleModule = (moduleName: string, enabled: boolean) => {
+  const toggleModule = (moduleName: keyof BusinessModules | string, enabled: boolean) => {
     setModules(prev => ({
       ...prev,
       [moduleName]: {
-        ...prev[moduleName],
+        ...(prev as any)[moduleName],
         enabled
       }
     }));
   };
 
   // Función para activar/desactivar una característica específica
-  const toggleFeature = (moduleName: string, featureName: string, enabled: boolean) => {
+  const toggleFeature = (moduleName: keyof BusinessModules | string, featureName: string, enabled: boolean) => {
     setModules(prev => ({
       ...prev,
       [moduleName]: {
-        ...prev[moduleName],
+        ...(prev as any)[moduleName],
         features: {
-          ...prev[moduleName]?.features,
+          ...(prev as any)[moduleName]?.features,
           [featureName]: enabled
         }
       }

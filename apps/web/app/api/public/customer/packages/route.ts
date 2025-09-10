@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const email = searchParams.get('email')
-    const businessId = searchParams.get('businessId')
+    const schema = z.object({ email: z.string().email(), businessId: z.string().uuid() })
+    const sp = Object.fromEntries(new URL(request.url).searchParams)
+    const parsed = schema.safeParse(sp)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid query', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { email, businessId } = parsed.data
 
-    if (!email || !businessId) {
-      return NextResponse.json(
-        { error: 'Email and businessId are required' },
-        { status: 400 }
+    // Rate limit by IP: 60 queries / 10 minutes
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'public:customer:packages', 60, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
       )
     }
 

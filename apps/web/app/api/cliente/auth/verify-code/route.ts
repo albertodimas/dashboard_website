@@ -1,54 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-
-// Import the verification codes map (in production, use Redis or database)
-const verificationCodes = new Map<string, { code: string; expires: Date; data: any }>()
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis, getData as getCodeData } from '@/lib/verification-redis'
+import { generateClientToken } from '@/lib/client-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, code } = await request.json()
+    const schema = z.object({
+      email: z.string().email(),
+      code: z.string().min(4).max(12),
+    })
+    const parsed = schema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Peticion invalida', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { email, code } = parsed.data
 
-    if (!email || !code) {
+    // Rate limit by IP (5 attempts / 10 minutes)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'cliente:verify-code', 5, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Demasiados intentos. Intenta mas tarde', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
+      )
+    }
+
+    // Verify code in Redis
+    const valid = await verifyCodeRedis(email, code)
+    if (!valid) {
       return NextResponse.json(
-        { error: 'Email y código son requeridos' },
+        { error: 'Codigo invalido o expirado' },
         { status: 400 }
       )
     }
 
-    // Get stored verification data
-    const storedData = verificationCodes.get(email.toLowerCase())
-    
-    if (!storedData) {
-      return NextResponse.json(
-        { error: 'Código de verificación no encontrado o expirado' },
-        { status: 400 }
-      )
-    }
-
-    // Check if code is expired
-    if (storedData.expires < new Date()) {
-      verificationCodes.delete(email.toLowerCase())
-      return NextResponse.json(
-        { error: 'Código de verificación expirado' },
-        { status: 400 }
-      )
-    }
-
-    // Verify code
-    if (storedData.code !== code) {
-      return NextResponse.json(
-        { error: 'Código de verificación incorrecto' },
-        { status: 400 }
-      )
-    }
-
-    // Code is valid, create or update customer
-    const { name, password, phone } = storedData.data
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // Fetch registration data (if provided at send-verification)
+    const reg = await getCodeData<{ name?: string; password?: string; phone?: string }>(email)
+    const hashedPassword = reg?.password ? await bcrypt.hash(reg.password, 10) : undefined
 
     // Check if customer exists
     let customer = await prisma.customer.findFirst({
@@ -60,29 +51,33 @@ export async function POST(request: NextRequest) {
       customer = await prisma.customer.update({
         where: { id: customer.id },
         data: {
-          password: hashedPassword,
-          name: name || customer.name,
-          phone: phone || customer.phone,
+          ...(hashedPassword ? { password: hashedPassword } : {}),
+          ...(reg?.name ? { name: reg.name } : {}),
+          ...(reg?.phone ? { phone: reg.phone } : {}),
           emailVerified: true
         }
       })
     } else {
-      // Create new customer
+      // Create new customer only if we have required data
+      if (!reg?.name || !hashedPassword) {
+        return NextResponse.json(
+          { error: 'Registro incompleto. Reenvia el codigo y completa el formulario.' },
+          { status: 400 }
+        )
+      }
       const defaultTenant = await prisma.tenant.findFirst()
-      
       if (!defaultTenant) {
         return NextResponse.json(
-          { error: 'Error de configuración del sistema' },
+          { error: 'Error de configuracion del sistema' },
           { status: 500 }
         )
       }
-
       customer = await prisma.customer.create({
         data: {
           tenantId: defaultTenant.id,
           email: email.toLowerCase(),
-          name,
-          phone,
+          name: reg.name,
+          phone: reg.phone,
           password: hashedPassword,
           emailVerified: true,
           source: 'PORTAL'
@@ -90,19 +85,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Clear verification code
-    verificationCodes.delete(email.toLowerCase())
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        customerId: customer.id,
-        email: customer.email,
-        name: customer.name
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    )
+    // Clear verification code + data
+    await clearCodeRedis(email)
 
     // Get customer's packages and appointments
     const packages = await prisma.packagePurchase.findMany({
@@ -117,76 +101,42 @@ export async function POST(request: NextRequest) {
       include: {
         package: {
           include: {
-            business: {
-              select: {
-                name: true,
-                slug: true
-              }
-            },
-            services: {
-              include: {
-                service: {
-                  select: {
-                    name: true,
-                    duration: true,
-                    price: true
-                  }
-                }
-              }
-            }
+            business: { select: { name: true, slug: true } },
+            services: { include: { service: { select: { name: true, duration: true, price: true } } } }
           }
         }
       }
     })
 
     const appointments = await prisma.appointment.findMany({
-      where: {
-        customerId: customer.id,
-        startTime: { gte: new Date() }
-      },
+      where: { customerId: customer.id, startTime: { gte: new Date() } },
       include: {
-        service: {
-          select: {
-            name: true,
-            duration: true
-          }
-        },
-        business: {
-          select: {
-            name: true
-          }
-        },
-        staff: {
-          select: {
-            name: true
-          }
-        }
+        service: { select: { name: true, duration: true } },
+        business: { select: { name: true } },
+        staff: { select: { name: true } }
       },
-      orderBy: {
-        startTime: 'asc'
-      },
+      orderBy: { startTime: 'asc' },
       take: 10
+    })
+
+    // Generate client token
+    const token = await generateClientToken({
+      customerId: customer.id,
+      email: customer.email,
+      name: customer.name
     })
 
     return NextResponse.json({
       success: true,
       token,
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone
-      },
+      customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone },
       packages,
       appointments,
       message: 'Email verificado exitosamente'
     })
-
   } catch (error) {
     console.error('Verify code error:', error)
-    return NextResponse.json(
-      { error: 'Error al verificar código' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error al verificar codigo' }, { status: 500 })
   }
 }
+

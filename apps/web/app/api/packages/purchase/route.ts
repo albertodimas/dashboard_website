@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,14 +18,18 @@ export async function POST(request: NextRequest) {
       Buffer.from(sessionCookie.value, 'base64').toString()
     )
 
-    const body = await request.json()
-    const { 
-      packageId, 
-      customerId, 
-      paymentMethod = 'CASH',
-      paymentStatus = 'PENDING', // Allow specifying payment status
-      status = 'PENDING' // Default to PENDING
-    } = body
+    const bodySchema = z.object({
+      packageId: z.string().uuid(),
+      customerId: z.string().uuid(),
+      paymentMethod: z.enum(['CASH', 'TRANSFER']).optional().default('CASH'),
+      paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED']).optional().default('PENDING'),
+      status: z.enum(['PENDING', 'ACTIVE', 'COMPLETED', 'EXPIRED']).optional().default('PENDING'),
+    })
+    const parsed = bodySchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { packageId, customerId, paymentMethod, paymentStatus, status } = parsed.data
 
     // Get package details
     const packageDetails = await prisma.package.findUnique({
@@ -120,16 +125,13 @@ export async function GET(request: NextRequest) {
       Buffer.from(sessionCookie.value, 'base64').toString()
     )
 
-    const { searchParams } = new URL(request.url)
-    const customerId = searchParams.get('customerId')
-    const businessId = searchParams.get('businessId')
-
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'Customer ID is required' },
-        { status: 400 }
-      )
+    const searchSchema = z.object({ customerId: z.string().uuid(), businessId: z.string().uuid().optional() })
+    const sp = Object.fromEntries(new URL(request.url).searchParams)
+    const parsed = searchSchema.safeParse(sp)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid query', details: parsed.error.flatten() }, { status: 400 })
     }
+    const { customerId, businessId } = parsed.data
 
     const whereClause: {
       customerId: string;

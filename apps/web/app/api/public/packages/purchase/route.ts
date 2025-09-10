@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { trackError } from '@/lib/observability'
 import { z } from 'zod'
 import { sendEmail } from '@/lib/email'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 const packagePurchaseSchema = z.object({
   businessId: z.string().uuid(),
@@ -15,6 +17,15 @@ const packagePurchaseSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit by IP: 5 purchases / 10 minutes
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'public:packages:purchase', 5, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
+      )
+    }
     const body = await request.json()
     console.log('Received package purchase data:', body)
     const validated = packagePurchaseSchema.parse(body)
@@ -191,7 +202,7 @@ export async function POST(request: NextRequest) {
       paymentMethod: validated.paymentMethod
     })
   } catch (error) {
-    console.error('Package purchase error:', error)
+    trackError(error, { route: 'public/packages/purchase' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

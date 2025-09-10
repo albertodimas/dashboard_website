@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import jwt from 'jsonwebtoken'
+import { SignJWT, jwtVerify } from 'jose'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-refresh-secret-change-in-production'
+// Use same client token secret as login/middleware
+const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
+const REFRESH_SECRET = process.env.REFRESH_SECRET
+if (!CLIENT_JWT_SECRET || !REFRESH_SECRET) {
+  throw new Error('JWT secrets (CLIENT_JWT_SECRET or JWT_SECRET, and REFRESH_SECRET) are required')
+}
+const CLIENT_JWT_SECRET_BYTES = new TextEncoder().encode(CLIENT_JWT_SECRET)
+const REFRESH_SECRET_BYTES = new TextEncoder().encode(REFRESH_SECRET)
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the current token from cookie
     const token = request.cookies.get('client-token')?.value
     const refreshToken = request.cookies.get('client-refresh-token')?.value
 
@@ -18,32 +23,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Try to decode the current token (might be expired)
+    // Try to decode the current token (might be expired); fallback to refresh token
     let customerId: string | null = null
-    
+
     if (token) {
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any
-        // Token is still valid, just refresh it
-        customerId = decoded.customerId
-      } catch (error: any) {
-        if (error.name === 'TokenExpiredError' && refreshToken) {
-          // Token expired, try refresh token
-          try {
-            const refreshDecoded = jwt.verify(refreshToken, REFRESH_SECRET) as any
-            customerId = refreshDecoded.customerId
-          } catch (refreshError) {
-            return NextResponse.json(
-              { error: 'Token de actualización inválido' },
-              { status: 401 }
-            )
-          }
-        } else {
-          return NextResponse.json(
-            { error: 'Token inválido' },
-            { status: 401 }
-          )
-        }
+        const { payload } = await jwtVerify(token, CLIENT_JWT_SECRET_BYTES)
+        customerId = (payload as any).customerId
+      } catch {
+        // ignore and try refresh token below
+      }
+    }
+
+    if (!customerId && refreshToken) {
+      try {
+        const { payload } = await jwtVerify(refreshToken, REFRESH_SECRET_BYTES)
+        customerId = (payload as any).customerId
+      } catch {
+        return NextResponse.json(
+          { error: 'Token de actualización inválido' },
+          { status: 401 }
+        )
       }
     }
 
@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get fresh customer data
     const customer = await prisma.customer.findUnique({
       where: { id: customerId }
     })
@@ -67,27 +66,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate new tokens
-    const newToken = jwt.sign(
-      { 
-        customerId: customer.id,
-        email: customer.email,
-        name: customer.name,
-        emailVerified: customer.emailVerified
-      },
-      JWT_SECRET,
-      { expiresIn: '1h' } // Shorter lived access token
-    )
+    const newToken = await new SignJWT({
+      customerId: customer.id,
+      email: customer.email,
+      name: customer.name,
+      emailVerified: customer.emailVerified
+    } as Record<string, unknown>)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(CLIENT_JWT_SECRET_BYTES)
 
-    const newRefreshToken = jwt.sign(
-      { 
-        customerId: customer.id,
-        type: 'refresh'
-      },
-      REFRESH_SECRET,
-      { expiresIn: '30d' } // Longer lived refresh token
-    )
+    const newRefreshToken = await new SignJWT({
+      customerId: customer.id,
+      type: 'refresh'
+    } as Record<string, unknown>)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('30d')
+      .sign(REFRESH_SECRET_BYTES)
 
-    // Create response
     const response = NextResponse.json({
       success: true,
       customer: {
@@ -99,20 +97,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Set new cookies
     response.cookies.set('client-token', newToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60, // 1 hour
+      maxAge: 60 * 60,
       path: '/'
     })
 
     response.cookies.set('client-refresh-token', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict', // Stricter for refresh token
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 30,
       path: '/'
     })
 

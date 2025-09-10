@@ -2,71 +2,56 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import bcrypt from 'bcryptjs'
 import { generateClientToken } from '@/lib/client-auth'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis } from '@/lib/verification-redis'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, code, newPassword } = await request.json()
+    const schema = z.object({
+      email: z.string().email(),
+      code: z.string().min(4).max(12),
+      newPassword: z.string().min(8),
+    })
+    const parsed = schema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Peticion invalida', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { email, code, newPassword } = parsed.data
 
-    if (!email || !code || !newPassword) {
-      return NextResponse.json(
-        { error: 'Email, código y nueva contraseña son requeridos' },
-        { status: 400 }
+    // Rate limit by IP (5 attempts / 10 minutes)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'cliente:reset-password', 5, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Demasiados intentos. Intenta mas tarde', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
       )
     }
 
-    // Buscar el cliente
-    const customer = await prisma.customer.findFirst({
-      where: {
-        email: email.toLowerCase()
-      }
-    })
-
+    // Find customer
+    const customer = await prisma.customer.findFirst({ where: { email: email.toLowerCase() } })
     if (!customer) {
-      return NextResponse.json(
-        { error: 'Código inválido o expirado' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Codigo invalido o expirado' }, { status: 400 })
     }
 
-    // Verificar el código
-    const verificationCode = await prisma.verificationCode.findFirst({
-      where: {
-        customerId: customer.id,
-        code,
-        type: 'PASSWORD_RESET',
-        usedAt: null,
-        expiresAt: {
-          gt: new Date()
-        }
-      }
+    // Validate code via Redis
+    const valid = await verifyCodeRedis(email, code)
+    if (!valid) {
+      return NextResponse.json({ error: 'Codigo invalido o expirado' }, { status: 400 })
+    }
+
+    // Hash and update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const updatedCustomer = await prisma.customer.update({
+      where: { id: customer.id },
+      data: { password: hashedPassword, emailVerified: true }
     })
 
-    if (!verificationCode) {
-      return NextResponse.json(
-        { error: 'Código inválido o expirado' },
-        { status: 400 }
-      )
-    }
+    // Clear code in Redis
+    await clearCodeRedis(email)
 
-    // Hashear la nueva contraseña
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
-    
-    // Actualizar la contraseña del cliente y marcar código como usado en una transacción
-    const [updatedCustomer, _] = await prisma.$transaction([
-      prisma.customer.update({
-        where: { id: customer.id },
-        data: { 
-          password: hashedPassword,
-          emailVerified: true // Aprovechar para verificar el email si no estaba verificado
-        }
-      }),
-      prisma.verificationCode.update({
-        where: { id: verificationCode.id },
-        data: { usedAt: new Date() }
-      })
-    ])
-
-    // Generar token para auto-login
+    // Generate token for auto-login
     const token = await generateClientToken({
       customerId: updatedCustomer.id,
       email: updatedCustomer.email,
@@ -83,14 +68,11 @@ export async function POST(request: NextRequest) {
         phone: updatedCustomer.phone,
         emailVerified: true
       },
-      message: 'Contraseña actualizada exitosamente'
+      message: 'Contrasena actualizada exitosamente'
     })
-
   } catch (error) {
     console.error('Reset password error:', error)
-    return NextResponse.json(
-      { error: 'Error al restablecer contraseña' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error al restablecer contrasena' }, { status: 500 })
   }
 }
+

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { verifyClientToken } from '@/lib/client-auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,15 +26,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let decoded: any
-
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      )
+    const decoded = await verifyClientToken(token)
+    if (!decoded) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
     // Obtener el ID del negocio de referencia si existe
@@ -173,7 +165,8 @@ export async function GET(request: NextRequest) {
     const myBusinesses = customer?.tenantId ? await prisma.business.findMany({
       where: {
         tenantId: customer.tenantId,
-        status: 'ACTIVE'
+        isActive: true,
+        isBlocked: false
       },
       select: {
         id: true,
@@ -184,7 +177,6 @@ export async function GET(request: NextRequest) {
         address: true,
         city: true,
         state: true,
-        zipCode: true,
         slug: true,
         customSlug: true,
         imageUrl: true,
@@ -211,7 +203,8 @@ export async function GET(request: NextRequest) {
         tenantId: {
           not: customer.tenantId
         },
-        status: 'ACTIVE'
+        isActive: true,
+        isBlocked: false
       },
       select: {
         id: true,
@@ -222,7 +215,6 @@ export async function GET(request: NextRequest) {
         address: true,
         city: true,
         state: true,
-        zipCode: true,
         slug: true,
         customSlug: true,
         imageUrl: true,

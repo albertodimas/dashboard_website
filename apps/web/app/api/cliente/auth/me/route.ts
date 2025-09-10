@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { verifyClientToken } from '@/lib/client-auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,14 +14,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let decoded: any
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      )
+    const decoded = await verifyClientToken(token)
+    if (!decoded) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
     // Obtener datos del cliente

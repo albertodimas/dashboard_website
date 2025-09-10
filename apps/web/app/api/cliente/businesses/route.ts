@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import jwt from 'jsonwebtoken'
+import { verifyClientToken } from '@/lib/client-auth'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,20 +24,9 @@ export async function GET(request: NextRequest) {
 
     console.log('🔐 [businesses API] Token recibido:', token.substring(0, 20) + '...')
     
-    let decoded: any
-
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-      console.log('✅ [businesses API] Token decodificado exitosamente:', {
-        customerId: decoded.customerId,
-        email: decoded.email
-      })
-    } catch (error: any) {
-      console.error('❌ [businesses API] Error verificando token:', error.message)
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      )
+        const decoded = await verifyClientToken(token)
+    if (!decoded) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
     // Primero obtener el email del customer del token
@@ -187,7 +175,7 @@ export async function GET(request: NextRequest) {
     // Obtener las categorías de los negocios donde ya está registrado
     const existingCategoryIds = myBusinesses
       .map(b => b.categoryId)
-      .filter(Boolean) // Eliminar nulls
+      .filter((id): id is string => typeof id === 'string')
 
     // Obtener IDs de negocios donde ya está registrado
     const registeredBusinessIds = myBusinesses.map(b => b.id)
@@ -206,14 +194,8 @@ export async function GET(request: NextRequest) {
         // Excluir categorías donde ya tiene negocios
         ...(existingCategoryIds.length > 0 && {
           OR: [
-            { categoryId: null },
-            {
-              NOT: {
-                categoryId: {
-                  in: existingCategoryIds
-                }
-              }
-            }
+            { categoryId: { equals: null } },
+            { NOT: { categoryId: { in: existingCategoryIds } } }
           ]
         })
       },
@@ -243,12 +225,7 @@ export async function GET(request: NextRequest) {
         isPremium: true,
         _count: {
           select: {
-            services: true,
-            reviews: {
-              where: {
-                isPublished: true
-              }
-            }
+            services: true
           }
         },
         reviews: {
@@ -270,13 +247,13 @@ export async function GET(request: NextRequest) {
     // Calcular rating promedio para negocios sugeridos
     const suggestedWithRating = suggestedBusinesses.map(business => {
       const avgRating = business.reviews.length > 0
-        ? business.reviews.reduce((sum, review) => sum + review.rating, 0) / business.reviews.length
+        ? business.reviews.reduce((sum: number, review: { rating: number }) => sum + review.rating, 0) / business.reviews.length
         : 0
       
       return {
         ...business,
         rating: avgRating,
-        reviewCount: business._count.reviews,
+        reviewCount: business.reviews.length,
         serviceCount: business._count.services
       }
     })
@@ -302,3 +279,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

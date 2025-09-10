@@ -1,189 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import { generateVerificationCode } from '@/lib/email'
+import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { checkRateLimit, setCode } from '@/lib/verification-redis'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, userType = 'user' } = await request.json()
+    const schema = z.object({
+      email: z.string().email(),
+      userType: z.enum(['user', 'customer', 'cliente']).optional().default('user'),
+    })
+    const parsed = schema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { email, userType } = parsed.data
 
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email es requerido' },
-        { status: 400 }
+    // Rate limit by IP (5 attempts / 10 minutes)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, `auth:forgot-password:${userType}`, 5, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many attempts', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
       )
     }
 
-    console.log(`Processing forgot password for ${userType}:`, email)
-
-    // Buscar usuario o cliente según el tipo
-    let user: any = null
-    let isCustomer = false
-
+    // Look up account
+    let targetEmail: string | null = null
     if (userType === 'customer' || userType === 'cliente') {
-      // Buscar cliente
-      user = await prisma.customer.findFirst({
-        where: {
-          email: email.toLowerCase()
-        }
-      })
-      isCustomer = true
+      const customer = await prisma.customer.findFirst({ where: { email: email.toLowerCase() } })
+      targetEmail = customer?.email?.toLowerCase() || null
     } else {
-      // Buscar usuario del sistema
-      user = await prisma.user.findFirst({
-        where: { 
-          email: {
-            equals: email,
-            mode: 'insensitive'
-          }
-        }
+      const user = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
       })
+      targetEmail = user?.email?.toLowerCase() || null
     }
 
-    // Por seguridad, siempre devolver éxito aunque el email no exista
-    if (!user) {
-      return NextResponse.json({
-        success: true,
-        message: 'Si el email existe, recibirás un código de verificación'
-      })
+    // Always return success to avoid enumeration
+    if (!targetEmail) {
+      return NextResponse.json({ success: true, message: 'If the email exists, a code will be sent' })
     }
 
-    // Generar código de 6 dígitos
-    const verificationCode = generateVerificationCode()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
-
-    // Invalidar códigos anteriores y crear el nuevo
-    if (isCustomer) {
-      await prisma.verificationCode.updateMany({
-        where: {
-          customerId: user.id,
-          type: 'PASSWORD_RESET',
-          usedAt: null
-        },
-        data: { usedAt: new Date() }
-      })
-
-      await prisma.verificationCode.create({
-        data: {
-          customerId: user.id,
-          code: verificationCode,
-          type: 'PASSWORD_RESET',
-          expiresAt
-        }
-      })
-    } else {
-      // Para usuarios del sistema, necesitamos crear la tabla si no existe
-      // o usar una solución alternativa como almacenar en caché
-      // Por ahora, lo guardamos en el log
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-      console.log('📧 CÓDIGO DE VERIFICACIÓN (Usuario del sistema):')
-      console.log('Email:', user.email)
-      console.log('Código:', verificationCode)
-      console.log('Expira:', expiresAt)
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    // Per-email send rate limit (3 within TTL window)
+    const rl = await checkRateLimit(targetEmail)
+    if (!rl.allowed) {
+      return NextResponse.json({ success: true, message: 'If the email exists, a code will be sent' })
     }
 
-    // Crear el HTML del email
-    const emailHTML = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">
-            Restablecer Contraseña
-          </h1>
-        </div>
-        
-        <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
-          <p style="color: #333; font-size: 16px; line-height: 1.6;">
-            Has solicitado restablecer tu contraseña. Utiliza el siguiente código para continuar:
-          </p>
-          
-          <div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 30px 0; border-radius: 8px; border: 2px dashed #667eea;">
-            <span style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px;">
-              ${verificationCode}
-            </span>
-          </div>
-          
-          <p style="color: #666; font-size: 14px; line-height: 1.6;">
-            Este código expirará en <strong>15 minutos</strong>.
-          </p>
-          
-          <p style="color: #666; font-size: 14px; line-height: 1.6;">
-            Si no solicitaste este código, puedes ignorar este mensaje de forma segura.
-          </p>
-          
-          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-          
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            Este es un mensaje automático, por favor no respondas a este email.
-          </p>
-        </div>
-      </div>
-    `
+    // Generate and store code in Redis (15m TTL by default)
+    const code = generateVerificationCode()
+    await setCode(targetEmail, code)
 
-    const emailText = `
-Restablecer Contraseña
-
-Has solicitado restablecer tu contraseña. Utiliza el siguiente código para continuar:
-
-Código: ${verificationCode}
-
-Este código expirará en 15 minutos.
-
-Si no solicitaste este código, puedes ignorar este mensaje de forma segura.
-    `
-
+    // Send email via centralized sender
+    const tpl = getVerificationEmailTemplate(code, 'reset')
     try {
-      // Usar la API interna para enviar el email - derivar URL desde el request
-      const origin = request.nextUrl.origin
-      const response = await fetch(`${origin}/api/internal/send-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: user.email,
-          subject: 'Restablecer contraseña - Código de verificación',
-          html: emailHTML,
-          text: emailText,
-          from: `"AppointmentLab" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-        }),
+      await sendEmail({
+        to: targetEmail,
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+        from: `"Dashboard" <${process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@localhost'}>`
       })
-
-      if (response.ok) {
-        const result = await response.json()
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-        console.log('✅ Password reset email sent to:', user.email)
-        console.log('Message ID:', result.messageId)
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-      } else {
-        throw new Error('Failed to send email via internal API')
-      }
-      
-    } catch (emailError: any) {
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-      console.error('❌ Failed to send password reset email')
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-      console.error('Error:', emailError.message)
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-      console.log('📧 CÓDIGO DE VERIFICACIÓN (para uso manual):')
-      console.log('Email:', user.email)
-      console.log('Código:', verificationCode)
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    } catch (err) {
+      // Log only; do not reveal failures to caller
+      console.error('System forgot-password email send failed:', err)
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Si el email existe, recibirás un código de verificación'
-    })
-
-  } catch (error: any) {
+    return NextResponse.json({ success: true, message: 'If the email exists, a code will be sent' })
+  } catch (error) {
     console.error('Forgot password error:', error)
-    
-    return NextResponse.json(
-      { error: 'Error al procesar solicitud' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 })
   }
 }
 
-// Asegurar ejecución en Node.js
 export const runtime = 'nodejs'
+

@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         .filter(p => p.status === 'ACTIVE')
         .reduce((acc, p) => acc + p.remainingSessions, 0),
       upcomingAppointments: appointments.filter(a => 
-        new Date(a.date) > new Date() && a.status !== 'CANCELLED'
+        new Date(a.startTime) > new Date() && a.status !== 'CANCELLED'
       ).length
     }
 

@@ -15,12 +15,13 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 export * from '@prisma/client'
 
 export async function setTenantId(tenantId: string) {
-  await prisma.$executeRawUnsafe(`SET LOCAL app.tenant_id = '${tenantId}'`)
+  // Use set_config to avoid raw string interpolation and support parameter binding
+  await prisma.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`
 }
 
 export async function withTenant<T>(tenantId: string, fn: () => Promise<T>): Promise<T> {
   return await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(`SET LOCAL app.tenant_id = '${tenantId}'`)
+    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`
     return await fn()
   })
 }

@@ -3,6 +3,7 @@ import { prisma } from '@dashboard/db'
 import { z } from 'zod'
 import { addMinutes, parseISO } from 'date-fns'
 import { sendEmail } from '@/lib/email'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { getAppointmentConfirmationEmailTemplate } from '@/lib/email-templates'
 
 const appointmentSchema = z.object({
@@ -22,6 +23,15 @@ const appointmentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit by IP: max 5 bookings / 10 minutes
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'public:appointments:create', 5, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many booking attempts', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
+      )
+    }
     const body = await request.json()
     console.log('Received booking data:', body)
     const validated = appointmentSchema.parse(body)

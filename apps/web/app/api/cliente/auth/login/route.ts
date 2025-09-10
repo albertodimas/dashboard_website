@@ -1,16 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { SignJWT } from 'jose'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-refresh-secret-change-in-production'
+// Unify client token secret with middleware/lib behavior
+const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
+const REFRESH_SECRET = process.env.REFRESH_SECRET
+if (!CLIENT_JWT_SECRET || !REFRESH_SECRET) {
+  throw new Error('JWT secrets (CLIENT_JWT_SECRET or JWT_SECRET, and REFRESH_SECRET) are required')
+}
+const CLIENT_JWT_SECRET_BYTES = new TextEncoder().encode(CLIENT_JWT_SECRET)
+const REFRESH_SECRET_BYTES = new TextEncoder().encode(REFRESH_SECRET)
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, businessSlug } = await request.json()
+    const schema = z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+      businessSlug: z.string().min(1).optional(),
+    })
+    const { email, password, businessSlug } = schema.parse(await request.json())
+
+    // Rate limit by IP (10 attempts / 5 minutes)
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'auth:login:client', 10, 60 * 5)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Demasiados intentos. Intenta más tarde', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 300) } }
+      )
+    }
     
-    console.log('[Cliente Login] Email:', email, 'BusinessSlug:', businessSlug)
+    console.log('[Cliente Login] Attempt')
 
     if (!email || !password) {
       return NextResponse.json(
@@ -37,7 +60,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (recentFailedAttempts >= 5) {
-      console.log('[Cliente Login] Rate limit excedido para:', email)
+      console.log('[Cliente Login] Rate limit excedido')
       return NextResponse.json(
         { 
           error: 'Demasiados intentos fallidos. Por favor, espera 15 minutos antes de intentar nuevamente.',
@@ -60,7 +83,7 @@ export async function POST(request: NextRequest) {
       })
       if (business) {
         tenantId = business.tenantId
-        console.log('[Cliente Login] Business found:', business.name, 'TenantID:', tenantId)
+        console.log('[Cliente Login] Business context resolved')
       }
     }
 
@@ -72,7 +95,7 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    console.log('[Cliente Login] Customer found:', customer?.id, 'TenantID:', customer?.tenantId)
+    console.log('[Cliente Login] Customer lookup complete')
     
     // Si no encontramos el cliente en este tenant pero existe en otro tenant con la misma contraseña,
     // podemos verificar si es el mismo cliente
@@ -221,26 +244,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generar tokens JWT (access y refresh)
-    const token = jwt.sign(
-      { 
-        customerId: customer.id,
-        email: customer.email,
-        name: customer.name,
-        emailVerified: customer.emailVerified
-      },
-      JWT_SECRET,
-      { expiresIn: '1h' } // Token de acceso de corta duración
-    )
+    // Generar tokens JWT (access y refresh) con jose
+    const token = await new SignJWT({
+      customerId: customer.id,
+      email: customer.email,
+      name: customer.name,
+      emailVerified: customer.emailVerified
+    } as Record<string, unknown>)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(CLIENT_JWT_SECRET_BYTES)
 
-    const refreshToken = jwt.sign(
-      { 
-        customerId: customer.id,
-        type: 'refresh'
-      },
-      REFRESH_SECRET,
-      { expiresIn: '30d' } // Refresh token de larga duración
-    )
+    const refreshToken = await new SignJWT({
+      customerId: customer.id,
+      type: 'refresh'
+    } as Record<string, unknown>)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('30d')
+      .sign(REFRESH_SECRET_BYTES)
 
     // Obtener paquetes activos del cliente
     const packages = await prisma.packagePurchase.findMany({

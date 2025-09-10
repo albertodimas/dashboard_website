@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { getCode } from '@/lib/verification-redis'
 
 export async function GET(request: NextRequest) {
   try {
+    // Restrict endpoint: only available in development or with valid internal key
+    const internalKey = request.headers.get('x-internal-key')
+    const isDev = process.env.NODE_ENV === 'development'
+    if (!isDev) {
+      if (!process.env.INTERNAL_API_KEY || internalKey !== process.env.INTERNAL_API_KEY) {
+        // Hide existence in production
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+    }
     const searchParams = request.nextUrl.searchParams
     const email = searchParams.get('email')
     
@@ -10,38 +19,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
     
-    // Find customer
-    const customer = await prisma.customer.findFirst({
-      where: { email: email.toLowerCase() }
-    })
-    
-    if (!customer) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
-    }
-    
-    // Get the latest verification code
-    const verificationCode = await prisma.verificationCode.findFirst({
-      where: {
-        customerId: customer.id,
-        type: 'PASSWORD_RESET',
-        usedAt: null,
-        expiresAt: {
-          gt: new Date()
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-    
-    if (!verificationCode) {
+    // Get active code from Redis
+    const code = await getCode(email)
+    if (!code) {
       return NextResponse.json({ error: 'No valid code found' }, { status: 404 })
     }
-    
-    return NextResponse.json({
-      code: verificationCode.code,
-      expiresAt: verificationCode.expiresAt
-    })
+    return NextResponse.json({ code })
     
   } catch (error) {
     console.error('Error getting verification code:', error)

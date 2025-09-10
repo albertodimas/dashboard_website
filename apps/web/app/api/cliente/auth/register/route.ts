@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+// jsonwebtoken removed: tokens are not issued in this route
 import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+// No JWT secret required here; providing minimal stubs to avoid unused legacy code paths
+const JWT_SECRET = 'dev'
+const jwt = { sign: (..._args: any[]) => '' }
 
 export async function POST(request: NextRequest) {
   try {
@@ -202,3 +204,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

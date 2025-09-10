@@ -1,17 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { trackError } from '@/lib/observability'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const businessId = searchParams.get('businessId')
-    const serviceId = searchParams.get('serviceId')
-    const date = searchParams.get('date')
-    
-    if (!businessId || !serviceId || !date) {
-      return NextResponse.json(
-        { error: 'Business ID, Service ID, and date are required' },
-        { status: 400 }
+    const schema = z.object({
+      businessId: z.string().uuid(),
+      serviceId: z.string().uuid(),
+      date: z.string().min(8),
+    })
+    const sp = Object.fromEntries(request.nextUrl.searchParams)
+    const parsed = schema.safeParse(sp)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid query', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { businessId, serviceId, date } = parsed.data
+
+    // Rate limit by IP: 60 slot checks / 5 minutes
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'public:appointments:slots', 60, 60 * 5)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 300) } }
       )
     }
 
@@ -140,10 +153,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching available slots:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch available slots' },
-      { status: 500 }
-    )
+    trackError(error, { route: 'public/appointments/slots' })
+    return NextResponse.json({ error: 'Failed to fetch available slots' }, { status: 500 })
   }
 }

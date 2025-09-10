@@ -354,5 +354,6 @@ export function isModuleAvailable(businessType: BusinessType, moduleName: string
   const config = BUSINESS_TYPE_CONFIGS[businessType];
   if (!config) return false;
   
-  return moduleName in config.modules && config.modules[moduleName]?.enabled;
+  const modulesAny = config.modules as any;
+  return moduleName in modulesAny && modulesAny[moduleName]?.enabled;
 }

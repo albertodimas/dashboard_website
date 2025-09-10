@@ -22,7 +22,9 @@ export default function VerifyEmailPage() {
   const checkAuthStatus = async () => {
     try {
       // Obtener el ID temporal de la cookie de verificación
-      const response = await fetch('/api/cliente/auth/check-verification-pending')
+      const response = await fetch('/api/cliente/auth/check-verification-pending', {
+        credentials: 'include'
+      })
       if (response.ok) {
         const data = await response.json()
         setCustomerEmail(data.email)
@@ -93,6 +95,7 @@ export default function VerifyEmailPage() {
       const response = await fetch('/api/cliente/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           code: verificationCode
         })
@@ -131,6 +134,7 @@ export default function VerifyEmailPage() {
       const response = await fetch('/api/cliente/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({})
       })
 

@@ -32,7 +32,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const t = (key: TranslationKey): string => {
-    return translations[language][key] || translations['en'][key] || key
+    const current = (translations as any)[language] as Record<string, string>
+    const fallback = (translations as any)['en'] as Record<string, string>
+    return current[key] || fallback[key] || (key as string)
   }
 
   return (

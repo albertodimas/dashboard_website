@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { trackError } from '@/lib/observability'
+import { z } from 'zod'
+import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { 
-      packageId, 
-      customerName, 
-      customerEmail, 
-      customerPhone,
-      paymentMethod = 'TRANSFER',
-      notes 
-    } = body
+    const schema = z.object({
+      packageId: z.string().uuid(),
+      customerName: z.string().min(2),
+      customerEmail: z.string().email(),
+      customerPhone: z.string().min(7).optional(),
+      paymentMethod: z.enum(['CASH', 'TRANSFER']).optional().default('TRANSFER'),
+      notes: z.string().optional(),
+    })
+    const parsed = schema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { packageId, customerName, customerEmail, customerPhone, paymentMethod, notes } = parsed.data
 
-    if (!packageId || !customerName || !customerEmail) {
-      return NextResponse.json(
-        { error: 'Package ID, name and email are required' },
-        { status: 400 }
+    // Rate limit by IP: 5 reserves / 10 minutes
+    const ip = getClientIP(request)
+    const rate = await limitByIP(ip, 'public:packages:reserve', 5, 60 * 10)
+    if (!rate.allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests', retryAfter: rate.retryAfterSec }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
       )
     }
 
@@ -39,7 +49,7 @@ export async function POST(request: NextRequest) {
     let customer = await prisma.customer.findFirst({
       where: {
         tenantId: packageDetails.tenantId,
-        email: customerEmail
+        email: customerEmail.toLowerCase()
       }
     })
 
@@ -47,7 +57,7 @@ export async function POST(request: NextRequest) {
       customer = await prisma.customer.create({
         data: {
           tenantId: packageDetails.tenantId,
-          email: customerEmail,
+          email: customerEmail.toLowerCase(),
           name: customerName,
           phone: customerPhone || ''
         }
@@ -112,11 +122,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creating package reservation:', error)
-    return NextResponse.json(
-      { error: 'Failed to reserve package. Please try again.' },
-      { status: 500 }
-    )
+    trackError(error, { route: 'public/packages/reserve' })
+    return NextResponse.json({ error: 'Failed to reserve package. Please try again.' }, { status: 500 })
   }
 }
 
