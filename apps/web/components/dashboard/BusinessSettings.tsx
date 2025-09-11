@@ -15,6 +15,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [isSaving, setIsSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [slugError, setSlugError] = useState('')
+  const [slugStatus, setSlugStatus] = useState<'idle'|'checking'|'available'|'taken'>('idle')
+  const [slugSuggestion, setSlugSuggestion] = useState('')
   
   // Color theme states
   const currentTheme = business.settings?.theme || {}
@@ -74,6 +76,27 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     
     setSlugError('')
     return true
+  }
+
+  const checkSlugAvailability = async (value: string) => {
+    const cleaned = value.trim().replace(/^\/+|\/+$/g, '')
+    if (!cleaned) { setSlugStatus('idle'); setSlugSuggestion(''); return }
+    setSlugStatus('checking')
+    try {
+      const res = await fetch(`/api/dashboard/business/check-slug?slug=${encodeURIComponent(cleaned)}`)
+      if (!res.ok) { setSlugStatus('idle'); return }
+      const data = await res.json()
+      if (data.available) {
+        setSlugStatus('available')
+        setSlugSuggestion('')
+      } else {
+        setSlugStatus('taken')
+        setSlugSuggestion(data.suggestion || '')
+        if (!slugError && data.message) setSlugError(data.message)
+      }
+    } catch {
+      setSlugStatus('idle')
+    }
   }
 
   const handleSave = async () => {
@@ -176,19 +199,33 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               value={customSlug}
               onChange={(e) => {
                 setCustomSlug(e.target.value)
-                validateSlug(e.target.value)
+                const ok = validateSlug(e.target.value)
+                if (ok) {
+                  checkSlugAvailability(e.target.value)
+                } else {
+                  setSlugStatus('idle')
+                }
               }}
               placeholder="e.g., trade/welcome or my-business"
               className={`flex-1 p-3 border rounded-lg ${
                 slugError ? 'border-red-500' : 'border-gray-300'
               }`}
             />
+            {slugStatus === 'checking' && (
+              <span className="text-xs text-gray-500">Checking…</span>
+            )}
           </div>
           {slugError && (
             <div className="flex items-center gap-1 text-red-600 text-sm mb-2">
               <AlertCircle size={16} />
               <span>{slugError}</span>
             </div>
+          )}
+          {!slugError && slugStatus === 'taken' && (
+            <div className="text-red-600 text-sm mb-2">This URL is already taken{slugSuggestion ? ` — try "${slugSuggestion}"` : ''}</div>
+          )}
+          {!slugError && slugStatus === 'available' && (
+            <div className="text-green-600 text-sm mb-2">URL available</div>
           )}
           <p className="text-sm text-gray-500">
             Create a custom URL for your business page (e.g., yoursite.com/trade/welcome)
@@ -1207,11 +1244,11 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         <div className="flex justify-end">
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || slugStatus==='checking' || slugStatus==='taken' || !!slugError}
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={20} />
-            {isSaving ? 'Saving...' : 'Save Settings'}
+            {isSaving ? 'Saving...' : (slugStatus==='taken' || slugError ? 'Fix errors to save' : 'Save Settings')}
           </button>
         </div>
       </div>

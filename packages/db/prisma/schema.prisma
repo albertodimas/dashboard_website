@@ -46,6 +46,7 @@ model User {
   emailVerified DateTime?
   passwordHash  String
   name          String
+  lastName      String?
   avatar        String?
   phone         String?
   language      String       @default("en")

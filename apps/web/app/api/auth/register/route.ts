@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@dashboard/db'
+import { Prisma } from '@prisma/client'
 import { verifyCode, clearCode } from '@/lib/verification-redis'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
@@ -12,12 +13,13 @@ export async function POST(request: NextRequest) {
       password: z.string().min(8),
       confirmPassword: z.string().min(8),
       name: z.string().min(1),
+      lastName: z.string().min(1).optional(),
       tenantName: z.string().optional(),
       subdomain: z.string().optional(),
       businessType: z.string().optional(),
       verificationCode: z.string().regex(/^\d{6}$/),
     }).refine((d) => d.password === d.confirmPassword, { message: 'Passwords do not match', path: ['confirmPassword'] })
-    const { email, password, confirmPassword, name, tenantName, subdomain, businessType, verificationCode } = schema.parse(await request.json())
+    const { email, password, confirmPassword, name, lastName, tenantName, subdomain, businessType, verificationCode } = schema.parse(await request.json())
 
     // Rate limit by IP (5 registrations / hour)
     const ip = getClientIP(request)
@@ -75,16 +77,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if email is already registered
-    const existingUser = await prisma.user.findFirst({
-      where: { email },
-    })
+    // Check availability pre-flight to avoid partial creates
+    const [existingUser, existingTenant] = await Promise.all([
+      prisma.user.findFirst({ where: { email } }),
+      prisma.tenant.findFirst({ where: { subdomain: (subdomain || email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')) } })
+    ])
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email is already registered' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email is already registered', field: 'email' }, { status: 400 })
+    }
+    if (existingTenant) {
+      return NextResponse.json({ error: 'Subdomain already in use', field: 'subdomain' }, { status: 400 })
     }
 
     // Hash password
@@ -100,24 +103,27 @@ export async function POST(request: NextRequest) {
       settings: {}
     })
     
-    const tenant = await prisma.tenant.create({
-      data: {
-        name: tenantName || name + "'s Business",
-        subdomain: tenantSubdomain,
-        email: email,
-        settings: JSON.parse(JSON.stringify({})),
-      },
-    })
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        passwordHash,
-        tenantId: tenant.id,
-        emailVerified: new Date(), // Mark as verified since they used the code
-        isActive: true,
-      },
+    const { tenant, user } = await prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: tenantName || name + "'s Business",
+          subdomain: tenantSubdomain,
+          email: email,
+          settings: JSON.parse(JSON.stringify({})),
+        },
+      })
+      const user = await tx.user.create({
+        data: {
+          email,
+          name: lastName ? `${name} ${lastName}` : name,
+          lastName: lastName || null,
+          passwordHash,
+          tenantId: tenant.id,
+          emailVerified: new Date(), // Mark as verified since they used the code
+          isActive: true,
+        },
+      })
+      return { tenant, user }
     })
 
     // Note: Business and Membership models will be created when those tables are added to the schema
@@ -136,21 +142,16 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Registration error:', error)
-    // Log the full error details
-    if (error instanceof Error) {
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
-      // Check for Prisma-specific errors
-      if (error.message.includes('Unique constraint')) {
-        return NextResponse.json(
-          { error: 'Email or subdomain is already taken' },
-          { status: 400 }
-        )
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const target = (error.meta?.target as string[] | undefined)?.join(',') || ''
+      if (target.includes('users_email') || target.includes('email')) {
+        return NextResponse.json({ error: 'Email is already registered', field: 'email' }, { status: 400 })
       }
+      if (target.includes('tenants_subdomain') || target.includes('subdomain')) {
+        return NextResponse.json({ error: 'Subdomain already in use', field: 'subdomain' }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'Unique constraint violated' }, { status: 400 })
     }
-    return NextResponse.json(
-      { error: 'Failed to create account. Please try again.' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to create account. Please try again.' }, { status: 500 })
   }
 }

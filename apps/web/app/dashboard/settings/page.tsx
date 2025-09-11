@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: '',
+    lastName: '',
     email: '',
     phone: '',
     language: 'en',
@@ -92,6 +93,7 @@ export default function SettingsPage() {
         // Set user profile from auth data
         setUserProfile({
           name: authData.user.name || '',
+          lastName: authData.user.lastName || '',
           email: authData.user.email || '',
           phone: authData.user.phone || '',
           language: authData.user.language || 'en',
@@ -521,18 +523,33 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Name' : 'Nombre'}
-                </label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  value={userProfile.name}
-                  onChange={(e) => setUserProfile({...userProfile, name: e.target.value})}
-                  placeholder={language === 'en' ? 'Your Name' : 'Tu Nombre'}
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {language === 'en' ? 'First Name' : 'Nombre'}
+                  </label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={userProfile.name}
+                    onChange={(e) => setUserProfile({...userProfile, name: e.target.value})}
+                    placeholder={language === 'en' ? 'First Name' : 'Nombre'}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {language === 'en' ? 'Last Name' : 'Apellidos'}
+                  </label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    value={userProfile.lastName}
+                    onChange={(e) => setUserProfile({...userProfile, lastName: e.target.value})}
+                    placeholder={language === 'en' ? 'Last Name' : 'Apellidos'}
+                    required
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">

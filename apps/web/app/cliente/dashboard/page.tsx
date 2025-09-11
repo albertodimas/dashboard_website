@@ -482,10 +482,18 @@ export default function ClientDashboard() {
   const fetchDashboardData = async (preferredBizId: string | null = null) => {
     try {
       console.log('🚀 [fetchDashboardData] Starting...')
+      // Primero intenta leer el perfil actual de forma directa
+      try {
+        const meRes = await fetch('/api/cliente/auth/me', { credentials: 'include' })
+        if (meRes.ok) {
+          const me = await meRes.json()
+          if (me?.customer) setCustomer(me.customer)
+        }
+      } catch {}
       
       // Fetch dashboard data
       console.log('📡 [fetchDashboardData] Fetching /api/cliente/dashboard')
-      const dashboardResponse = await fetch('/api/cliente/dashboard')
+      const dashboardResponse = await fetch('/api/cliente/dashboard', { credentials: 'include' })
 
       console.log('📦 [fetchDashboardData] Dashboard response status:', dashboardResponse.status)
       if (dashboardResponse.ok) {
@@ -536,6 +544,17 @@ export default function ClientDashboard() {
         
         if (data.customer) {
           setCustomer(data.customer)
+        } else {
+          // Fallback: consultar /auth/me si el dashboard no devolvió customer
+          try {
+            const meRes = await fetch('/api/cliente/auth/me', { credentials: 'include' })
+            if (meRes.ok) {
+              const me = await meRes.json()
+              if (me?.customer) setCustomer(me.customer)
+            }
+          } catch (e) {
+            // ignore
+          }
         }
         
         // Handle businesses data

@@ -224,6 +224,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fallback final: si seguimos sin customer pero tenemos IDs, traer el primero
+    if (!customer && customerIds.length > 0) {
+      customer = await prisma.customer.findUnique({
+        where: { id: customerIds[0] },
+        select: {
+          id: true, name: true, lastName: true, email: true, phone: true,
+          address: true, city: true, state: true, postalCode: true, tenantId: true, createdAt: true
+        }
+      })
+      console.warn('[Dashboard API] Fallback: usando primer customerId por email')
+    }
+
     // Obtener negocios donde el cliente está registrado (cruzando BusinessCustomer)
     const relations = await prisma.businessCustomer.findMany({
       where: {

@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 const profileSchema = z.object({
   name: z.string().min(2).max(100),
+  lastName: z.string().min(1).max(100).optional(),
   email: z.string().email(),
   phone: z.string().optional(),
   language: z.enum(['en', 'es']).optional(),
@@ -23,6 +24,7 @@ export async function GET() {
     return NextResponse.json({
       id: user.id,
       name: user.name,
+      lastName: (user as any).lastName || null,
       email: user.email,
       phone: user.phone,
       language: user.language || 'en',
@@ -71,6 +73,7 @@ export async function PUT(request: NextRequest) {
       where: { id: user.id },
       data: {
         name: validated.name,
+        lastName: validated.lastName ?? null,
         email: validated.email,
         phone: validated.phone,
         language: validated.language,
@@ -79,6 +82,7 @@ export async function PUT(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        lastName: true,
         email: true,
         phone: true,
         language: true,
@@ -118,6 +122,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       id: updatedUser.id,
       name: updatedUser.name,
+      lastName: updatedUser.lastName,
       email: updatedUser.email,
       phone: updatedUser.phone,
       language: updatedUser.language,

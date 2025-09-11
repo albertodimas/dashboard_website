@@ -15,12 +15,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user with language preference from database
-    const user = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
       where: { id: session.userId },
       select: {
         id: true,
         email: true,
         name: true,
+        lastName: true,
         avatar: true,
         phone: true,
         language: true,
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
+        lastName: user.lastName,
         avatar: user.avatar,
         phone: user.phone,
         language: user.language,

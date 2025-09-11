@@ -12,6 +12,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     name: '',
+    lastName: '',
     tenantName: '',
     subdomain: '',
   })
@@ -19,6 +20,25 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+  const [emailStatus, setEmailStatus] = useState<'idle'|'checking'|'available'|'taken'>('idle')
+  const [subStatus, setSubStatus] = useState<'idle'|'checking'|'available'|'taken'>('idle')
+  const [subSuggestion, setSubSuggestion] = useState<string>('')
+
+  const checkAvailability = async (opts: { email?: string; subdomain?: string }) => {
+    const params = new URLSearchParams()
+    if (opts.email) params.set('email', opts.email)
+    if (opts.subdomain) params.set('subdomain', opts.subdomain)
+    const res = await fetch(`/api/auth/check-availability?${params.toString()}`)
+    if (!res.ok) return
+    const data = await res.json()
+    if (typeof data.emailAvailable === 'boolean') {
+      setEmailStatus(data.emailAvailable ? 'available' : 'taken')
+    }
+    if (typeof data.subdomainAvailable === 'boolean') {
+      setSubStatus(data.subdomainAvailable ? 'available' : 'taken')
+      setSubSuggestion(data.suggestion || '')
+    }
+  }
 
   const validatePassword = (password: string): string[] => {
     const errors: string[] = []
@@ -38,6 +58,15 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    // quick availability validation before sending code
+    if (emailStatus === 'taken') {
+      setError('Email is already registered. Please sign in or use another email.')
+      return
+    }
+    if (subStatus === 'taken') {
+      setError('Subdomain is already in use. Please choose another.')
+      return
+    }
     
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -141,20 +170,37 @@ export default function RegisterPage() {
           )}
           
           <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Your Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  First Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                  placeholder="John"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                  Last Name
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  required
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                />
+              </div>
             </div>
 
             <div>
@@ -170,8 +216,23 @@ export default function RegisterPage() {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                 placeholder="john@example.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={async (e) => {
+                  setFormData({ ...formData, email: e.target.value })
+                  setEmailStatus('checking')
+                  const val = e.target.value
+                  if (val && /@/.test(val)) {
+                    await checkAvailability({ email: val })
+                  } else {
+                    setEmailStatus('idle')
+                  }
+                }}
               />
+              {emailStatus === 'taken' && (
+                <p className="mt-1 text-xs text-red-600">Email is already registered. <Link href="/login" className="underline">Sign in</Link> or use another email.</p>
+              )}
+              {emailStatus === 'available' && (
+                <p className="mt-1 text-xs text-green-600">Email available</p>
+              )}
             </div>
 
             <div>
@@ -259,7 +320,16 @@ export default function RegisterPage() {
                   className="flex-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                   placeholder="mybusiness"
                   value={formData.subdomain}
-                  onChange={(e) => setFormData({ ...formData, subdomain: e.target.value.toLowerCase() })}
+                  onChange={async (e) => {
+                    const v = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+                    setFormData({ ...formData, subdomain: v })
+                    if (v) {
+                      setSubStatus('checking')
+                      await checkAvailability({ subdomain: v })
+                    } else {
+                      setSubStatus('idle')
+                    }
+                  }}
                 />
                 <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
                   .localhost:3000
@@ -268,6 +338,12 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-gray-500">
                 Only lowercase letters, numbers, and hyphens
               </p>
+              {subStatus === 'taken' && (
+                <p className="mt-1 text-xs text-red-600">Subdomain not available{subSuggestion ? ` — try "${subSuggestion}"` : ''}</p>
+              )}
+              {subStatus === 'available' && (
+                <p className="mt-1 text-xs text-green-600">Subdomain available</p>
+              )}
             </div>
           </div>
 
