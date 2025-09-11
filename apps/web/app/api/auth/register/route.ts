@@ -152,6 +152,6 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({ error: 'Unique constraint violated' }, { status: 400 })
     }
-    return NextResponse.json({ error: 'Failed to create account. Please try again.' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create account. Please try again.', ...(process.env.NODE_ENV !== 'production' ? { details: (error as any)?.message } : {}) }, { status: 500 })
   }
 }

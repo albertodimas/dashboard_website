@@ -1,5 +1,43 @@
 # Tareas Pendientes - Sistema de Clientes
 
+## Sesión 2025-09-11 — Notas de cierre
+
+Resumen de hoy:
+- Autenticación cliente: mensajes 401/429 claros; preservación `from` en login→verify→login.
+- Modelo de datos: `customers.email` único global + CITEXT (case-insensitive). Script de consolidación de duplicados por email.
+- Dashboard cliente: fallback por email, reemisión de token, y `BusinessCustomer` multi-tenant.
+- Registro de dueño (/register): nombre y apellidos; disponibilidad en vivo de email/subdominio; creación transaccional de tenant+user; manejo de errores P2002.
+- Settings negocio: verificación en vivo de `customSlug` con sugerencias; validación básica de `customDomain` para futura verificación DNS.
+
+Pendientes prioridad alta (para retomar):
+1) Registro de dueño falla en “Complete Registration” en algunos casos aunque disponibilidad sea OK.
+   - Reproducir con Network abierto y capturar respuesta de `/api/auth/register` (en dev incluye `details`).
+   - Verificar que no quede `tenant` sin `user` (transacción ya aplicada, confirmar en logs).
+   - Consultas útiles:
+     - `SELECT id,email FROM users WHERE email='<email>'`.
+     - `SELECT id,subdomain FROM tenants WHERE subdomain='<subdomain>'`.
+   - Revisar `send-verification`: bloquea si email ya existe (409). Confirmar flujo cuando envías el código y luego cambias el email.
+
+2) Settings negocio — completar “Custom Domain” (futuro):
+   - Añadir verificación DNS opcional (CNAME/A) detrás de flag.
+   - Persistir estado de verificación en `business.settings.customDomainVerified`.
+   - Endpoint POST `/api/dashboard/domain/verify` (pendiente) con comprobación DNS y marcas de tiempo.
+
+3) UI ajustes menores:
+   - Mostrar `lastName` del dueño en `/dashboard/settings` → cabeceras si aplica.
+   - Deshabilitar “Save Settings” si slug/domain inválidos (ya hecho); revisar copy de ayuda.
+
+4) Pruebas rápidas a cubrir mañana:
+   - Registro dueño con email nuevo y subdominio disponible → creación ok.
+   - Registro dueño con email duplicado → inline error y bloqueo del submit.
+   - Cambiar `customSlug` a uno ocupado → UI muestra sugerencia y bloquea guardar.
+   - Dashboard cliente tras registro/verify → perfil muestra nombre/apellidos.
+
+Punto de reanudación sugerido:
+- Rama: `master`
+- Commit HEAD: actualizar en consola `git log -1 --oneline` antes de iniciar; hoy quedó en el último commit mostrado al cerrar la sesión.
+- Empezar por reproducir el error de `/api/auth/register` con Network y revisar logs del servidor.
+
 ## 🎯 Completado Hoy (10/09/2025)
 
 ### ✅ Tareas Prioritarias Completadas
