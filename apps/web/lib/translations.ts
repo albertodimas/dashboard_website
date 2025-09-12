@@ -419,7 +419,7 @@ export const translations = {
     verifiedBusiness: 'Negocio Verificado',
     projectMode: 'Proyecto',
     todayClosed: 'Cerrado',
-    professionalServices: 'Servicios Profesionales'
+    professionalServices: 'Servicios Profesionales',
     myAccount: 'Mi Cuenta',
     specialOffers: 'Ofertas Especiales',
     packagesAndPromos: 'Paquetes y Promociones',
