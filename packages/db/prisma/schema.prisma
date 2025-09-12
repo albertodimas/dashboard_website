@@ -34,6 +34,7 @@ model Tenant {
   reviews          Review[]
   services         Service[]
   users            User[]
+  ProjectRequest   ProjectRequest[]
 
   @@index([subdomain])
   @@map("tenants")
@@ -108,7 +109,7 @@ model Business {
   description          String?
   logo                 String?
   coverImage           String?
-  email                String            @db.Citext
+  email                String                    @db.Citext
   phone                String
   website              String?
   address              String
@@ -145,6 +146,7 @@ model Business {
   services             Service[]
   staff                Staff[]
   workingHours         WorkingHour[]
+  ProjectRequest       ProjectRequest[]
 
   @@unique([tenantId, slug])
   @@index([slug])
@@ -280,7 +282,7 @@ model Addon {
 model Customer {
   id                String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId          String                    @db.Uuid
-  email             String                    @db.Citext @unique
+  email             String                    @unique @db.Citext
   name              String
   phone             String?
   password          String?
@@ -309,6 +311,7 @@ model Customer {
   staffReviews      StaffReview[]
   verificationCodes VerificationCode[]
   businesses        BusinessCustomer[]
+  ProjectRequest    ProjectRequest[]
 
   @@index([email])
   @@map("customers")
@@ -695,20 +698,20 @@ model PasswordHistory {
 }
 
 model BusinessCustomer {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  businessId   String    @db.Uuid
-  customerId   String    @db.Uuid
-  joinedAt     DateTime  @default(now())
-  isActive     Boolean   @default(true)
-  notes        String?
-  metadata     Json      @default("{}")
-  lastVisit    DateTime?
-  totalVisits  Int       @default(0)
-  totalSpent   Float     @default(0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String    @db.Uuid
+  customerId  String    @db.Uuid
+  joinedAt    DateTime  @default(now())
+  isActive    Boolean   @default(true)
+  notes       String?
+  metadata    Json      @default("{}")
+  lastVisit   DateTime?
+  totalVisits Int       @default(0)
+  totalSpent  Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, customerId])
   @@index([customerId])
@@ -727,13 +730,13 @@ model ProjectRequest {
   serviceType      String
   description      String
   address          String?
-  preferredContact String     @default("WHATSAPP")
-  status           String     @default("NEW")
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  business         Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer         Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  preferredContact String    @default("WHATSAPP")
+  status           String    @default("NEW")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([businessId, status])
   @@index([customerId])
@@ -742,7 +745,7 @@ model ProjectRequest {
 
 model LoginAttempt {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email       String       @db.Citext
+  email       String    @db.Citext
   ipAddress   String?
   userAgent   String?
   success     Boolean

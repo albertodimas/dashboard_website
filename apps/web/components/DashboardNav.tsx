@@ -13,6 +13,7 @@ export default function DashboardNav() {
   const [businessName, setBusinessName] = useState('')
   const [enableStaffModule, setEnableStaffModule] = useState(false)
   const [enablePackagesModule, setEnablePackagesModule] = useState(false)
+  const [isProjectMode, setIsProjectMode] = useState(false)
   
   useEffect(() => {
     // Load business name from database
@@ -29,8 +30,9 @@ export default function DashboardNav() {
           setEnableStaffModule(data.enableStaffModule === true)
           // Check for enablePackagesModule
           setEnablePackagesModule(data.enablePackagesModule === true)
-          console.log('Staff module enabled:', data.enableStaffModule) // Debug log
-          console.log('Packages module enabled:', data.enablePackagesModule) // Debug log
+          // Operation mode (Reserva/Proyecto)
+          const mode = (data.settings && data.settings.operationMode) || 'RESERVA'
+          setIsProjectMode(mode === 'PROYECTO')
         }
       } catch (error) {
         console.error('Error loading business name:', error)
@@ -47,6 +49,7 @@ export default function DashboardNav() {
   const navItems = [
     { href: '/dashboard/appointments', label: t('appointments') },
     { href: '/dashboard/services', label: t('services') },
+    ...(isProjectMode ? [{ href: '/dashboard/project-requests', label: (t('language') === 'en' ? '🛠 Project Requests' : '🛠 Solicitudes'), highlight: true }] : []),
     ...(enablePackagesModule ? [
       {
         href: '/dashboard/packages', 

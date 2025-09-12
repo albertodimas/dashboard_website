@@ -128,7 +128,8 @@
       "Bash(npx prisma:*)",
       "Bash(cat:*)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(pnpm -C packages/db prisma migrate dev -n add_project_requests)"
     ],
     "deny": [],
     "ask": [],

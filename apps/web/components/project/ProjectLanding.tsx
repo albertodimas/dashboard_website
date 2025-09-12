@@ -73,6 +73,22 @@ export default function ProjectLanding({ business }: Props) {
     gradient: `linear-gradient(135deg, ${business.settings?.theme?.primaryColor || '#6366F1'} 0%, ${business.settings?.theme?.accentColor || '#F59E0B'} 100%)`
   }
 
+  // Working hours footer
+  const scheduleSettings = business.settings?.scheduleSettings || null
+  const baseWorkingHours = Array.isArray(business.workingHours) ? business.workingHours : []
+  const workingHours = scheduleSettings
+    ? [0,1,2,3,4,5,6].map((day: number) => ({
+        dayOfWeek: day,
+        isActive: Array.isArray(scheduleSettings.workingDays) ? scheduleSettings.workingDays.includes(day) : false,
+        startTime: scheduleSettings.startTime || '09:00',
+        endTime: scheduleSettings.endTime || '18:00'
+      }))
+    : baseWorkingHours.filter((wh: any) => !wh.staffId)
+  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const todayIdx = new Date().getDay()
+  const todayWh = (workingHours || []).find((wh: any) => wh.dayOfWeek === todayIdx)
+  const todayHoursText = todayWh && todayWh.isActive ? `${todayWh.startTime} - ${todayWh.endTime}` : 'Cerrado'
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -145,6 +161,50 @@ export default function ProjectLanding({ business }: Props) {
               <a href="#services" className="px-8 py-4 bg-white text-gray-900 rounded-full font-bold border">
                 Ver Servicios
               </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Info Bar with today schedule */}
+      <section className="bg-white border-y">
+        <div className="container mx-auto px-4 sm:px-6 py-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5" style={{ color: colors.primary }} />
+              <div>
+                <p className="font-semibold">{todayHoursText}</p>
+              </div>
+            </div>
+            {business.address && (
+              <a 
+                href="#contact"
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+              >
+                <div className="relative">
+                  <MapPin className="w-5 h-5" style={{ color: colors.primary }} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 Dirección</p>
+                  <p className="font-semibold group-hover:underline">
+                    {business.address}{business.city && `, ${business.city}`}
+                  </p>
+                </div>
+              </a>
+            )}
+            <div className="flex items-center gap-3">
+              <Phone className="w-5 h-5" style={{ color: colors.primary }} />
+              <div>
+                <p className="text-xs text-gray-500">Teléfono</p>
+                <p className="font-semibold">{business.phone || 'Contactar'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5" style={{ color: colors.primary }} />
+              <div>
+                <p className="text-xs text-gray-500">Modo</p>
+                <p className="font-semibold">Proyecto</p>
+              </div>
             </div>
           </div>
         </div>
@@ -292,7 +352,33 @@ export default function ProjectLanding({ business }: Props) {
           </div>
         </div>
       )}
+
+      {/* Footer with weekly schedule */}
+      <footer className="bg-gray-900 text-white mt-10">
+        <div className="container mx-auto px-4 sm:px-6 py-8 grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-semibold mb-2">{business.name}</h3>
+            <p className="text-sm text-gray-300">{business.address}{business.city && `, ${business.city}`}</p>
+            <p className="text-sm text-gray-300">{business.phone}</p>
+          </div>
+          <div className="md:text-right">
+            <h4 className="font-semibold mb-2">Horario de Atención</h4>
+            <div className="space-y-1 text-sm">
+              {[1,2,3,4,5,6,0].map((day) => {
+                const h = (workingHours || []).find((wh: any) => wh.dayOfWeek === day)
+                const isToday = new Date().getDay() === day
+                return (
+                  <div key={day} className={`flex justify-between ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                    <span>{daysOfWeek[day]}</span>
+                    <span>{h && h.isActive ? `${h.startTime} - ${h.endTime}` : 'Cerrado'}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-white/10 py-3 text-center text-xs text-gray-400">© {new Date().getFullYear()} {business.name}. Todos los derechos reservados.</div>
+      </footer>
     </div>
   )
 }
-
