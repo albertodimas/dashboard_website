@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import OperationModeSelector from '@/components/OperationModeSelector'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
 import { BusinessTypeSelector } from '@/components/business-type-selector'
 import { BusinessType } from '@/lib/business-types'
@@ -474,27 +475,16 @@ export default function SettingsPage() {
               {language === 'en' ? 'Operation Mode' : 'Modo de Operación'}
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              {language === 'en' 
-                ? 'Choose how your business receives requests: reservations with calendar, or project requests to coordinate later.'
-                : 'Elige cómo recibes solicitudes: reservas con calendario, o solicitudes de proyecto para coordinar luego.'}
+              {language === 'en'
+                ? 'Choose how your business receives requests: reservations with a calendar, or project requests to coordinate later.'
+                : 'Elige cómo recibes solicitudes: reservas con calendario o solicitudes de proyecto para coordinar luego.'}
             </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setOperationMode('RESERVA')}
-                className={`px-4 py-2 rounded-md border ${operationMode==='RESERVA' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}
-              >
-                Reserva
-              </button>
-              <button
-                type="button"
-                onClick={() => setOperationMode('PROYECTO')}
-                className={`px-4 py-2 rounded-md border ${operationMode==='PROYECTO' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}
-              >
-                Proyecto
-              </button>
-            </div>
-            <button onClick={handleSaveOperationMode} disabled={saving} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50">
+            <OperationModeSelector value={operationMode} onChange={setOperationMode as any} />
+            <button
+              onClick={handleSaveOperationMode}
+              disabled={saving}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
+            >
               {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : (language === 'en' ? 'Save' : 'Guardar')}
             </button>
           </div>
