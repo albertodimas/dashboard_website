@@ -6,10 +6,12 @@ import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail,
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 import { getImageSrcSet, getImageUrl } from '@/lib/upload-utils-client'
 import { formatCurrency } from '@/lib/format-utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props { business: any }
 
 export default function ProjectLanding({ business }: Props) {
+  const { t, language } = useLanguage()
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [form, setForm] = useState({
     serviceType: '',
@@ -88,7 +90,7 @@ export default function ProjectLanding({ business }: Props) {
   const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
   const todayIdx = new Date().getDay()
   const todayWh = (workingHours || []).find((wh: any) => wh.dayOfWeek === todayIdx)
-  const todayHoursText = todayWh && todayWh.isActive ? `${todayWh.startTime} - ${todayWh.endTime}` : 'Cerrado'
+  const todayHoursText = todayWh && todayWh.isActive ? `${todayWh.startTime} - ${todayWh.endTime}` : t('todayClosed')
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -135,7 +137,7 @@ export default function ProjectLanding({ business }: Props) {
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-5 h-5 text-gray-700" />
-              <span className="text-gray-700 text-sm">Negocio Verificado</span>
+              <span className="text-gray-700 text-sm">{t('verifiedBusiness')}</span>
             </div>
             <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-4">{business.name}</h1>
             <p className="text-lg sm:text-xl text-gray-700 mb-8 leading-relaxed">
@@ -157,10 +159,10 @@ export default function ProjectLanding({ business }: Props) {
                 className="px-8 py-4 text-white rounded-full font-bold transition-all duration-300"
                 style={{ background: colors.gradient }}
               >
-                Solicitar Presupuesto
+                {t('requestQuote')}
               </button>
               <a href="#services" className="px-8 py-4 bg-white text-gray-900 rounded-full font-bold border">
-                Ver Servicios
+                {t('services')}
               </a>
             </div>
           </div>
@@ -186,7 +188,7 @@ export default function ProjectLanding({ business }: Props) {
                   <MapPin className="w-5 h-5" style={{ color: colors.primary }} />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 Dirección</p>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 {t('address')}</p>
                   <p className="font-semibold group-hover:underline">
                     {business.address}{business.city && `, ${business.city}`}
                   </p>
@@ -196,7 +198,7 @@ export default function ProjectLanding({ business }: Props) {
             <div className="flex items-center gap-3">
               <Phone className="w-5 h-5" style={{ color: colors.primary }} />
               <div>
-                <p className="text-xs text-gray-500">Teléfono</p>
+                <p className="text-xs text-gray-500">{t('phone')}</p>
                 <p className="font-semibold">{business.phone || 'Contactar'}</p>
               </div>
             </div>
@@ -281,7 +283,7 @@ export default function ProjectLanding({ business }: Props) {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Dirección</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">{t('address')}</label>
                     <input
                       type="text"
                       value={form.address}
@@ -313,7 +315,7 @@ export default function ProjectLanding({ business }: Props) {
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">{t('email')}</label>
                       <input
                         type="email"
                         value={form.email}
@@ -324,7 +326,7 @@ export default function ProjectLanding({ business }: Props) {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Teléfono</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">{t('phone')}</label>
                     <input
                       type="tel"
                       value={form.phone}
@@ -360,7 +362,7 @@ export default function ProjectLanding({ business }: Props) {
           <div className="grid lg:grid-cols-2 gap-2">
             {/* Info */}
             <div>
-              <h2 className="text-base font-bold mb-1">Información de Contacto</h2>
+              <h2 className="text-base font-bold mb-1">{t('contactInformation')}</h2>
 
               <div className="space-y-1 mb-2">
                 {business.address && (
@@ -369,7 +371,7 @@ export default function ProjectLanding({ business }: Props) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-start gap-2 hover:bg-white/5 p-2 -ml-2 rounded-lg transition-colors group"
-                    title="Ver ruta en Google Maps"
+                    title={t('seeRoute') + ' - Google Maps'}
                   >
                     <div className="relative">
                       <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
@@ -377,9 +379,9 @@ export default function ProjectLanding({ business }: Props) {
                     </div>
                     <div>
                       <p className="font-semibold text-sm flex items-center gap-1">
-                        Dirección
+                        {t('address')}
                         <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                          (Click para ver ruta)
+                          ({t('seeRoute')})
                         </span>
                       </p>
                       <p className="text-gray-300 text-sm group-hover:text-white transition-colors">
@@ -393,7 +395,7 @@ export default function ProjectLanding({ business }: Props) {
                   <div className="flex items-start gap-2">
                     <Phone className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold text-sm">Teléfono</p>
+                      <p className="font-semibold text-sm">{t('phone')}</p>
                       <p className="text-gray-300 text-sm">{business.phone}</p>
                     </div>
                   </div>
@@ -403,7 +405,7 @@ export default function ProjectLanding({ business }: Props) {
                   <div className="flex items-start gap-2">
                     <Mail className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold text-sm">Email</p>
+                      <p className="font-semibold text-sm">{t('email')}</p>
                       <p className="text-gray-300 text-sm">{business.email}</p>
                     </div>
                   </div>
@@ -412,7 +414,7 @@ export default function ProjectLanding({ business }: Props) {
 
               {/* Social media */}
               <div>
-                <p className="font-semibold mb-1 text-xs">Síguenos</p>
+                <p className="font-semibold mb-1 text-xs">{t('followUs')}</p>
                 <div className="flex gap-2">
                   <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
                     <Facebook className="w-4 h-4" />
@@ -429,7 +431,7 @@ export default function ProjectLanding({ business }: Props) {
 
             {/* Horarios */}
             <div className="flex flex-col items-end">
-              <h2 className="text-base font-bold mb-1 w-full text-right">Horario de Atención</h2>
+              <h2 className="text-base font-bold mb-1 w-full text-right">{t('schedule')}</h2>
 
               <div className="space-y-0.5 w-auto">
                 {[1, 2, 3, 4, 5, 6, 0].map(day => {  // Lunes primero, Domingo último
@@ -449,7 +451,7 @@ export default function ProjectLanding({ business }: Props) {
                       <span className={`ml-4 text-right min-w-[110px] ${isToday ? (dayHours?.isActive ? 'text-green-300' : 'text-red-300') : (dayHours?.isActive ? 'text-gray-300' : 'text-gray-500 line-through')}`}>
                         {dayHours && dayHours.isActive
                           ? `${dayHours.startTime} - ${dayHours.endTime}`
-                          : 'Cerrado'}
+                          : t('todayClosed')}
                       </span>
                     </div>
                   )
@@ -460,7 +462,7 @@ export default function ProjectLanding({ business }: Props) {
                 onClick={() => setShowRequestModal(true)}
                 className="mt-1 px-4 py-1 rounded font-semibold text-xs text-gray-900 bg-white hover:bg-gray-100 transition-all duration-300"
               >
-                Solicitar Presupuesto
+                {t('requestQuote')}
               </button>
             </div>
           </div>
@@ -475,13 +477,13 @@ export default function ProjectLanding({ business }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 group"
-            title="Ver ruta en Google Maps"
+            title={t('seeRoute') + ' - Google Maps'}
           >
             <div className="relative">
               <MapPin className="w-5 h-5" />
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping" />
             </div>
-            <span className="font-medium text-sm hidden sm:inline">Cómo llegar</span>
+            <span className="font-medium text-sm hidden sm:inline">{t('howToGetThere')}</span>
             <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
           </a>
         </div>

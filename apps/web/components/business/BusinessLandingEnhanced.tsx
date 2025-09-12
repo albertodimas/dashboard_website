@@ -10,6 +10,7 @@ import {
   ArrowRight, User, DollarSign, Info, Image as ImageIcon, Gift,
   LogIn, LogOut, UserCircle, UserCheck, UserPlus
 } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
@@ -21,6 +22,7 @@ interface BusinessLandingProps {
 
 export default function BusinessLandingEnhanced({ business }: BusinessLandingProps) {
   const router = useRouter()
+  const { t } = useLanguage()
   
   // Usar el contexto de autenticación global
   const { isAuthenticated, clientData, checkAuth, logout, isRegisteredInBusiness } = useClientAuth()
@@ -703,7 +705,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     : colors.primary
                 }}
               >
-                <span className="hidden sm:inline">Reservar Cita</span>
+                <span className="hidden sm:inline">{t('bookAppointmentCTA')}</span>
                 <span className="sm:hidden">Reservar</span>
               </button>
             </div>
@@ -744,7 +746,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-5 h-5 text-white/80" />
-              <span className="text-white/80 text-sm">Negocio Verificado</span>
+              <span className="text-white/80 text-sm">{t('verifiedBusiness')}</span>
             </div>
             
             <h1 className="text-4xl sm:text-6xl font-black text-white mb-4">
@@ -813,7 +815,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 href="#services"
                 className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-full font-bold hover:bg-white/20 transition-all duration-300"
               >
-                Ver Servicios
+                {t('services')}
               </a>
             </div>
           </div>
@@ -867,7 +869,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 Cómo llegar</p>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 {t('howToGetThere')}</p>
                   <p className="font-semibold group-hover:underline">
                     {business.address}
                     {business.city && `, ${business.city}`}
@@ -912,10 +914,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
-              Servicios
+              {t('services')}
             </span>
             <h2 className="text-4xl font-black mt-2 mb-4">
-              Lo Que Ofrecemos
+              {t('whatWeOffer')}
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Servicios profesionales adaptados a tus necesidades
@@ -1536,7 +1538,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           <div className="grid lg:grid-cols-2 gap-2">
             {/* Info */}
             <div>
-              <h2 className="text-base font-bold mb-1">Información de Contacto</h2>
+              <h2 className="text-base font-bold mb-1">{t('contactInformation')}</h2>
               
               <div className="space-y-1 mb-2">
                 {business.address && (
@@ -1545,7 +1547,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-start gap-2 hover:bg-white/5 p-2 -ml-2 rounded-lg transition-colors group"
-                    title="Ver ruta en Google Maps"
+                    title={t('seeRoute') + ' - Google Maps'}
                   >
                     <div className="relative">
                       <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
@@ -1553,9 +1555,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     </div>
                     <div>
                       <p className="font-semibold text-sm flex items-center gap-1">
-                        Dirección
+                        {t('address')}
                         <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                          (Click para ver ruta)
+                          ({t('seeRoute')})
                         </span>
                       </p>
                       <p className="text-gray-300 text-sm group-hover:text-white transition-colors">
@@ -1569,7 +1571,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   <div className="flex items-start gap-2">
                     <Phone className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold text-sm">Teléfono</p>
+                      <p className="font-semibold text-sm">{t('phone')}</p>
                       <p className="text-gray-300 text-sm">{business.phone}</p>
                     </div>
                   </div>
@@ -1579,7 +1581,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   <div className="flex items-start gap-2">
                     <Mail className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                     <div>
-                      <p className="font-semibold text-sm">Email</p>
+                      <p className="font-semibold text-sm">{t('email')}</p>
                       <p className="text-gray-300 text-sm">{business.email}</p>
                     </div>
                   </div>
@@ -1588,7 +1590,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
               {/* Social media */}
               <div>
-                <p className="font-semibold mb-1 text-xs">Síguenos</p>
+                <p className="font-semibold mb-1 text-xs">{t('followUs')}</p>
                 <div className="flex gap-2">
                   <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
                     <Facebook className="w-4 h-4" />
@@ -1605,7 +1607,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
             {/* Horarios */}
             <div className="flex flex-col items-end">
-              <h2 className="text-base font-bold mb-1 w-full text-right">Horario de Atención</h2>
+              <h2 className="text-base font-bold mb-1 w-full text-right">{t('schedule')}</h2>
               
               <div className="space-y-0.5 w-auto">
                 {[1, 2, 3, 4, 5, 6, 0].map(day => {  // Lunes primero, Domingo último
@@ -1627,7 +1629,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       <span className={`ml-4 text-right min-w-[110px] ${isToday ? (dayHours?.isActive ? 'text-green-300' : 'text-red-300') : (dayHours?.isActive ? 'text-gray-300' : 'text-gray-500 line-through')}`}>
                         {dayHours && dayHours.isActive
                           ? `${dayHours.startTime} - ${dayHours.endTime}`
-                          : 'Cerrado'}
+                          : t('todayClosed')}
                       </span>
                     </div>
                   )
@@ -1638,7 +1640,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 onClick={() => setShowBookingModal(true)}
                 className="mt-1 px-4 py-1 rounded font-semibold text-xs text-gray-900 bg-white hover:bg-gray-100 transition-all duration-300"
               >
-                Reservar Cita
+                {t('bookAppointmentCTA')}
               </button>
             </div>
           </div>
@@ -1653,13 +1655,13 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 group"
-            title="Ver ruta en Google Maps"
+            title={t('seeRoute') + ' - Google Maps'}
           >
             <div className="relative">
               <MapPin className="w-5 h-5" />
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping" />
             </div>
-            <span className="font-medium text-sm hidden sm:inline">Cómo llegar</span>
+            <span className="font-medium text-sm hidden sm:inline">{t('howToGetThere')}</span>
             <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
           </a>
         </div>

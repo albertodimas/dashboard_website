@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { translations, Language, TranslationKey } from '@/lib/translations'
 
 interface LanguageContextType {
@@ -13,6 +13,24 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
+
+  // Initialize from server-side preference if available
+  useEffect(() => {
+    let done = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (res.ok) {
+          const data = await res.json()
+          const userLang = (data?.user?.language || '').toLowerCase()
+          if ((userLang === 'en' || userLang === 'es') && !done) {
+            setLanguageState(userLang as Language)
+          }
+        }
+      } catch {}
+    })()
+    return () => { done = true }
+  }, [])
 
   const setLanguage = async (lang: Language) => {
     setLanguageState(lang)
