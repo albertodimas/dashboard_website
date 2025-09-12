@@ -492,8 +492,9 @@ export default function ClientDashboard() {
       } catch {}
       
       // Fetch dashboard data
-      console.log('📡 [fetchDashboardData] Fetching /api/cliente/dashboard')
-      const dashboardResponse = await fetch('/api/cliente/dashboard', { credentials: 'include' })
+      console.log('?? [fetchDashboardData] Fetching /api/cliente/dashboard')
+      const qs = preferredBizId ? ('?from=' + encodeURIComponent(preferredBizId)) : ''
+      const dashboardResponse = await fetch('/api/cliente/dashboard' + qs, { credentials: 'include' })
 
       console.log('📦 [fetchDashboardData] Dashboard response status:', dashboardResponse.status)
       if (dashboardResponse.ok) {
@@ -1641,3 +1642,7 @@ const Check = ({ className, size }: { className?: string; size?: number }) => (
     <path d="M20 6L9 17l-5-5" />
   </svg>
 )
+
+
+
+

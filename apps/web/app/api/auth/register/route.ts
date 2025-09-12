@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
     ])
 
     if (existingUser) {
-      return NextResponse.json({ error: 'Email is already registered', field: 'email' }, { status: 400 })
+      return NextResponse.json({ error: 'Email is already registered', field: 'email' }, { status: 409 })
     }
     if (existingTenant) {
-      return NextResponse.json({ error: 'Subdomain already in use', field: 'subdomain' }, { status: 400 })
+      return NextResponse.json({ error: 'Subdomain already in use', field: 'subdomain' }, { status: 409 })
     }
 
     // Hash password
@@ -112,24 +112,56 @@ export async function POST(request: NextRequest) {
           settings: JSON.parse(JSON.stringify({})),
         },
       })
-      const user = await tx.user.create({
-        data: {
-          email,
-          name: lastName ? `${name} ${lastName}` : name,
-          lastName: lastName || null,
-          passwordHash,
-          tenantId: tenant.id,
-          emailVerified: new Date(), // Mark as verified since they used the code
-          isActive: true,
-        },
-      })
-      return { tenant, user }
+      // Try creating with lastName first; if client is outdated (Unknown argument), fallback without it
+      try {
+        const user = await tx.user.create({
+          data: {
+            email,
+            name: lastName ? `${name} ${lastName}` : name,
+            // On newer schema, this column exists
+            lastName: lastName || null,
+            passwordHash,
+            tenantId: tenant.id,
+            emailVerified: new Date(), // Mark as verified since they used the code
+            isActive: true,
+          },
+        })
+        return { tenant, user }
+      } catch (e) {
+        const msg = (e as any)?.message || ''
+        const unknownLastName = typeof msg === 'string' && msg.includes('Unknown argument') && msg.includes('lastName')
+        if (!unknownLastName) throw e
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[REGISTER] Prisma client seems outdated (no lastName). Falling back without lastName.')
+        }
+        const user = await tx.user.create({
+          data: {
+            email,
+            name: lastName ? `${name} ${lastName}` : name,
+            // Fallback without lastName for older generated clients
+            passwordHash,
+            tenantId: tenant.id,
+            emailVerified: new Date(),
+            isActive: true,
+          },
+        })
+        return { tenant, user }
+      }
     })
 
     // Note: Business and Membership models will be created when those tables are added to the schema
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[REGISTER] Created tenant and user:', { tenantId: tenant.id, userId: user.id })
+    }
 
-    // Clear the verification code after successful registration
-    await clearCode(email)
+    // Clear the verification code after successful registration (best-effort)
+    try {
+      await clearCode(email)
+    } catch (e) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[REGISTER] Failed to clear verification code (non-fatal):', (e as any)?.message || e)
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -141,17 +173,36 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Registration error:', error)
+    // Log error with minimal PII
+    console.error('Registration error:', (error as any)?.message || error)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      const target = (error.meta?.target as string[] | undefined)?.join(',') || ''
-      if (target.includes('users_email') || target.includes('email')) {
-        return NextResponse.json({ error: 'Email is already registered', field: 'email' }, { status: 400 })
+      // Handle Prisma unique constraint violations robustly
+      const rawTarget = (error as any)?.meta?.target
+      let targetFields: string[] = []
+      if (Array.isArray(rawTarget)) {
+        targetFields = rawTarget as string[]
+      } else if (typeof rawTarget === 'string') {
+        targetFields = [rawTarget as string]
       }
-      if (target.includes('tenants_subdomain') || target.includes('subdomain')) {
-        return NextResponse.json({ error: 'Subdomain already in use', field: 'subdomain' }, { status: 400 })
+      const targetStr = targetFields.join(',')
+
+      const emailConflict = targetFields.includes('email') || targetStr.includes('email')
+      const subdomainConflict = targetFields.includes('subdomain') || targetStr.includes('subdomain')
+
+      if (emailConflict) {
+        return NextResponse.json({ error: 'Email is already registered', field: 'email' }, { status: 409 })
       }
-      return NextResponse.json({ error: 'Unique constraint violated' }, { status: 400 })
+      if (subdomainConflict) {
+        return NextResponse.json({ error: 'Subdomain already in use', field: 'subdomain' }, { status: 409 })
+      }
+      return NextResponse.json({ error: 'Unique constraint violated' }, { status: 409 })
     }
-    return NextResponse.json({ error: 'Failed to create account. Please try again.', ...(process.env.NODE_ENV !== 'production' ? { details: (error as any)?.message } : {}) }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to create account. Please try again.',
+        ...(process.env.NODE_ENV !== 'production' ? { details: (error as any)?.message } : {}),
+      },
+      { status: 500 }
+    )
   }
 }

@@ -132,7 +132,23 @@ export default function RegisterPage() {
       console.log('Registration response:', response.status, data)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed')
+        // Handle backend conflict (409) by returning to the form and marking the field
+        if (response.status === 409 && data && typeof data.field === 'string') {
+          const field = data.field as 'email' | 'subdomain'
+          if (field === 'email') {
+            setEmailStatus('taken')
+            await checkAvailability({ email: formData.email })
+          } else if (field === 'subdomain') {
+            setSubStatus('taken')
+            await checkAvailability({ subdomain: formData.subdomain })
+          }
+          setError(data.error || 'A conflict was found. Please update the form.')
+          setStep('register')
+          setLoading(false)
+          return
+        }
+        const details = typeof data.details === 'string' ? ` (${data.details})` : ''
+        throw new Error((data.error || 'Registration failed') + details)
       }
 
       // Registration successful, redirect to login
@@ -213,7 +229,7 @@ export default function RegisterPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${emailStatus === 'taken' ? 'border-red-500' : 'border-gray-300'} placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm`}
                 placeholder="john@example.com"
                 value={formData.email}
                 onChange={async (e) => {
@@ -227,6 +243,9 @@ export default function RegisterPage() {
                   }
                 }}
               />
+              {emailStatus === 'checking' && (
+                <p className="mt-1 text-xs text-gray-500">Checking email availability…</p>
+              )}
               {emailStatus === 'taken' && (
                 <p className="mt-1 text-xs text-red-600">Email is already registered. <Link href="/login" className="underline">Sign in</Link> or use another email.</p>
               )}
@@ -317,7 +336,7 @@ export default function RegisterPage() {
                   type="text"
                   required
                   pattern="[a-z0-9-]+"
-                  className="flex-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                  className={`flex-1 appearance-none relative block w-full px-3 py-2 border ${subStatus === 'taken' ? 'border-red-500' : 'border-gray-300'} placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm`}
                   placeholder="mybusiness"
                   value={formData.subdomain}
                   onChange={async (e) => {
@@ -338,8 +357,11 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-gray-500">
                 Only lowercase letters, numbers, and hyphens
               </p>
+              {subStatus === 'checking' && (
+                <p className="mt-1 text-xs text-gray-500">Checking subdomain availability…</p>
+              )}
               {subStatus === 'taken' && (
-                <p className="mt-1 text-xs text-red-600">Subdomain not available{subSuggestion ? ` — try "${subSuggestion}"` : ''}</p>
+                <p className="mt-1 text-xs text-red-600">Subdomain not available{subSuggestion ? ` - try "${subSuggestion}"` : ''}</p>
               )}
               {subStatus === 'available' && (
                 <p className="mt-1 text-xs text-green-600">Subdomain available</p>
@@ -350,10 +372,22 @@ export default function RegisterPage() {
           <div>
             <button
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+              disabled={
+                loading ||
+                emailStatus === 'taken' ||
+                subStatus === 'taken' ||
+                emailStatus === 'checking' ||
+                subStatus === 'checking'
+              }
+              className="group relative w-full flex items-center justify-center gap-2 py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {(emailStatus === 'checking' || subStatus === 'checking' || loading) && (
+                <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              )}
+              {emailStatus === 'checking' || subStatus === 'checking' ? 'Checking availability…' : (loading ? 'Creating account...' : 'Create account')}
             </button>
           </div>
 

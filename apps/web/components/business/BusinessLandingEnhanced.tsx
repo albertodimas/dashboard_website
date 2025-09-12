@@ -73,6 +73,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const [hasSearchedPackages, setHasSearchedPackages] = useState(false)
   const [myAppointments, setMyAppointments] = useState<any[]>([]) // Citas del cliente logueado
   const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
+  // Cancel modal state
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
   
   // Datos del negocio
   const reviews = business.reviews || []
@@ -90,35 +95,21 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   
   // Si no hay módulo de staff habilitado, mostrar el owner como único trabajador
   if (!business.enableStaffModule) {
-    // Si hay owner data, usarla; si no, crear un owner por defecto
-    const ownerData = owner || {
-      name: 'Owner',
-      avatar: null
-    }
-    
-    displayStaff = [{
-      id: 'owner',
-      name: ownerData.name,
-      photo: ownerData.avatar, // Usando el mismo campo avatar del owner
-      avatar: ownerData.avatar, // Agregando también como avatar para compatibilidad
-      role: business.language === 'es' ? 'Propietario' : 'Owner',
-      specialty: business.businessType ? 
-        (business.businessType === 'personal_trainer' ? 'Personal Trainer' :
-         business.businessType === 'barbershop' ? 'Barber' :
-         business.businessType === 'hair_salon' ? 'Stylist' :
-         business.businessType === 'nail_salon' ? 'Nail Technician' :
-         business.businessType === 'spa' ? 'Therapist' :
-         business.businessType === 'gym' ? 'Instructor' :
-         business.businessType === 'clinic' ? 'Specialist' :
-         'Professional') : 'Professional',
-      specialties: [], // Array vacío para evitar el "0"
-      isActive: true,
-      rating: undefined // Explicitly set to undefined to avoid any "0" issues
-    }]
-    console.log('Created staff object:', displayStaff[0])
+    displayStaff = []
   }
+
   
-  const workingHours = business.workingHours || []
+  // Horarios para mostrar en UI (siempre basados en settings.scheduleSettings cuando existan)
+  const scheduleSettings = business.settings?.scheduleSettings || null
+  const baseWorkingHours = Array.isArray(business.workingHours) ? business.workingHours : []
+  const workingHours = scheduleSettings
+    ? [0,1,2,3,4,5,6].map((day: number) => ({
+        dayOfWeek: day,
+        isActive: Array.isArray(scheduleSettings.workingDays) ? scheduleSettings.workingDays.includes(day) : false,
+        startTime: scheduleSettings.startTime || '09:00',
+        endTime: scheduleSettings.endTime || '18:00'
+      }))
+    : baseWorkingHours.filter((wh: any) => !wh.staffId)
   
   // Colores del tema
   const colors = {
@@ -323,33 +314,28 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
   // Handle appointment cancellation
   const handleCancelAppointment = async (appointmentId: string) => {
-    if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
-    
-    // Verificar si el usuario está autenticado
     if (!isAuthenticated) {
       alert('Debes iniciar sesión para cancelar citas')
       return
     }
-
+    const reason = prompt('Opcional: indica la razón de la cancelación (se enviará al negocio)') || ''
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}/cancel`, {
+      const response = await fetch('/api/cliente/appointments/cancel', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include' // Incluir cookies
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ appointmentId, reason })
       })
-
       if (response.ok) {
         alert('Cita cancelada exitosamente')
-        // Reload appointments
         await loadCustomerData()
       } else {
-        const error = await response.json()
-        alert(error.message || 'Error al cancelar la cita')
+        let msg = 'Error al cancelar la cita'
+        try { const error = await response.json(); msg = error?.error || msg } catch {}
+        alert(msg)
       }
-    } catch (error) {
-      console.error('Error canceling appointment:', error)
+    } catch (e) {
+      console.error('Error canceling appointment:', e)
       alert('Error al cancelar la cita')
     }
   }
@@ -439,11 +425,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Fetch staff when service is selected
   useEffect(() => {
     const fetchStaff = async () => {
-      if (!selectedService) {
+      if (!selectedService || !business.enableStaffModule) {
         setStaff([])
+        setStaffModuleEnabled(false)
         return
       }
-      
       try {
         const response = await fetch(`/api/public/staff/${business.slug || business.customSlug || business.id}?serviceId=${selectedService.id}`)
         if (response.ok) {
@@ -542,8 +528,16 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         setBookingSuccess(true)
         setBookingStep(4) // Nuevo paso para mostrar éxito
       } else {
-        const error = await response.json()
-        alert(error.error || 'Error al crear la reserva')
+        let errorMsg = 'Error al crear la reserva'
+        try {
+          const error = await response.json()
+          if (error?.error) errorMsg = error.error
+          if (process.env.NODE_ENV !== 'production') {
+            const extra = [error?.step, error?.details].filter(Boolean).join(' - ')
+            if (extra) errorMsg += `\n(${extra})`
+          }
+        } catch {}
+        alert(errorMsg)
       }
     } catch (error) {
       console.error('Booking error:', error)
@@ -800,18 +794,13 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5" style={{ color: colors.primary }} />
               <div>
-                <p className="text-xs text-gray-500">Horario Hoy</p>
-                <p className="font-semibold">
-                  {(() => {
-                    const today = new Date().getDay()
-                    const todayHours = workingHours.find((wh: any) => 
-                      wh.dayOfWeek === today && !wh.staffId
-                    )
-                    return todayHours && todayHours.isActive 
-                      ? `${todayHours.startTime} - ${todayHours.endTime}`
-                      : 'Cerrado'
-                  })()}
-                </p>
+                {(() => {
+                  const today = new Date().getDay()
+                  const h = workingHours.find((wh: any) => wh.dayOfWeek === today)
+                  return (
+                    <p className="font-semibold">{h && h.isActive ? `${h.startTime} - ${h.endTime}` : 'Cerrado'}</p>
+                  )
+                })()
               </div>
             </div>
             
@@ -1571,7 +1560,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <div className="space-y-0.5 w-auto">
                 {[1, 2, 3, 4, 5, 6, 0].map(day => {  // Lunes primero, Domingo último
                   const dayHours = workingHours.find((wh: any) => 
-                    wh.dayOfWeek === day && !wh.staffId
+                    wh.dayOfWeek === day
                   )
                   const isToday = new Date().getDay() === day
                   
@@ -1585,7 +1574,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       <span className={`font-medium text-right w-20 ${isToday ? 'text-white' : 'text-gray-400'}`}>
                         {daysOfWeek[day]}
                       </span>
-                      <span className={`ml-4 text-right min-w-[100px] ${isToday ? 'text-white' : 'text-gray-400'}`}>
+                      <span className={`ml-4 text-right min-w-[110px] ${isToday ? (dayHours?.isActive ? 'text-green-300' : 'text-red-300') : (dayHours?.isActive ? 'text-gray-300' : 'text-gray-500 line-through')}`}>
                         {dayHours && dayHours.isActive
                           ? `${dayHours.startTime} - ${dayHours.endTime}`
                           : 'Cerrado'}
@@ -2803,3 +2792,13 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     </div>
   )
 }// Force reload
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@dashboard/db'\nimport { sendEmail } from '@/lib/email'
 import { verifyClientToken } from '@/lib/client-auth'
 
 export async function POST(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { appointmentId } = await request.json()
+    const { appointmentId, reason } = await request.json()
 
     if (!appointmentId) {
       return NextResponse.json(
@@ -104,10 +104,36 @@ export async function POST(request: NextRequest) {
         status: 'CANCELLED',
         cancelledAt: new Date(),
         cancelledBy: appointment.customerId,
-        cancellationReason: 'Cancelado por el cliente desde el portal'
+        cancellationReason: (typeof reason === 'string' && reason.trim().length > 0)
+          ? reason.trim().slice(0, 300)
+          : 'Cancelado por el cliente desde el portal'
       }
     })
 
+    // Notificar al negocio por email con la nota (si hay email configurado)
+    try {
+      const biz = await prisma.business.findUnique({ where: { id: appointment.businessId }, select: { email: true, name: true } })
+      if (biz?.email) {
+        const reasonText = updatedAppointment.cancellationReason || 'Cancelado por el cliente'
+        await sendEmail({
+          to: biz.email,
+          subject: Cancelación de cita - ,
+          html: 
+            <p>Hola ,</p>
+            <p>Un cliente ha cancelado una cita:</p>
+            <ul>
+              <li><strong>Servicio:</strong> </li>
+              <li><strong>Fecha:</strong> </li>
+            </ul>
+            <p><strong>Nota del cliente:</strong> </p>
+            <p style="color:#666">Este es un mensaje automático.</p>
+          ,
+          text: Cancelación de cita:  - \nNota: 
+        })
+      }
+    } catch (e) {
+      console.warn('[Cliente Cancel] No se pudo enviar email al negocio:', (e as any)?.message || e)
+    }
     // Si la cita estaba asociada a un paquete, restaurar la sesión
     if (appointment.packagePurchaseId) {
       await prisma.packagePurchase.update({
@@ -129,7 +155,8 @@ export async function POST(request: NextRequest) {
         status: updatedAppointment.status,
         businessName: appointment.business.name,
         serviceName: appointment.service.name,
-        startTime: appointment.startTime
+        startTime: appointment.startTime,
+        cancellationReason: updatedAppointment.cancellationReason
       }
     })
 
@@ -141,3 +168,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+

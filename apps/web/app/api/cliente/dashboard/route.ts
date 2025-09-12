@@ -4,6 +4,7 @@ import { verifyClientToken } from '@/lib/client-auth'
 import { SignJWT } from 'jose'
 
 export async function GET(request: NextRequest) {
+  let step = 'start'
   try {
     // Verificar token - primero intentar leer de cookie, luego de header
     let token: string | undefined
@@ -27,15 +28,55 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    step = 'verify-token'
     const decoded = await verifyClientToken(token)
     if (!decoded) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
-    // Obtener el ID del negocio de referencia si existe
-    const referringBusinessId = request.cookies.get('referring-business')?.value
+    // Obtener el negocio de referencia desde cookie o query `from`
+    step = 'resolve-referrer'
+    let referringBusinessId = request.cookies.get('referring-business')?.value as string | undefined
+    if (!referringBusinessId) {
+      try {
+        const url = new URL(request.url)
+        const from = url.searchParams.get('from')
+        if (from) {
+          const decodedFrom = decodeURIComponent(from)
+          const extractSlug = (path: string): string | undefined => {
+            const bizMatch = path.match(/\/(?:business|b)\/([^\/\?#]+)/)
+            if (bizMatch && bizMatch[1]) return bizMatch[1]
+            const dirMatch = path.match(/^\/([^\/\?#]+)/)
+            if (dirMatch && dirMatch[1] !== 'cliente') return dirMatch[1]
+            return undefined
+          }
+          let slug: string | undefined
+          if (decodedFrom.includes('://')) {
+            const u = new URL(decodedFrom)
+            slug = extractSlug(u.pathname)
+          } else if (decodedFrom.startsWith('/')) {
+            slug = extractSlug(decodedFrom)
+          } else {
+            slug = decodedFrom
+          }
+          if (slug) {
+            const biz = await prisma.business.findFirst({ where: { OR: [{ slug }, { customSlug: slug }] }, select: { id: true } })
+            if (biz) referringBusinessId = biz.id
+          }
+        }
+      } catch {}
+    }
+
+    // Lista de negocios desregistrados por el usuario (preferencias en metadata)
+    step = 'load-unregistered'
+    let unregistered: string[] = []
+    try {
+      const meta = await prisma.customer.findUnique({ where: { id: decoded.customerId }, select: { metadata: true } })
+      unregistered = ((meta?.metadata as any)?.unregisteredBusinesses || []) as string[]
+    } catch {}
 
     // Buscar todos los customers con el mismo email en todos los tenants
+    step = 'fetch-customers-by-email'
     const allCustomers = await prisma.customer.findMany({
       where: {
         email: decoded.email
@@ -49,6 +90,7 @@ export async function GET(request: NextRequest) {
     console.log('[Dashboard API] Found customers with same email:', customerIds.length)
 
     // Obtener paquetes activos de TODOS los customers con el mismo email
+    step = 'fetch-packages'
     const packages = await prisma.packagePurchase.findMany({
       where: {
         customerId: {
@@ -95,6 +137,7 @@ export async function GET(request: NextRequest) {
     console.log('[Dashboard API] Using customerIds:', customerIds)
     
     // Obtener citas de TODOS los customers con el mismo email (excluyendo las canceladas)
+    step = 'fetch-appointments'
     const appointments = await prisma.appointment.findMany({
       where: {
         customerId: {
@@ -135,7 +178,41 @@ export async function GET(request: NextRequest) {
     
     console.log('[Dashboard API] Appointments found:', appointments.length)
 
+    // Crear/activar relaciones BusinessCustomer a partir de actividad (paquetes/citas) si no existen
+    try {
+      step = 'ensure-relations-from-activity'
+      const wantedPairs = new Map<string, { businessId: string; customerId: string }>()
+      for (const p of packages as any[]) {
+        const b = p?.package?.business
+        const cId = p?.customerId
+        if (b?.id && cId && !unregistered.includes(b.id)) {
+          wantedPairs.set(`${b.id}:${cId}`, { businessId: b.id, customerId: cId })
+        }
+      }
+      for (const a of appointments as any[]) {
+        const bId = (a as any)?.business?.id || (a as any)?.businessId
+        const cId = (a as any)?.customerId
+        if (bId && cId && !unregistered.includes(bId)) {
+          wantedPairs.set(`${bId}:${cId}`, { businessId: bId, customerId: cId })
+        }
+      }
+      if (wantedPairs.size > 0) {
+        await Promise.allSettled(
+          Array.from(wantedPairs.values()).map(({ businessId, customerId }) =>
+            prisma.businessCustomer.upsert({
+              where: { businessId_customerId: { businessId, customerId } },
+              update: { isActive: true, lastVisit: new Date() },
+              create: { businessId, customerId, isActive: true, lastVisit: new Date(), totalVisits: 1 },
+            })
+          )
+        )
+      }
+    } catch (e) {
+      console.warn('[Dashboard API] ensure via activity failed:', (e as any)?.message || e)
+    }
+
     // Obtener datos del cliente
+    step = 'fetch-customer'
     console.log('[Dashboard API] Getting customer with ID:', decoded.customerId)
     let customer = await prisma.customer.findUnique({
       where: { id: decoded.customerId },
@@ -226,6 +303,7 @@ export async function GET(request: NextRequest) {
 
     // Fallback final: si seguimos sin customer pero tenemos IDs, traer el primero
     if (!customer && customerIds.length > 0) {
+      step = 'fallback-customer'
       customer = await prisma.customer.findUnique({
         where: { id: customerIds[0] },
         select: {
@@ -236,7 +314,37 @@ export async function GET(request: NextRequest) {
       console.warn('[Dashboard API] Fallback: usando primer customerId por email')
     }
 
+    // Ensure BusinessCustomer link for referring business (if any) for this customer (respect unregistered)
+    step = 'ensure-relation'
+    if (referringBusinessId && !unregistered.includes(referringBusinessId)) {
+      try {
+        const existing = await prisma.businessCustomer.findUnique({
+          where: { businessId_customerId: { businessId: referringBusinessId, customerId: decoded.customerId } },
+          select: { isActive: true }
+        })
+        if (!existing) {
+          await prisma.businessCustomer.create({
+            data: {
+              businessId: referringBusinessId,
+              customerId: decoded.customerId,
+              isActive: true,
+              lastVisit: new Date(),
+              totalVisits: 1,
+            }
+          })
+        } else {
+          await prisma.businessCustomer.update({
+            where: { businessId_customerId: { businessId: referringBusinessId, customerId: decoded.customerId } },
+            data: { isActive: true, lastVisit: new Date(), totalVisits: { increment: 1 } }
+          })
+        }
+      } catch (e) {
+        console.warn('[Dashboard API] ensure BusinessCustomer failed:', (e as any)?.message || e)
+      }
+    }
+ 
     // Obtener negocios donde el cliente está registrado (cruzando BusinessCustomer)
+    step = 'fetch-relations'
     const relations = await prisma.businessCustomer.findMany({
       where: {
         customerId: { in: customerIds },
@@ -247,6 +355,8 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
+            logo: true,
+            coverImage: true,
             description: true,
             phone: true,
             email: true,
@@ -255,20 +365,19 @@ export async function GET(request: NextRequest) {
             state: true,
             slug: true,
             customSlug: true,
-            imageUrl: true,
+            // imageUrl not in schema; UI uses logo/coverImage
             category: {
               select: { id: true, name: true, slug: true }
             },
-            rating: true,
-            reviewCount: true,
             _count: { select: { services: true } }
           }
         }
       }
     })
 
-    // Normalizar y deduplicar por business.id
+    // Filter unregistered businesses (by customer's metadata) and deduplicate by business.id
     const seen = new Set<string>()
+
     const myBusinesses = relations
       .filter(r => !!r.business)
       .map(r => ({
@@ -281,9 +390,11 @@ export async function GET(request: NextRequest) {
         seen.add(b.id)
         return true
       })
+      .filter(b => !unregistered.includes(b.id))
 
     // Obtener todos los negocios para explorar (de otros tenants)
     const registeredIds = myBusinesses.map(b => b.id)
+    step = 'fetch-explore'
     const businessesToExplore = await prisma.business.findMany({
       where: {
         isActive: true,
@@ -293,6 +404,8 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        logo: true,
+        coverImage: true,
         description: true,
         phone: true,
         email: true,
@@ -301,10 +414,8 @@ export async function GET(request: NextRequest) {
         state: true,
         slug: true,
         customSlug: true,
-        imageUrl: true,
+        // imageUrl not in schema; UI uses logo/coverImage
         category: { select: { id: true, name: true, slug: true } },
-        rating: true,
-        reviewCount: true,
         _count: { select: { services: true } }
       },
       take: 10
@@ -359,12 +470,13 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    step = 'prepare-response'
     const response = NextResponse.json({
       success: true,
       customer,
       packages: sortedPackages,
       appointments: sortedAppointments,
-      myBusinesses: sortedBusinesses, // Negocios donde está registrado
+      myBusinesses: sortedBusinesses,
       businessesToExplore, // Negocios para explorar
       referringBusinessId // ID del negocio desde donde accedió
     })
@@ -395,10 +507,11 @@ export async function GET(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Dashboard error:', error)
+    console.error('Dashboard error at step:', step, error)
     return NextResponse.json(
-      { error: 'Error al cargar el dashboard' },
+      { error: 'Error al cargar el dashboard', ...(process.env.NODE_ENV !== 'production' ? { step, details: (error as any)?.message } : {}) },
       { status: 500 }
     )
   }
 }
+

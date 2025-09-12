@@ -12,7 +12,8 @@ const appointmentSchema = z.object({
   packageId: z.string().uuid().optional(), // Add packageId for package bookings
   packagePurchaseId: z.string().uuid().optional(), // Add packagePurchaseId for using sessions
   usePackageSession: z.boolean().optional(), // Flag to indicate using package session
-  staffId: z.string().uuid().optional(),
+  // Accept any string here; we'll validate UUID semantics and business configuration later
+  staffId: z.string().optional(),
   date: z.string(),
   time: z.string(),
   customerName: z.string().min(2),
@@ -22,6 +23,7 @@ const appointmentSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  let step = 'start'
   try {
     // Rate limit by IP: max 5 bookings / 10 minutes
     const ip = getClientIP(request)
@@ -32,11 +34,13 @@ export async function POST(request: NextRequest) {
         { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rate.retryAfterSec || 600) } }
       )
     }
+    step = 'parse-input'
     const body = await request.json()
     console.log('Received booking data:', body)
     const validated = appointmentSchema.parse(body)
 
     // Get service details for duration
+    step = 'fetch-service'
     const service = await prisma.service.findUnique({
       where: { id: validated.serviceId },
       select: { 
@@ -62,23 +66,55 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get a default staff if not provided
-    let staffId = validated.staffId
+    // Resolve business info (tenant and staff module/email for fallback staff)
+    step = 'fetch-business'
+    const business = await prisma.business.findUnique({
+      where: { id: validated.businessId },
+      select: { tenantId: true, enableStaffModule: true, email: true, name: true }
+    })
+
+    if (!business) {
+      return NextResponse.json(
+        { error: 'Business not found' },
+        { status: 404 }
+      )
+    }
+
+    // Normalize staffId. If staff module está deshabilitado o el id no es UUID, intentar fallback/auto-crear un staff básico.
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    let staffId: string | undefined = (validated.staffId && uuidRe.test(validated.staffId)) ? validated.staffId : undefined
+
+    // If no valid staffId, try to find first staff for this business
+    step = 'resolve-staff'
     if (!staffId) {
-      const defaultStaff = await prisma.staff.findFirst({
-        where: { businessId: validated.businessId }
-      })
+      const defaultStaff = await prisma.staff.findFirst({ where: { businessId: validated.businessId } })
       if (defaultStaff) {
         staffId = defaultStaff.id
       }
     }
 
+    // If still no staff and staff module is disabled, create a placeholder staff to satisfy required relation
+    if (!staffId && !business.enableStaffModule) {
+      const placeholder = await prisma.staff.create({
+        data: {
+          businessId: validated.businessId,
+          name: business.name || 'Staff',
+          email: business.email || 'noreply@localhost',
+          canAcceptBookings: true,
+          isActive: true,
+        }
+      })
+      staffId = placeholder.id
+    }
+
     // Parse date and time
+    step = 'parse-datetime'
     const startTime = parseISO(`${validated.date}T${validated.time}`)
     const endTime = addMinutes(startTime, service.duration)
 
     // Check for existing appointments at this time
     // Use the staffId we determined (either provided or default)
+    step = 'check-conflicts'
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         businessId: validated.businessId,
@@ -108,26 +144,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get business tenant ID
-    const business = await prisma.business.findUnique({
-      where: { id: validated.businessId },
-      select: { tenantId: true }
-    })
+    // business.tenantId available from earlier fetch
 
-    if (!business) {
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      )
-    }
-
-    // Create or find customer
-    let customer = await prisma.customer.findFirst({
-      where: {
-        email: validated.customerEmail,
-        tenantId: business.tenantId
-      }
-    })
+    // Create or find customer (global by email to respect unique constraint)
+    step = 'resolve-customer'
+    let customer = await prisma.customer.findFirst({ where: { email: validated.customerEmail } })
 
     if (!customer) {
       customer = await prisma.customer.create({
@@ -145,6 +166,7 @@ export async function POST(request: NextRequest) {
     
     // If using package session with packagePurchaseId
     if (validated.packagePurchaseId && validated.usePackageSession) {
+      step = 'validate-package-session'
       activePurchase = await prisma.packagePurchase.findUnique({
         where: { id: validated.packagePurchaseId },
         include: { package: true }
@@ -192,6 +214,7 @@ export async function POST(request: NextRequest) {
     // Legacy: If packageId is provided (old flow)
     else if (validated.packageId) {
       // Check if customer has an active package purchase
+      step = 'find-legacy-package'
       activePurchase = await prisma.packagePurchase.findFirst({
         where: {
           customerId: customer.id,
@@ -230,7 +253,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Ensure we have a staffId
+    // Ensure we have a staffId (required by schema)
     if (!staffId) {
       return NextResponse.json(
         { error: 'No staff available for this business' },
@@ -239,6 +262,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create appointment
+    step = 'create-appointment'
     const appointment = await prisma.appointment.create({
       data: {
         businessId: validated.businessId,
@@ -275,6 +299,7 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email
     try {
+      step = 'send-email'
       const confirmationLink = `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/confirm?id=${appointment.id}`
       
       // Format address for email
@@ -313,6 +338,7 @@ export async function POST(request: NextRequest) {
     // If this is a package booking, consume a session
     if (activePurchase && (validated.usePackageSession || validated.packageId)) {
       try {
+        step = 'consume-session'
         // Use Prisma transaction to consume the session
         await prisma.$transaction(async (tx) => {
           // Create session usage record
@@ -359,7 +385,7 @@ export async function POST(request: NextRequest) {
         : 'Appointment booked successfully!'
     })
   } catch (error) {
-    console.error('Error creating appointment:', error)
+    console.error('Error creating appointment at step:', step, error)
     
     if (error instanceof z.ZodError) {
       // Provide more user-friendly error messages
@@ -383,7 +409,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to create appointment. Please try again.' },
+      { error: 'Failed to create appointment. Please try again.', ...(process.env.NODE_ENV !== 'production' ? { step, details: (error as any)?.message } : {}) },
       { status: 500 }
     )
   }
