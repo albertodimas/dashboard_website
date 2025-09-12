@@ -195,7 +195,7 @@ export const translations = {
     verifiedBusiness: 'Verified Business',
     projectMode: 'Project',
     todayClosed: 'Closed',
-    professionalServices: 'Professional Services'
+    professionalServices: 'Professional Services',
     myAccount: 'My Account',
     specialOffers: 'Special Offers',
     packagesAndPromos: 'Packages and Promotions',
