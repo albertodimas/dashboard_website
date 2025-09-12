@@ -1,6 +1,7 @@
 'use client'
 
 import { Info } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type Mode = 'RESERVA' | 'PROYECTO'
 
@@ -8,16 +9,18 @@ export default function OperationModeSelector({
   value,
   onChange,
 }: { value: Mode; onChange: (m: Mode) => void }) {
+  const { t } = useLanguage()
+
   const cards: Array<{ key: Mode; title: string; desc: string }> = [
     {
       key: 'RESERVA',
-      title: 'Reserva',
-      desc: 'Tus clientes eligen fecha y hora en tu calendario.',
+      title: t('modeReservationTitle') || 'Reserva',
+      desc: t('modeReservationDesc') || 'Tus clientes eligen fecha y hora en tu calendario.',
     },
     {
       key: 'PROYECTO',
-      title: 'Proyecto',
-      desc: 'Recibes una solicitud y luego coordinas contacto y fecha.',
+      title: t('modeProjectTitle') || 'Proyecto',
+      desc: t('modeProjectDesc') || 'Recibes una solicitud y luego coordinas contacto y fecha.',
     },
   ]
 
@@ -44,4 +47,3 @@ export default function OperationModeSelector({
     </div>
   )
 }
-

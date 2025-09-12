@@ -474,11 +474,7 @@ export default function SettingsPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
               {language === 'en' ? 'Operation Mode' : 'Modo de Operación'}
             </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              {language === 'en'
-                ? 'Choose how your business receives requests: reservations with a calendar, or project requests to coordinate later.'
-                : 'Elige cómo recibes solicitudes: reservas con calendario o solicitudes de proyecto para coordinar luego.'}
-            </p>
+            <p className="text-sm text-gray-600 mb-4">{t('operationModeDesc')}</p>
             <OperationModeSelector value={operationMode} onChange={setOperationMode as any} />
             <button
               onClick={handleSaveOperationMode}

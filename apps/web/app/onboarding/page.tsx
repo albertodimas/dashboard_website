@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import OperationModeSelector from '@/components/OperationModeSelector'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function OnboardingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [mode, setMode] = useState<'RESERVA' | 'PROYECTO'>('RESERVA')
+  const { t, language } = useLanguage()
 
   useEffect(() => {
     // Ensure user is authenticated and load current business
@@ -60,8 +62,8 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="max-w-xl w-full bg-white rounded-xl p-6 shadow">
-        <h1 className="text-2xl font-bold mb-2">Configura tu negocio</h1>
-        <p className="text-sm text-gray-600 mb-4">Elige cómo recibirás solicitudes de tus clientes.</p>
+        <h1 className="text-2xl font-bold mb-2">{language==='en' ? 'Set up your business' : 'Configura tu negocio'}</h1>
+        <p className="text-sm text-gray-600 mb-4">{t('operationModeDesc')}</p>
         <OperationModeSelector value={mode} onChange={setMode} />
         <button
           onClick={save}
@@ -74,4 +76,3 @@ export default function OnboardingPage() {
     </div>
   )
 }
-

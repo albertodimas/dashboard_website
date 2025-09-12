@@ -222,6 +222,11 @@ export const translations = {
     timeLabel: 'Time:',
     professionalLabel: 'Professional:',
     close: 'Close'
+    operationModeDesc: 'Choose how your business receives requests: reservations with a calendar, or project requests to coordinate later.',
+    modeReservationTitle: 'Reservation',
+    modeReservationDesc: 'Clients pick a date and time on your calendar.',
+    modeProjectTitle: 'Project',
+    modeProjectDesc: 'Clients submit a request; you coordinate later.',
   },
   es: {
     // Navigation
@@ -446,6 +451,11 @@ export const translations = {
     timeLabel: 'Hora:',
     professionalLabel: 'Profesional:',
     close: 'Cerrar'
+    operationModeDesc: 'Elige cómo recibes solicitudes: reservas con calendario o solicitudes de proyecto para coordinar luego.',
+    modeReservationTitle: 'Reserva',
+    modeReservationDesc: 'Tus clientes eligen fecha y hora en tu calendario.',
+    modeProjectTitle: 'Proyecto',
+    modeProjectDesc: 'Recibes una solicitud y luego coordinas contacto y fecha.',
   }
 }
 
