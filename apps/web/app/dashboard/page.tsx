@@ -49,8 +49,11 @@ export default function DashboardPage() {
           const businessRes = await fetch('/api/dashboard/business')
           if (businessRes.ok) {
             const businessData = await businessRes.json()
-            if (businessData.name) {
-              setBusinessName(businessData.name)
+            if (businessData.name) setBusinessName(businessData.name)
+            // Redirect to onboarding if needsConfiguration is true
+            if (businessData?.settings?.needsConfiguration === true) {
+              router.push('/onboarding')
+              return
             }
           }
         } catch (error) {

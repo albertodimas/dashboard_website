@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { cookies } from 'next/headers'
 
-// For now, we'll use a simple admin check
-const ADMIN_EMAILS = ['admin@dashboard.com']
-
 export async function GET(request: NextRequest) {
   try {
     const sessionToken = cookies().get('admin-session')?.value
@@ -44,8 +41,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if user is admin
-    if (!ADMIN_EMAILS.includes(session.user.email)) {
+    // Check if user is admin and active
+    if (!session.user.isAdmin || session.user.isActive === false) {
       return NextResponse.json(
         { error: 'Not authorized' },
         { status: 403 }
