@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -159,6 +159,45 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Días de la semana
   const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+  // Derived values moved out of JSX to avoid parser quirks
+  const todayIdx = new Date().getDay()
+  const todayWh = (workingHours || []).find((wh: any) => wh.dayOfWeek === todayIdx)
+  const todayHoursText = todayWh && todayWh.isActive ? `${todayWh.startTime} - ${todayWh.endTime}` : 'Cerrado'
+
+  const serviceCategoriesList: string[] = Array.from(new Set(
+    (business.services || []).map((s: any) => s.category).filter(Boolean)
+  )) as string[]
+  const showServiceCategoryFilter = serviceCategoriesList.length > 1
+
+  // Services grid pagination helpers
+  const servicesPerPage = 6
+  const filteredServices = servicesCategory === 'all'
+    ? business.services
+    : business.services?.filter((s: any) => s.category === servicesCategory)
+  const totalPages = Math.ceil((filteredServices?.length || 0) / servicesPerPage)
+  const startIndex = servicesPage * servicesPerPage
+  const endIndex = startIndex + servicesPerPage
+  const currentServices = filteredServices?.slice(startIndex, endIndex) || []
+
+  // Helper to render staff specialties
+  const renderMemberSpecialties = (member: any) => {
+    if (!member?.specialties) return null
+    if (member.specialties === '0' || member.specialties === 0 || member.specialties === '') return null
+    if (Array.isArray(member.specialties)) {
+      const valid = member.specialties.filter((s: any) => s && s !== '0' && s !== 0)
+      if (valid.length === 0) return null
+      return (
+        <p className="text-sm text-gray-500 mt-1">{valid.join(', ')}</p>
+      )
+    }
+    if (typeof member.specialties === 'string' && member.specialties.trim() !== '') {
+      return (
+        <p className="text-sm text-gray-500 mt-1">{member.specialties}</p>
+      )
+    }
+    return null
+  }
+
   // Auto-fill booking data cuando hay cliente autenticado
   useEffect(() => {
     if (isAuthenticated && clientData) {
@@ -312,22 +351,31 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
   // Handle logout ahora se maneja desde el contexto con logout()
 
-  // Handle appointment cancellation
-  const handleCancelAppointment = async (appointmentId: string) => {
+  // Cancel appointment modal handlers
+  const openCancelModal = (appointmentId: string) => {
     if (!isAuthenticated) {
       alert('Debes iniciar sesión para cancelar citas')
       return
     }
-    const reason = prompt('Opcional: indica la razón de la cancelación (se enviará al negocio)') || ''
+    setAppointmentToCancel(appointmentId)
+    setCancelReason('')
+    setShowCancelModal(true)
+  }
+
+  const confirmCancelAppointment = async () => {
+    if (!appointmentToCancel) return
+    setIsCancelling(true)
     try {
       const response = await fetch('/api/cliente/appointments/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ appointmentId, reason })
+        body: JSON.stringify({ appointmentId: appointmentToCancel, reason: cancelReason || '' })
       })
       if (response.ok) {
-        alert('Cita cancelada exitosamente')
+        setShowCancelModal(false)
+        setAppointmentToCancel(null)
+        setCancelReason('')
         await loadCustomerData()
       } else {
         let msg = 'Error al cancelar la cita'
@@ -337,6 +385,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     } catch (e) {
       console.error('Error canceling appointment:', e)
       alert('Error al cancelar la cita')
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -569,12 +619,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     setHasSearchedPackages(false)
   }
 
-  // Calcular rating promedio
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length 
-    : 5
+  // Calcular rating promedio sin hooks para evitar problemas de parseo
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((acc, r) => acc + ((r && r.rating) ? r.rating : 0), 0) / reviews.length
+    : 5;
 
-  return (
+  const __jsx_root = (
     <div className="min-h-screen bg-gray-50" style={getFontFamilyStyle()}>
       {/* Header flotante mejorado */}
       <header className="fixed top-0 w-full backdrop-blur-xl bg-white/70 border-b border-gray-100 z-50 shadow-sm">
@@ -800,7 +850,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   return (
                     <p className="font-semibold">{h && h.isActive ? `${h.startTime} - ${h.endTime}` : 'Cerrado'}</p>
                   )
-                })()
+                })()}
               </div>
             </div>
             
@@ -1170,7 +1220,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           )}
                         </div>
                         <button
-                          onClick={() => handleCancelAppointment(appointment.id)}
+                          onClick={() => openCancelModal(appointment.id)}
                           className="mt-4 w-full py-2 rounded-lg font-medium text-red-600 border border-red-200 hover:bg-red-50 transition-all"
                         >
                           Cancelar Cita
@@ -1616,7 +1666,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       )}
 
       {/* Footer */}
-      <footer className="bg-black py-1 text-center text-gray-400">
+      <footer className="py-3 text-center text-white" style={{ background: colors.gradient }}>
         <p className="text-xs">&copy; 2025 {business.name}. Todos los derechos reservados.</p>
       </footer>
 
@@ -2772,6 +2822,59 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         </div>
       )}
 
+      {/* Cancel Appointment Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-bold">¿Quieres dejarle una nota al negocio?</h3>
+              <button
+                onClick={() => {
+                  setShowCancelModal(false)
+                  setCancelReason('')
+                  setAppointmentToCancel(null)
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-gray-600">
+                Puedes agregar una nota opcional que verá el negocio cuando reciba tu cancelación.
+              </p>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Escribe una nota (opcional)"
+                className="w-full min-h-28 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false)
+                    setCancelReason('')
+                    setAppointmentToCancel(null)
+                  }}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={confirmCancelAppointment}
+                  disabled={isCancelling}
+                  className="flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50"
+                  style={{ background: colors.gradient }}
+                >
+                  {isCancelling ? 'Cancelando...' : 'Confirmar cancelación'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* My Appointments Modal */}
       {isAuthenticated && myAppointments.length > 0 && (
         <div className="fixed bottom-4 right-4 z-40">
@@ -2790,7 +2893,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         </div>
       )}
     </div>
-  )
+  );
+  return __jsx_root
 }// Force reload
 
 

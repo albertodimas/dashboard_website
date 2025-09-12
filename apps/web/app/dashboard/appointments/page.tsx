@@ -15,6 +15,7 @@ interface Appointment {
   price: number
   staffId?: string
   staffName?: string
+  cancellationReason?: string | null
 }
 
 interface Service {
@@ -407,6 +408,11 @@ export default function AppointmentsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{appointment.service}</div>
+                    {appointment.status === 'cancelled' && (
+                      <div className="text-xs text-red-600 mt-1">
+                        {appointment.cancellationReason?.trim() || (t('language') === 'en' ? 'Cancelled by customer' : 'Cancelado por el cliente')}
+                      </div>
+                    )}
                   </td>
                   {staffModuleEnabled && (
                     <td className="px-6 py-4 whitespace-nowrap">

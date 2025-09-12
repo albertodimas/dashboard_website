@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'\nimport { sendEmail } from '@/lib/email'
+import { prisma } from '@dashboard/db'
+import { sendEmail } from '@/lib/email'
 import { verifyClientToken } from '@/lib/client-auth'
 
 export async function POST(request: NextRequest) {
@@ -62,6 +63,12 @@ export async function POST(request: NextRequest) {
           select: {
             name: true
           }
+        },
+        customer: {
+          select: {
+            name: true,
+            email: true
+          }
         }
       }
     })
@@ -115,20 +122,25 @@ export async function POST(request: NextRequest) {
       const biz = await prisma.business.findUnique({ where: { id: appointment.businessId }, select: { email: true, name: true } })
       if (biz?.email) {
         const reasonText = updatedAppointment.cancellationReason || 'Cancelado por el cliente'
+        const serviceName = appointment.service?.name || 'Servicio'
+        const when = new Date(appointment.startTime).toLocaleString()
+        const customerName = appointment.customer?.name || 'Cliente'
         await sendEmail({
           to: biz.email,
-          subject: Cancelación de cita - ,
-          html: 
-            <p>Hola ,</p>
-            <p>Un cliente ha cancelado una cita:</p>
-            <ul>
-              <li><strong>Servicio:</strong> </li>
-              <li><strong>Fecha:</strong> </li>
-            </ul>
-            <p><strong>Nota del cliente:</strong> </p>
-            <p style="color:#666">Este es un mensaje automático.</p>
-          ,
-          text: Cancelación de cita:  - \nNota: 
+          subject: `Cancelación de cita - ${biz.name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; padding:16px;">
+              <p>Hola ${biz.name || ''},</p>
+              <p>El cliente <strong>${customerName}</strong> ha cancelado la cita:</p>
+              <ul>
+                <li><strong>Servicio:</strong> ${serviceName}</li>
+                <li><strong>Fecha:</strong> ${when}</li>
+              </ul>
+              <p><strong>Nota del cliente:</strong> ${reasonText}</p>
+              <p style="color:#666">Este es un mensaje automático.</p>
+            </div>
+          `,
+          text: `Cancelación de cita - ${biz.name}\nEl cliente ${customerName} ha cancelado la cita:\nServicio: ${serviceName}\nFecha: ${when}\nNota: ${reasonText}`
         })
       }
     } catch (e) {
