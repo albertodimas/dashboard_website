@@ -1121,7 +1121,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         <section className="py-1 bg-gradient-to-br from-blue-50 to-purple-50">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-2">
-              <h2 className="text-3xl font-bold mb-2">Mi Cuenta</h2>
+              <h2 className="text-3xl font-bold mb-2">{t('myAccount')}</h2>
               <p className="text-gray-600">Gestiona tus paquetes y citas</p>
             </div>
 
@@ -1243,10 +1243,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
-                Ofertas Especiales
+                {t('specialOffers')}
               </span>
               <h2 className="text-4xl font-black mt-2 mb-4">
-                Paquetes y Promociones
+                {t('packagesAndPromos')}
               </h2>
               <p className="text-gray-600 max-w-2xl mx-auto">
                 Ahorra con nuestros paquetes especialmente diseñados
@@ -1276,7 +1276,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           <h3 className="text-xl font-bold">{pkg.name}</h3>
                           {pkg.sessionCount && (
                             <span className="text-sm text-gray-500">
-                              {pkg.sessionCount} sesiones incluidas
+                              {pkg.sessionCount} {t('includedSessions')}
                             </span>
                           )}
                         </div>
@@ -1391,10 +1391,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
-                Equipo
+                {t('team')}
               </span>
               <h2 className="text-4xl font-black mt-2 mb-4">
-                Nuestros Profesionales
+                {t('ourProfessionals')}
               </h2>
             </div>
 
@@ -1465,10 +1465,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
-                Testimonios
+                {t('reviewsTitle')}
               </span>
               <h2 className="text-4xl font-black mt-2 mb-4">
-                Lo Que Dicen Nuestros Clientes
+                {t('whatClientsSay')}
               </h2>
               
               {/* Rating summary */}
@@ -1682,10 +1682,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {bookingStep === 4 ? 'Confirmación' : (bookingType === 'package' ? 'Comprar Paquete' : 'Reservar Cita')}
+                    {bookingStep === 4 ? t('confirmation') : (bookingType === 'package' ? t('buyPackage') : t('bookAppointmentCTA'))}
                   </h2>
                   {bookingStep !== 4 && (
-                    <p className="text-sm text-gray-500 mt-1">Paso {bookingStep} de 3</p>
+                    <p className="text-sm text-gray-500 mt-1">{t('language') === 'en' ? `Step ${bookingStep} of 3` : `Paso ${bookingStep} de 3`}</p>
                   )}
                 </div>
                 <button
@@ -1723,7 +1723,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   {/* Selector de tipo */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-3 block">
-                      ¿Qué deseas hacer?
+                      {t('language') === 'en' ? 'What would you like to do?' : '¿Qué deseas hacer?'}
                     </label>
                     <div className={`grid gap-3 ${business.packages?.length > 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1'}`}>
                       <button
@@ -1736,8 +1736,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       >
                         <Calendar className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'service' ? '#3B82F6' : '#9CA3AF'} />
-                        <p className="font-semibold">Reservar Servicio</p>
-                        <p className="text-xs text-gray-500 mt-1">Pagar al asistir</p>
+                        <p className="font-semibold">{t('bookService') || (t('language')==='en'?'Book Service':'Reservar Servicio')}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('payOnArrival')}</p>
                       </button>
                       
                       {/* Solo mostrar opciones de paquetes si el negocio tiene paquetes */}
@@ -1793,8 +1793,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       >
                         <Gift className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'use-package' ? '#10B981' : '#9CA3AF'} />
-                        <p className="font-semibold">Usar Mi Paquete</p>
-                        <p className="text-xs text-gray-500 mt-1">Tengo sesiones</p>
+                        <p className="font-semibold">{t('useMyPackage')}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('iHaveSessions')}</p>
                       </button>
                       
                       <button
@@ -1807,8 +1807,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       >
                         <Package className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'package' ? '#8B5CF6' : '#9CA3AF'} />
-                        <p className="font-semibold">Comprar Paquete</p>
-                        <p className="text-xs text-gray-500 mt-1">Ofertas especiales</p>
+                        <p className="font-semibold">{t('buyPackage')}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('specialOffersLower')}</p>
                       </button>
                       </>
                       )}
@@ -1819,7 +1819,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   {bookingType !== 'use-package' && (
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-3 block">
-                      {bookingType === 'package' ? 'Selecciona un paquete' : 'Selecciona un servicio'}
+                      {bookingType === 'package' ? t('selectAPackage') : t('selectAService')}
                     </label>
                     
                     {/* Filtros de categorías - Solo para servicios */}
@@ -2292,18 +2292,18 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               {/* Step 3: Información del cliente */}
               {bookingStep === 3 && (
                 <form onSubmit={handleBookingSubmit} className="space-y-6">
-                  <button
-                    type="button"
-                    onClick={() => setBookingStep(bookingType === 'package' ? 1 : 2)}
-                    className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-                  >
+                    <button
+                      type="button"
+                      onClick={() => setBookingStep(bookingType === 'package' ? 1 : 2)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                    >
                     <ChevronLeft size={20} className="mr-1" />
-                    Volver
-                  </button>
+                    {t('back')}
+                    </button>
 
                   {/* Resumen */}
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl">
-                    <p className="text-sm text-gray-600 mb-2">Resumen de tu reserva</p>
+                    <p className="text-sm text-gray-600 mb-2">{t('bookingSummaryTitle')}</p>
                     <div className="space-y-1">
                       <p className="font-semibold">
                         {selectedService?.name || selectedPackage?.name}
@@ -2311,11 +2311,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       {bookingType === 'service' && (
                         <>
                           <p className="text-sm text-gray-600">
-                            📅 {selectedDate} a las {selectedTime}
+                            📅 {selectedDate} {t('language')==='en'?'at':'a las'} {selectedTime}
                           </p>
                           {selectedStaff && (
                             <p className="text-sm text-gray-600">
-                              👤 Con {selectedStaff.name}
+                              👤 {t('language')==='en'?'With':'Con'} {selectedStaff.name}
                             </p>
                           )}
                         </>
@@ -2324,10 +2324,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         {bookingType === 'service' && usePackageSession ? (
                           <>
                             <span className="line-through text-gray-400">{formatCurrency(selectedService?.price)}</span>
-                            <span className="ml-2 text-green-600">$0 (Usando paquete)</span>
+                            <span className="ml-2 text-green-600">{t('packageUsedFree')}</span>
                           </>
                         ) : (
-                          <>Total: {formatCurrency(selectedService?.price || selectedPackage?.price)}</>
+                          <>
+                            {t('language')==='en'?'Total:':'Total:'} {formatCurrency(selectedService?.price || selectedPackage?.price)}
+                          </>
                         )}
                       </p>
                     </div>
@@ -2337,7 +2339,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-1 block">
-                        Nombre completo *
+                        {t('fullName')} *
                       </label>
                       <input
                         type="text"
@@ -2365,7 +2367,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-1 block">
-                        Teléfono *
+                        {t('phoneLabel')} *
                       </label>
                       <input
                         type="tel"
@@ -2380,9 +2382,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     {/* Paquetes disponibles del cliente - solo para servicios */}
                     {bookingType === 'service' && customerPackages.length > 0 && (
                       <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                        <p className="font-semibold text-green-800 mb-3">
-                          🎉 ¡Tienes paquetes disponibles!
-                        </p>
+                        <p className="font-semibold text-green-800 mb-3">🎉 {t('youHavePackages')}</p>
                         <div className="space-y-2">
                           {customerPackages.map((pkg) => {
                             const isApplicable = pkg.package.services.some((ps: any) => 
@@ -2577,15 +2577,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       {bookingType === 'service' && (
                         <>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Fecha:</span>
+                            <span className="text-gray-600">{t('dateLabel')}</span>
                             <span className="font-medium">{lastBookingDetails?.date}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Hora:</span>
+                            <span className="text-gray-600">{t('timeLabel')}</span>
                             <span className="font-medium">{lastBookingDetails?.time}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Profesional:</span>
+                            <span className="text-gray-600">{t('professionalLabel')}</span>
                             <span className="font-medium">{lastBookingDetails?.staff}</span>
                           </div>
                         </>
