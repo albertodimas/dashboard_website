@@ -754,7 +754,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             </h1>
             
             <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed">
-              {business.description || 'Servicios profesionales de la más alta calidad'}
+              {business.description || (t('language') === 'en' ? 'Professional services of the highest quality' : 'Servicios profesionales de la más alta calidad')}
             </p>
 
             {/* Stats mejorados */}
@@ -762,14 +762,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2">
                 <Users className="w-5 h-5 text-white" />
                 <span className="text-white font-semibold">
-                  {business.stats?.completedAppointments || 0}+ clientes
+                  {(business.stats?.completedAppointments || 0) + ''}+
+                  {' '}{t('language') === 'en' ? 'clients' : 'clientes'}
                 </span>
               </div>
               
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2">
                 <Star className="w-5 h-5 text-yellow-400 fill-current" />
                 <span className="text-white font-semibold">
-                  {averageRating.toFixed(1)} ({reviews.length} reseñas)
+                  {averageRating.toFixed(1)} ({reviews.length} {t('language') === 'en' ? 'reviews' : 'reseñas'})
                 </span>
               </div>
               
@@ -899,7 +900,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             <div className="flex items-center gap-3">
               <DollarSign className="w-5 h-5" style={{ color: colors.primary }} />
               <div>
-                <p className="text-xs text-gray-500">Desde</p>
+                <p className="text-xs text-gray-500">{t('language') === 'en' ? 'From' : 'Desde'}</p>
                 <p className="font-semibold">
                   {formatCurrency(Math.min(...(business.services?.map((s: any) => s.price) || [0])))}
                 </p>
@@ -1017,7 +1018,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           ) && (
                             <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full flex items-center gap-1">
                               <Gift className="w-3 h-3" />
-                              Paquete disponible
+                              {t('language') === 'en' ? 'Package available' : 'Paquete disponible'}
                             </span>
                           )}
                         </div>
@@ -1047,9 +1048,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                               ? colors.gradient 
                               : colors.primary
                           }}
-                        >
-                          Reservar
-                        </button>
+                      >
+                          {t('bookAppointmentCTA')}
+                      </button>
                       </div>
                     </div>
                   ))}

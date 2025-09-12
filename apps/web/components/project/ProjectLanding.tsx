@@ -141,7 +141,7 @@ export default function ProjectLanding({ business }: Props) {
             </div>
             <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-4">{business.name}</h1>
             <p className="text-lg sm:text-xl text-gray-700 mb-8 leading-relaxed">
-              {business.description || 'Cuéntanos tu proyecto y coordinamos contigo los próximos pasos.'}
+              {business.description || (t('language') === 'en' ? 'Tell us about your project and we will coordinate the next steps.' : 'Cuéntanos tu proyecto y coordinamos contigo los próximos pasos.')}
             </p>
             <div className="flex flex-wrap gap-6 mb-8">
               <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border">
