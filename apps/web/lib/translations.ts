@@ -450,7 +450,7 @@ export const translations = {
     dateLabel: 'Fecha:',
     timeLabel: 'Hora:',
     professionalLabel: 'Profesional:',
-    close: 'Cerrar'
+    close: 'Cerrar',
     operationModeDesc: 'Elige cómo recibes solicitudes: reservas con calendario o solicitudes de proyecto para coordinar luego.',
     modeReservationTitle: 'Reserva',
     modeReservationDesc: 'Tus clientes eligen fecha y hora en tu calendario.',
