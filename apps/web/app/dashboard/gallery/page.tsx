@@ -124,7 +124,7 @@ export default function GalleryManagementPage() {
       }
     } catch (error) {
       console.error('Error saving gallery item:', error)
-      alert(t('language') === 'en' ? 'Failed to save gallery item' : 'Error al guardar el elemento de galería')
+      alert(t('failedToSaveGalleryItem') || 'Failed to save gallery item')
     } finally {
       setSaving(false)
     }
@@ -143,7 +143,7 @@ export default function GalleryManagementPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm(t('language') === 'en' ? 'Are you sure you want to delete this item?' : '¿Estás seguro de que quieres eliminar este elemento?')) {
+    if (confirm(t('deleteGalleryItemConfirm') || 'Are you sure you want to delete this item?')) {
       setSaving(true)
       try {
         const response = await fetch(`/api/dashboard/gallery?id=${id}`, {
@@ -155,7 +155,7 @@ export default function GalleryManagementPage() {
         }
       } catch (error) {
         console.error('Error deleting gallery item:', error)
-        alert(t('language') === 'en' ? 'Failed to delete gallery item' : 'Error al eliminar el elemento de galería')
+        alert(t('failedToDeleteGalleryItem') || 'Failed to delete gallery item')
       } finally {
         setSaving(false)
       }
@@ -180,21 +180,15 @@ export default function GalleryManagementPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="sm:flex sm:items-center">
           <div className="sm:flex-auto">
-            <h1 className="text-3xl font-bold text-gray-900">
-              {t('language') === 'en' ? 'Gallery Management' : 'Gestión de Galería'}
-            </h1>
-            <p className="mt-2 text-sm text-gray-700">
-              {t('language') === 'en' 
-                ? 'Upload and manage images and videos of your work'
-                : 'Sube y gestiona imágenes y videos de tu trabajo'}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('galleryManagement') || 'Gallery Management'}</h1>
+            <p className="mt-2 text-sm text-gray-700">{t('galleryManagementSubtitle') || 'Upload and manage images and videos of your work'}</p>
           </div>
           <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
             <button
               onClick={() => setShowAddModal(true)}
               className="block rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
             >
-              {t('language') === 'en' ? 'Add Media' : 'Agregar Media'}
+              {t('addMedia') || 'Add Media'}
             </button>
           </div>
         </div>
@@ -206,19 +200,17 @@ export default function GalleryManagementPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {t('language') === 'en' ? 'No gallery items' : 'No hay elementos en la galería'}
+              {t('noGalleryItems') || 'No gallery items'}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {t('language') === 'en' 
-                ? 'Get started by uploading your first image or video'
-                : 'Comienza subiendo tu primera imagen o video'}
+              {t('startBuildingGallery') || 'Get started by uploading your first image or video'}
             </p>
             <div className="mt-6">
               <button
                 onClick={() => setShowAddModal(true)}
                 className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
               >
-                {t('language') === 'en' ? 'Upload Media' : 'Subir Media'}
+                {t('uploadMedia') || 'Upload Media'}
               </button>
             </div>
           </div>
@@ -283,22 +275,18 @@ export default function GalleryManagementPage() {
                 <form onSubmit={handleSubmit}>
                   <div>
                     <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                      {editingItem 
-                        ? (t('language') === 'en' ? 'Edit Gallery Item' : 'Editar Elemento de Galería')
-                        : (t('language') === 'en' ? 'Add Gallery Item' : 'Agregar Elemento de Galería')}
+                      {editingItem ? (t('editGalleryItem') || 'Edit Gallery Item') : (t('addGalleryItem') || 'Add Gallery Item')}
                     </h3>
                     <div className="mt-4 space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          {t('language') === 'en' ? 'Type' : 'Tipo'}
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">{t('typeLabel') || 'Type'}</label>
                         <select
                           value={formData.type}
                           onChange={(e) => setFormData({...formData, type: e.target.value as 'image' | 'video'})}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         >
-                          <option value="image">{t('language') === 'en' ? 'Image' : 'Imagen'}</option>
-                          <option value="video">{t('language') === 'en' ? 'Video' : 'Video'}</option>
+                          <option value="image">{t('image') || 'Image'}</option>
+                          <option value="video">{t('video') || 'Video'}</option>
                         </select>
                       </div>
 
@@ -317,9 +305,7 @@ export default function GalleryManagementPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          {t('language') === 'en' ? 'Title' : 'Título'}
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">{t('title') || 'Title'}</label>
                         <input
                           type="text"
                           required
@@ -330,9 +316,7 @@ export default function GalleryManagementPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          {t('language') === 'en' ? 'Description (optional)' : 'Descripción (opcional)'}
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">{`${t('descriptionTitle') || 'Description'} (${t('optional') || 'Optional'})`}</label>
                         <textarea
                           value={formData.description}
                           onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -342,9 +326,7 @@ export default function GalleryManagementPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          {t('language') === 'en' ? 'Category' : 'Categoría'}
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">{t('category') || 'Category'}</label>
                         {!showNewCategory ? (
                           <div className="mt-1 flex gap-2">
                             <select
@@ -352,7 +334,7 @@ export default function GalleryManagementPage() {
                               onChange={(e) => setFormData({...formData, category: e.target.value})}
                               className="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                             >
-                              <option value="">{t('language') === 'en' ? 'Select category' : 'Seleccionar categoría'}</option>
+                              <option value="">{t('selectCategory') || 'Select category'}</option>
                               {availableCategories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                               ))}
@@ -362,7 +344,7 @@ export default function GalleryManagementPage() {
                               onClick={() => setShowNewCategory(true)}
                               className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
                             >
-                              {t('language') === 'en' ? 'New' : 'Nueva'}
+                              {t('newLabel') || 'New'}
                             </button>
                           </div>
                         ) : (
@@ -371,7 +353,7 @@ export default function GalleryManagementPage() {
                               type="text"
                               value={newCategory}
                               onChange={(e) => setNewCategory(e.target.value)}
-                              placeholder={t('language') === 'en' ? 'New category name' : 'Nombre de nueva categoría'}
+                              placeholder={t('newCategoryNamePlaceholder') || 'New category name'}
                               className="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                             />
                             <button
@@ -386,7 +368,7 @@ export default function GalleryManagementPage() {
                               }}
                               className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
                             >
-                              {t('language') === 'en' ? 'Add' : 'Agregar'}
+                              {t('add') || 'Add'}
                             </button>
                             <button
                               type="button"
@@ -411,8 +393,8 @@ export default function GalleryManagementPage() {
                       className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 sm:col-start-2"
                     >
                       {saving 
-                        ? (t('language') === 'en' ? 'Saving...' : 'Guardando...')
-                        : (editingItem ? t('saveChanges') : (t('language') === 'en' ? 'Add Item' : 'Agregar Elemento'))}
+                        ? (t('saving') || 'Saving...')
+                        : (editingItem ? (t('saveChanges') || 'Save Changes') : (t('addItem') || 'Add Item'))}
                     </button>
                     <button
                       type="button"
@@ -441,3 +423,4 @@ export default function GalleryManagementPage() {
     </div>
   )
 }
+

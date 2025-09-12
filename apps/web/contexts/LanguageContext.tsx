@@ -14,11 +14,19 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
 
-  // Initialize from server-side preference if available
+  // Initialize from cookie and then server-side preference if available
   useEffect(() => {
     let done = false
     ;(async () => {
       try {
+        // Visitor cookie
+        if (typeof document !== 'undefined') {
+          const m = document.cookie.match(/(?:^|; )lang=(en|es)(?:;|$)/)
+          if (m && (m[1] === 'en' || m[1] === 'es') && !done) {
+            setLanguageState(m[1] as Language)
+          }
+        }
+        // Authenticated user preference
         const res = await fetch('/api/auth/me')
         if (res.ok) {
           const data = await res.json()
@@ -34,14 +42,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = async (lang: Language) => {
     setLanguageState(lang)
-    
+
+    // Persist for visitors (cookie, 1 year)
+    try {
+      if (typeof document !== 'undefined') {
+        document.cookie = `lang=${lang}; path=/; max-age=31536000`
+      }
+    } catch {}
+
     // Try to update language preference in database if user is logged in
     try {
       await fetch('/api/auth/me', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: lang })
       })
     } catch (error) {

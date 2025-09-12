@@ -2,6 +2,7 @@
   "name": "dashboard-website",
   "private": true,
   "scripts": {
+    "i18n:check": "node scripts/check-i18n.js",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
@@ -30,5 +31,14 @@
     "@types/nodemailer": "^7.0.0",
     "bcryptjs": "^3.0.2",
     "nodemailer": "^7.0.5"
-  }
+  },
+  "description": "## 🚀 Quick Start Guide",
+  "version": "1.0.0",
+  "main": "check-alberto-business.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

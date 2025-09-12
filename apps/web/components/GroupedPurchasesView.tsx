@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { ChevronRight, Package, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
 
 interface GroupedPurchasesViewProps {
@@ -17,6 +18,7 @@ export default function GroupedPurchasesView({
   onDeletePurchase 
 }: GroupedPurchasesViewProps) {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set())
+  const { t } = useLanguage()
 
   const toggleExpanded = (customerId: string) => {
     const newExpanded = new Set(expandedCustomers)
@@ -34,28 +36,28 @@ export default function GroupedPurchasesView({
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <AlertCircle className="w-3 h-3 mr-1" />
-            Pending
+            {t('pending')}
           </span>
         )
       case 'ACTIVE':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Active
+            {t('active')}
           </span>
         )
       case 'EXPIRED':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-3 h-3 mr-1" />
-            Expired
+            {t('expired')}
           </span>
         )
       case 'COMPLETED':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
+            {t('completed')}
           </span>
         )
       default:
@@ -68,7 +70,7 @@ export default function GroupedPurchasesView({
       <div className="bg-white shadow rounded-lg p-8 text-center">
         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <p className="text-gray-500">
-          {language === 'en' ? 'No purchases found' : 'No se encontraron compras'}
+          {t('noPurchasesFound')}
         </p>
       </div>
     )
@@ -113,14 +115,14 @@ export default function GroupedPurchasesView({
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm text-gray-500">
-                      {language === 'en' ? 'Total Purchases' : 'Compras Totales'}
+                      {t('totalPurchasesTitle')}
                     </p>
                     <p className="text-lg font-bold text-gray-900">{group.purchases.length}</p>
                   </div>
                   {totalPending > 0 && (
                     <div className="text-right">
                       <p className="text-sm text-yellow-600">
-                        {language === 'en' ? 'Pending' : 'Pendientes'}
+                        {t('pending')}
                       </p>
                       <p className="text-lg font-bold text-yellow-700">{totalPending}</p>
                     </div>
@@ -128,20 +130,20 @@ export default function GroupedPurchasesView({
                   {totalActive > 0 && (
                     <div className="text-right">
                       <p className="text-sm text-green-600">
-                        {language === 'en' ? 'Active' : 'Activos'}
+                        {t('active')}
                       </p>
                       <p className="text-lg font-bold text-green-700">{totalActive}</p>
                     </div>
                   )}
                   <div className="text-right">
                     <p className="text-sm text-blue-600">
-                      {language === 'en' ? 'Sessions' : 'Sesiones'}
+                      {t('sessionsLower')}
                     </p>
                     <p className="text-lg font-bold text-blue-700">{totalSessions}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-purple-600">
-                      {language === 'en' ? 'Revenue' : 'Ingresos'}
+                      {t('revenue')}
                     </p>
                     <p className="text-lg font-bold text-purple-700">${totalRevenue.toFixed(2)}</p>
                   </div>
@@ -156,22 +158,22 @@ export default function GroupedPurchasesView({
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {language === 'en' ? 'Package' : 'Paquete'}
+                        {t('packageTitle')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {language === 'en' ? 'Sessions' : 'Sesiones'}
+                        {t('sessionsLower')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {language === 'en' ? 'Price' : 'Precio'}
+                        {t('priceTitle')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {language === 'en' ? 'Status' : 'Estado'}
+                        {t('statusTitle')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {language === 'en' ? 'Date' : 'Fecha'}
+                        {t('dateTitle')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {language === 'en' ? 'Actions' : 'Acciones'}
+                        {t('actionsTitle')}
                       </th>
                     </tr>
                   </thead>
@@ -184,7 +186,7 @@ export default function GroupedPurchasesView({
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {purchase.status === 'PENDING' ? (
-                              <span className="text-gray-500">{purchase.totalSessions} sessions</span>
+                              <span className="text-gray-500">{purchase.totalSessions} {t('sessionsLower')}</span>
                             ) : (
                               <>
                                 {purchase.usedSessions}/{purchase.totalSessions}
@@ -207,14 +209,14 @@ export default function GroupedPurchasesView({
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(purchase.status)}
                           {purchase.paymentStatus === 'PENDING' && (
-                            <div className="text-xs text-orange-600 mt-1">Payment Pending</div>
+                            <div className="text-xs text-orange-600 mt-1">{t('paymentPending')}</div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(purchase.purchaseDate).toLocaleDateString()}
                           {purchase.expiryDate && (
                             <div className="text-xs text-gray-400">
-                              Exp: {new Date(purchase.expiryDate).toLocaleDateString()}
+                              {t('expiresShort')} {new Date(purchase.expiryDate).toLocaleDateString()}
                             </div>
                           )}
                         </td>
@@ -225,13 +227,13 @@ export default function GroupedPurchasesView({
                                 onClick={() => onActivatePurchase(purchase)}
                                 className="text-green-600 hover:text-green-900 mr-2"
                               >
-                                {language === 'en' ? 'Activate' : 'Activar'}
+                                {t('activate')}
                               </button>
                               <button
                                 onClick={() => onDeletePurchase(purchase)}
                                 className="text-red-600 hover:text-red-900"
                               >
-                                {language === 'en' ? 'Delete' : 'Eliminar'}
+                                {t('delete')}
                               </button>
                             </>
                           )}

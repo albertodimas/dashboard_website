@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -19,6 +20,7 @@ interface Category {
 }
 
 export default function CategoriesPage() {
+  const { t } = useLanguage()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export default function CategoriesPage() {
       setCategories(data)
     } catch (error) {
       console.error('Error fetching categories:', error)
-      setError('Error al cargar las categorías')
+      setError(t('failedToFetchCategories') || 'Failed to fetch categories')
     } finally {
       setLoading(false)
     }
@@ -99,12 +101,12 @@ export default function CategoriesPage() {
       setError('')
     } catch (error) {
       console.error('Error updating category:', error)
-      setError(error instanceof Error ? error.message : 'Error al actualizar la categoría')
+      setError(error instanceof Error ? error.message : (t('failedToUpdateCategory') || 'Failed to update category'))
     }
   }
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de eliminar la categoría "${name}"?`)) return
+    if (!confirm(`${t('deleteCategoryConfirmPrefix') || 'Are you sure you want to delete the category'} "${name}"?`)) return
 
     try {
       const response = await fetch(`/api/admin/categories?id=${id}`, {
@@ -120,7 +122,7 @@ export default function CategoriesPage() {
       setError('')
     } catch (error) {
       console.error('Error deleting category:', error)
-      setError(error instanceof Error ? error.message : 'Error al eliminar la categoría')
+      setError(error instanceof Error ? error.message : (t('failedToDeleteCategory') || 'Failed to delete category'))
     }
   }
 
@@ -150,7 +152,7 @@ export default function CategoriesPage() {
       setError('')
     } catch (error) {
       console.error('Error creating category:', error)
-      setError(error instanceof Error ? error.message : 'Error al crear la categoría')
+      setError(error instanceof Error ? error.message : (t('failedToCreateCategory') || 'Failed to create category'))
     }
   }
 
@@ -197,14 +199,14 @@ export default function CategoriesPage() {
             <Link href="/admin/dashboard" className="text-gray-600 hover:text-gray-900">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Categorías</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('manageCategories') || 'Manage Categories'}</h1>
           </div>
           <button
             onClick={() => setShowNewForm(true)}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Nueva Categoría
+            {t('addNewCategory') || 'Add New Category'}
           </button>
         </div>
 
@@ -216,12 +218,10 @@ export default function CategoriesPage() {
 
         {showNewForm && (
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Nueva Categoría</h2>
+            <h2 className="text-xl font-semibold mb-4">{t('addNewCategory') || 'Add New Category'}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('name') || 'Name'}</label>
                 <input
                   type="text"
                   value={newCategory.name}
@@ -234,25 +234,21 @@ export default function CategoriesPage() {
                     })
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ej: Peluquería"
+                  placeholder={t('categoryNamePlaceholder') || 'e.g. Hair Salon'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Slug
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('slug') || 'Slug'}</label>
                 <input
                   type="text"
                   value={newCategory.slug}
                   onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="peluqueria"
+                  placeholder={t('categorySlugPlaceholder') || 'peluqueria'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Icono (Emoji)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('iconEmoji') || 'Icon (Emoji)'}</label>
                 <input
                   type="text"
                   value={newCategory.icon}
@@ -262,9 +258,7 @@ export default function CategoriesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Color (Hex)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('colorHex') || 'Color (Hex)'}</label>
                 <div className="flex gap-2">
                   <input
                     type="color"
@@ -282,15 +276,13 @@ export default function CategoriesPage() {
                 </div>
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción (Opcional)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{`${t('descriptionTitle') || 'Description'} (${t('optional') || 'Optional'})`}</label>
                 <input
                   type="text"
                   value={newCategory.description}
                   onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Descripción de la categoría"
+                  placeholder={t('categoryDescriptionPlaceholder') || 'Category description'}
                 />
               </div>
             </div>
@@ -301,7 +293,7 @@ export default function CategoriesPage() {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                Guardar
+                {t('saveChanges') || 'Save'}
               </button>
               <button
                 onClick={() => {
@@ -318,7 +310,7 @@ export default function CategoriesPage() {
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
               >
                 <X className="w-4 h-4" />
-                Cancelar
+                {t('cancelBtn') || 'Cancel'}
               </button>
             </div>
           </div>
@@ -328,30 +320,14 @@ export default function CategoriesPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Orden
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Icono
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Slug
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Color
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Negocios
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('orderTitle') || 'Order'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('icon') || 'Icon'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('name') || 'Name'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('slug') || 'Slug'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('color') || 'Color'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('businessesTitle') || 'Businesses'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status') || 'Status'}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('actions') || 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -438,8 +414,8 @@ export default function CategoriesPage() {
                         onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === 'true' })}
                         className="px-2 py-1 border border-gray-300 rounded text-sm"
                       >
-                        <option value="true">Activa</option>
-                        <option value="false">Inactiva</option>
+                        <option value="true">{t('active') || 'Active'}</option>
+                        <option value="false">{t('inactive') || 'Inactive'}</option>
                       </select>
                     ) : (
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -447,7 +423,7 @@ export default function CategoriesPage() {
                           ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {category.isActive ? 'Activa' : 'Inactiva'}
+                        {category.isActive ? (t('active') || 'Active') : (t('inactive') || 'Inactive')}
                       </span>
                     )}
                   </td>

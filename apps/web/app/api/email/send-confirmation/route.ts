@@ -36,7 +36,7 @@ function generateICSFile(appointment: AppointmentDetails): string {
 }
 
 function generateEmailHTML(appointment: AppointmentDetails, confirmationUrl: string): string {
-  const isEnglish = appointment.language === 'en'
+  const isEnglish = /^en$/i.test(appointment.language || '')
   const title = isEnglish ? 'Appointment Scheduled!' : 'Cita agendada'
   const confirmRequired = isEnglish ? 'Confirmation Required' : 'Confirmación requerida'
   const confirmMessage = isEnglish ? 'Please confirm your attendance by clicking the button:' : 'Por favor confirma tu asistencia haciendo clic en el botón:'
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     const res = await sendEmail({
       from: `"${body.businessName || 'Dashboard Website'}" <${fromEmail}>`,
       to: body.customerEmail,
-      subject: body.language === 'en' ? `Appointment Confirmation - ${body.service}` : `Confirmación de Cita - ${body.service}`,
+      subject: ({ en: `Appointment Confirmation - ${body.service}`, es: `Confirmación de Cita - ${body.service}` } as Record<string,string>)[(body.language||'en')] || `Appointment Confirmation - ${body.service}`,
       html,
       attachments: [{ filename: 'appointment.ics', content: icsContent, contentType: 'text/calendar' }]
     })

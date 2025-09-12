@@ -87,7 +87,15 @@ export default function ProjectLanding({ business }: Props) {
         endTime: scheduleSettings.endTime || '18:00'
       }))
     : baseWorkingHours.filter((wh: any) => !wh.staffId)
-  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const daysOfWeek = [
+    t('sunday'),
+    t('monday'),
+    t('tuesday'),
+    t('wednesday'),
+    t('thursday'),
+    t('friday'),
+    t('saturday')
+  ]
   const todayIdx = new Date().getDay()
   const todayWh = (workingHours || []).find((wh: any) => wh.dayOfWeek === todayIdx)
   const todayHoursText = todayWh && todayWh.isActive ? `${todayWh.startTime} - ${todayWh.endTime}` : t('todayClosed')
@@ -124,8 +132,9 @@ export default function ProjectLanding({ business }: Props) {
                 className="px-4 sm:px-6 py-2.5 font-semibold text-white rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
                 style={{ background: colors.gradient }}
               >
-                Solicitar Presupuesto
+                {t('requestQuote')}
               </button>
+              <LanguageSelector />
             </div>
           </div>
         </nav>
@@ -141,7 +150,7 @@ export default function ProjectLanding({ business }: Props) {
             </div>
             <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-4">{business.name}</h1>
             <p className="text-lg sm:text-xl text-gray-700 mb-8 leading-relaxed">
-              {business.description || (t('language') === 'en' ? 'Tell us about your project and we will coordinate the next steps.' : 'Cuéntanos tu proyecto y coordinamos contigo los próximos pasos.')}
+              {business.description || t('projectHero')}
             </p>
             <div className="flex flex-wrap gap-6 mb-8">
               <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border">
@@ -149,8 +158,8 @@ export default function ProjectLanding({ business }: Props) {
                 <span className="font-semibold">{business.stats?.completedAppointments || 0}+ trabajos</span>
               </div>
               <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border">
-                <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                <span className="font-semibold">{averageRating.toFixed(1)} ({reviews.length} reseñas)</span>
+              <Star className="w-5 h-5 text-yellow-400 fill-current" />
+                <span className="font-semibold">{averageRating.toFixed(1)} ({reviews.length} {t('reviewsLower') || 'reviews'})</span>
               </div>
             </div>
             <div className="flex gap-3">
@@ -199,14 +208,14 @@ export default function ProjectLanding({ business }: Props) {
               <Phone className="w-5 h-5" style={{ color: colors.primary }} />
               <div>
                 <p className="text-xs text-gray-500">{t('phone')}</p>
-                <p className="font-semibold">{business.phone || 'Contactar'}</p>
+                <p className="font-semibold">{business.phone || (t('contact') || 'Contact')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5" style={{ color: colors.primary }} />
               <div>
-                <p className="text-xs text-gray-500">Modo</p>
-                <p className="font-semibold">Proyecto</p>
+                <p className="text-xs text-gray-500">{t('projectMode')}</p>
+                <p className="font-semibold">{t('projectMode')}</p>
               </div>
             </div>
           </div>
@@ -218,10 +227,10 @@ export default function ProjectLanding({ business }: Props) {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-8">
             <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
-              Servicios
+              {t('services')}
             </span>
-            <h2 className="text-3xl font-black mt-2 mb-2">Lo que ofrecemos</h2>
-            <p className="text-gray-600">Selecciona un tipo en el formulario para agilizar tu solicitud.</p>
+            <h2 className="text-3xl font-black mt-2 mb-2">{t('whatWeOffer')}</h2>
+            <p className="text-gray-600">{t('selectTypeToSpeed') || 'Select a type in the form to speed up your request.'}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {(business.services || []).map((service: any) => (
@@ -232,13 +241,13 @@ export default function ProjectLanding({ business }: Props) {
                     {formatCurrency(service.price)}
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">{service.description || 'Servicio profesional'}</p>
+                <p className="text-sm text-gray-600 mb-4">{service.description || (t('professionalService') || 'Professional service')}</p>
                 <button
                   onClick={() => { setShowRequestModal(true); setForm(f => ({ ...f, serviceType: service.category || service.name })) }}
                   className="px-4 py-2 rounded-lg text-white"
                   style={{ background: colors.gradient }}
                 >
-                  Solicitar este servicio
+                  {t('requestThisService') || 'Request this service'}
                 </button>
               </div>
             ))}
@@ -252,7 +261,7 @@ export default function ProjectLanding({ business }: Props) {
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-white border-b p-6 rounded-t-3xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Solicitud de Proyecto</h2>
+                <h2 className="text-2xl font-bold">{t('projectRequest') || 'Project Request'}</h2>
                 <button onClick={() => { setShowRequestModal(false); setSuccess(false) }} className="p-2 hover:bg-gray-100 rounded-full">✕</button>
               </div>
             </div>
@@ -260,25 +269,25 @@ export default function ProjectLanding({ business }: Props) {
               {!success ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Tipo de servicio</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">{t('serviceType') || 'Service type'}</label>
                     <select
                       value={form.serviceType}
                       onChange={(e) => setForm({ ...form, serviceType: e.target.value })}
                       className="w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors"
                       required
                     >
-                      <option value="">Selecciona</option>
+                      <option value="">{t('select') || 'Select'}</option>
                       {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Descripción</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">{t('descriptionTitle') || 'Description'}</label>
                     <textarea
                       rows={4}
                       value={form.description}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
                       className="w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="Cuéntanos qué necesitas"
+                      placeholder={t('tellUsWhatYouNeed') || 'Tell us what you need'}
                       required
                     />
                   </div>
@@ -289,11 +298,11 @@ export default function ProjectLanding({ business }: Props) {
                       value={form.address}
                       onChange={(e) => setForm({ ...form, address: e.target.value })}
                       className="w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="Opcional"
+                      placeholder={t('optional') || 'Optional'}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Preferencia de contacto</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">{t('preferredContact') || 'Preferred contact'}</label>
                     <div className="flex gap-3">
                       {['WHATSAPP','CALL','EMAIL'].map(m => (
                         <label key={m} className="flex items-center gap-2">
@@ -305,7 +314,7 @@ export default function ProjectLanding({ business }: Props) {
                   </div>
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre</label>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">{t('name') || 'Name'}</label>
                       <input
                         type="text"
                         value={form.name}
@@ -332,7 +341,7 @@ export default function ProjectLanding({ business }: Props) {
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       className="w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="Opcional"
+                      placeholder={t('optional') || 'Optional'}
                     />
                   </div>
                   <button
@@ -341,14 +350,14 @@ export default function ProjectLanding({ business }: Props) {
                     className="w-full py-3 rounded-xl font-semibold text-white disabled:opacity-50"
                     style={{ background: colors.gradient }}
                   >
-                    {submitting ? 'Enviando...' : 'Enviar Solicitud'}
+                    {submitting ? (t('sending') || 'Sending...') : (t('sendRequest') || 'Send Request')}
                   </button>
                 </form>
               ) : (
                 <div className="text-center py-10">
-                  <h3 className="text-xl font-bold mb-2">¡Solicitud enviada!</h3>
-                  <p className="text-gray-600">Te contactaremos pronto para coordinar los próximos pasos.</p>
-                  <button onClick={() => { setShowRequestModal(false); setSuccess(false) }} className="mt-6 px-4 py-2 bg-gray-200 rounded-lg">Cerrar</button>
+                  <h3 className="text-xl font-bold mb-2">{t('requestSent') || 'Request sent!'}</h3>
+                  <p className="text-gray-600">{t('weWillContactSoon') || 'We will contact you soon to coordinate next steps.'}</p>
+                  <button onClick={() => { setShowRequestModal(false); setSuccess(false) }} className="mt-6 px-4 py-2 bg-gray-200 rounded-lg">{t('close')}</button>
                 </div>
               )}
             </div>
@@ -491,7 +500,7 @@ export default function ProjectLanding({ business }: Props) {
 
       {/* Footer */}
       <footer className="py-3 text-center text-white" style={{ background: colors.gradient }}>
-        <p className="text-xs">&copy; {new Date().getFullYear()} {business.name}. Todos los derechos reservados.</p>
+        <p className="text-xs">&copy; {new Date().getFullYear()} {business.name}. {t('allRightsReserved') || 'All rights reserved.'}</p>
       </footer>
     </div>
   )

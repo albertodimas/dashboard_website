@@ -161,9 +161,7 @@ export default function DashboardPage() {
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
                 ${stats.totalRevenue.toLocaleString()}
               </dd>
-              <dd className="mt-2 text-sm text-green-600">
-                {t('language') === 'en' ? 'Total this month' : 'Total este mes'}
-              </dd>
+              <dd className="mt-2 text-sm text-green-600">{t('totalThisMonth') || 'Total this month'}</dd>
             </div>
           </div>
 
@@ -189,9 +187,7 @@ export default function DashboardPage() {
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
                 {stats.newCustomers}
               </dd>
-              <dd className="mt-2 text-sm text-green-600">
-                {t('language') === 'en' ? 'Total customers' : 'Total de clientes'}
-              </dd>
+              <dd className="mt-2 text-sm text-green-600">{t('totalCustomers') || 'Total Customers'}</dd>
             </div>
           </div>
 
@@ -205,8 +201,8 @@ export default function DashboardPage() {
               </dd>
               <dd className="mt-2 text-sm text-gray-600">
                 {stats.totalReviews === 0 
-                  ? (t('language') === 'en' ? 'No reviews yet' : 'Sin reseñas aún')
-                  : `${t('language') === 'en' ? 'From' : 'De'} ${stats.totalReviews} ${t('language') === 'en' ? 'reviews' : 'reseñas'}`
+                  ? (t('noReviewsYet') || 'No reviews yet')
+                  : `${t('fromReviews') || 'From reviews'}: ${stats.totalReviews}`
                 }
               </dd>
             </div>
@@ -247,9 +243,7 @@ export default function DashboardPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  {t('language') === 'en' ? 'No appointments scheduled yet.' : 'No hay citas programadas aún.'}
-                </p>
+                <p className="text-sm text-gray-500 text-center py-4">{t('noAppointmentsScheduledYet') || 'No appointments scheduled yet.'}</p>
               )}
             </div>
           </div>

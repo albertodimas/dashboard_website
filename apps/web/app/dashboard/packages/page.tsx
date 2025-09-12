@@ -127,13 +127,11 @@ export default function PackagesPage() {
   const handleDelete = async (packageId: string) => {
     // Check if currently editing
     if (editingPackage) {
-      alert(language === 'en' 
-        ? 'Please finish editing the current package before performing other actions.' 
-        : 'Por favor, termine de editar el paquete actual antes de realizar otras acciones.')
+      alert(t('finishCurrentBeforeOtherActions'))
       return
     }
     
-    if (!confirm(language === 'en' ? 'Delete this package?' : '¿Eliminar este paquete?')) {
+    if (!confirm(t('deleteConfirm'))){
       return
     }
 
@@ -153,9 +151,7 @@ export default function PackagesPage() {
   const handleEdit = (pkg: Package) => {
     // Check if currently editing another package
     if (editingPackage && editingPackage.id !== pkg.id) {
-      alert(language === 'en' 
-        ? 'Please finish editing the current package before editing another one.' 
-        : 'Por favor, termine de editar el paquete actual antes de editar otro.')
+      alert(t('finishCurrentBeforeEditingAnother'))
       return
     }
     
@@ -337,20 +333,14 @@ export default function PackagesPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {language === 'en' ? 'Service Packages' : 'Paquetes de Servicios'}
-            </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              {language === 'en' 
-                ? 'Create special offers by bundling services together'
-                : 'Crea ofertas especiales agrupando servicios'}
-            </p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('servicePackages')}</h1>
+            <p className="mt-2 text-sm text-gray-600">{t('createSpecialOffersDesc')}</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            {language === 'en' ? '+ New Package' : '+ Nuevo Paquete'}
+                {t('newPackageBtn')}
           </button>
         </div>
 
@@ -358,16 +348,14 @@ export default function PackagesPage() {
         {showForm && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4">
-              {editingPackage 
-                ? (language === 'en' ? 'Edit Package' : 'Editar Paquete')
-                : (language === 'en' ? 'New Package' : 'Nuevo Paquete')}
+              {editingPackage ? t('editPackageTitle') : t('newPackageTitle')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Package Name' : 'Nombre del Paquete'}
+                    {t('packageName')}
                   </label>
                   <input
                     type="text"
@@ -379,9 +367,7 @@ export default function PackagesPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Discount %' : '% Descuento'}
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">{t('discountPercent')}</label>
                   <input
                     type="number"
                     min="0"
@@ -394,9 +380,7 @@ export default function PackagesPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Final Price' : 'Precio Final'}
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">{t('finalPrice')}</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                     <input
@@ -414,9 +398,7 @@ export default function PackagesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Description' : 'Descripción'}
-                </label>
+                <label className="block text-sm font-medium text-gray-700">{t('descriptionTitle')}</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -428,7 +410,7 @@ export default function PackagesPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Sessions Included' : 'Sesiones Incluidas'}
+                    {t('sessionsIncluded')}
                   </label>
                   <input
                     type="number"
@@ -442,26 +424,26 @@ export default function PackagesPage() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Validity (days)' : 'Validez (días)'}
+                    {t('validityDays')}
                   </label>
                   <input
                     type="number"
                     value={formData.validityDays}
                     onChange={(e) => setFormData({...formData, validityDays: e.target.value})}
-                    placeholder={language === 'en' ? 'Optional' : 'Opcional'}
+                    placeholder={t('optional')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Max purchases' : 'Máx. compras'}
+                    {t('maxPurchases')}
                   </label>
                   <input
                     type="number"
                     value={formData.maxPurchases}
                     onChange={(e) => setFormData({...formData, maxPurchases: e.target.value})}
-                    placeholder={language === 'en' ? 'Optional' : 'Opcional'}
+                    placeholder={t('optional')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -473,7 +455,7 @@ export default function PackagesPage() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="text-gray-600">
-                        {language === 'en' ? 'Services Total:' : 'Total Servicios:'}
+                    {t('servicesTotal')}
                       </span>
                       <span className="ml-2 font-semibold text-gray-900">
                         ${calculateOriginalPrice().toFixed(2)}
@@ -481,7 +463,7 @@ export default function PackagesPage() {
                     </div>
                     <div>
                       <span className="text-gray-600">
-                        {language === 'en' ? 'Discount Applied:' : 'Descuento Aplicado:'}
+                    {t('discountApplied')}
                       </span>
                       <span className="ml-2 font-semibold text-red-600">
                         {formData.discount}% (${(calculateOriginalPrice() * formData.discount / 100).toFixed(2)})
@@ -489,7 +471,7 @@ export default function PackagesPage() {
                     </div>
                     <div>
                       <span className="text-gray-600">
-                        {language === 'en' ? 'Package Price:' : 'Precio del Paquete:'}
+                    {t('packagePrice')}
                       </span>
                       <span className="ml-2 font-bold text-green-600 text-lg">
                         ${formData.price.toFixed(2)}
@@ -497,9 +479,7 @@ export default function PackagesPage() {
                     </div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500 text-center">
-                    {language === 'en' 
-                      ? 'Tip: Adjust discount % or final price - they sync automatically!'
-                      : 'Tip: Ajusta el % de descuento o el precio final - ¡se sincronizan automáticamente!'}
+                    {t('tipAdjustDiscount')}
                   </div>
                 </div>
               )}
@@ -507,13 +487,13 @@ export default function PackagesPage() {
               {/* Selección de servicios */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Services in Package' : 'Servicios en el Paquete'}
+                  {t('servicesInPackage')}
                 </label>
                 
                 {/* Servicios disponibles */}
                 <div className="border border-gray-200 rounded-md p-4 mb-4">
                   <p className="text-sm text-gray-600 mb-2">
-                    {language === 'en' ? 'Available Services' : 'Servicios Disponibles'}
+                    {t('availableServices')}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {services.map(service => (
@@ -535,9 +515,7 @@ export default function PackagesPage() {
                 {/* Servicios seleccionados */}
                 {formData.services.length > 0 && (
                   <div className="border border-blue-200 bg-blue-50 rounded-md p-4">
-                    <p className="text-sm font-medium text-blue-900 mb-2">
-                      {language === 'en' ? 'Selected Services' : 'Servicios Seleccionados'}
-                    </p>
+                    <p className="text-sm font-medium text-blue-900 mb-2">{t('selectedServices')}</p>
                     <div className="space-y-2">
                       {formData.services.map(ps => {
                         const service = services.find(s => s.id === ps.serviceId)
@@ -574,12 +552,12 @@ export default function PackagesPage() {
                     </div>
                     <div className="mt-3 pt-3 border-t border-blue-200">
                       <div className="flex justify-between text-sm">
-                        <span>{language === 'en' ? 'Original Value:' : 'Valor Original:'}</span>
+                        <span>{t('originalValue')}</span>
                         <span className="font-medium">${calculateOriginalPrice().toFixed(2)}</span>
                       </div>
                       {formData.discount > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>{language === 'en' ? 'Savings:' : 'Ahorro:'}</span>
+                          <span>{t('savings')}</span>
                           <span className="font-medium">
                             ${(calculateOriginalPrice() * formData.discount / 100).toFixed(2)} ({formData.discount}%)
                           </span>
@@ -599,7 +577,7 @@ export default function PackagesPage() {
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                 />
                 <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
-                  {language === 'en' ? 'Active' : 'Activo'}
+                  {t('active')}
                 </label>
               </div>
 
@@ -609,15 +587,15 @@ export default function PackagesPage() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   {editingPackage 
-                    ? (language === 'en' ? 'Update' : 'Actualizar')
-                    : (language === 'en' ? 'Create' : 'Crear')}
+                    ? t('saveChanges')
+                    : t('create')}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                 >
-                  {language === 'en' ? 'Cancel' : 'Cancelar'}
+                  {t('cancelBtn')}
                 </button>
               </div>
             </form>
@@ -627,11 +605,7 @@ export default function PackagesPage() {
         {/* Lista de paquetes */}
         {editingPackage && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-yellow-800">
-              {language === 'en' 
-                ? `⚠️ You are currently editing "${editingPackage.name}". Please save or cancel your changes before performing other actions.`
-                : `⚠️ Actualmente está editando "${editingPackage.name}". Por favor, guarde o cancele sus cambios antes de realizar otras acciones.`}
-            </p>
+            <p className="text-sm text-yellow-800">{(t('currentlyEditing') || 'Currently Editing')}: "{editingPackage.name}"</p>
           </div>
         )}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -640,7 +614,7 @@ export default function PackagesPage() {
               {/* Header con descuento */}
               {pkg.discount && pkg.discount > 0 && (
                 <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-2">
-                  <span className="font-bold text-sm">{Math.round(pkg.discount)}% {language === 'en' ? 'DISCOUNT' : 'DESCUENTO'}</span>
+                  <span className="font-bold text-sm">{Math.round(pkg.discount)}% {t('discountUpper')}</span>
                 </div>
               )}
               
@@ -652,7 +626,7 @@ export default function PackagesPage() {
                       <h3 className="text-xl font-bold text-gray-900">{pkg.name}</h3>
                       {!pkg.isActive && (
                         <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-                          {language === 'en' ? 'Inactive' : 'Inactivo'}
+                          {t('inactive')}
                         </span>
                       )}
                     </div>
@@ -660,7 +634,7 @@ export default function PackagesPage() {
                   
                   {/* Description */}
                   <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
-                    {pkg.description || (language === 'en' ? 'Special package offer' : 'Oferta especial de paquete')}
+                    {pkg.description || t('specialOffersLower')}
                   </p>
                   
                   {/* Price Section */}
@@ -678,7 +652,7 @@ export default function PackagesPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-gray-700">{pkg.sessionCount || 1}</div>
-                        <div className="text-xs text-gray-500">{language === 'en' ? 'sessions' : 'sesiones'}</div>
+                        <div className="text-xs text-gray-500">{t('sessionsLower')}</div>
                       </div>
                     </div>
                   </div>
@@ -696,7 +670,7 @@ export default function PackagesPage() {
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="text-gray-600">{pkg.validityDays} {language === 'en' ? 'days' : 'días'}</span>
+                        <span className="text-gray-600">{pkg.validityDays} {t('daysLower')}</span>
                       </div>
                     )}
                   </div>
@@ -704,9 +678,7 @@ export default function PackagesPage() {
                   {/* Services List - Grid Layout when expanded */}
                   {pkg.services.length > 0 && (
                     <div className="border-t pt-4">
-                      <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
-                        {language === 'en' ? 'Included Services' : 'Servicios Incluidos'}
-                      </p>
+                      <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">{t('includedServices')}</p>
                       <div className={`${expandedPackages.has(pkg.id) 
                         ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48' 
                         : 'space-y-1 max-h-24'} overflow-y-auto custom-scrollbar transition-all duration-300`}>
@@ -731,14 +703,14 @@ export default function PackagesPage() {
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                               </svg>
-                              {language === 'en' ? 'Show less' : 'Ver menos'}
+                              {t('showLess')}
                             </>
                           ) : (
                             <>
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
-                              {language === 'en' ? `Show ${pkg.services.length - 3} more services` : `Ver ${pkg.services.length - 3} más servicios`}
+                              {t('showMoreNServices').replace('{n}', String(pkg.services.length - 3))}
                             </>
                           )}
                         </button>
@@ -751,7 +723,7 @@ export default function PackagesPage() {
                 <div className="flex gap-2 pt-4 border-t mt-auto">
                   {editingPackage && editingPackage.id === pkg.id ? (
                     <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">
-                      {language === 'en' ? 'Currently Editing' : 'Editando'}
+                      {t('currentlyEditing')}
                     </span>
                   ) : (
                     <>
@@ -764,10 +736,10 @@ export default function PackagesPage() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                         title={editingPackage && editingPackage.id !== pkg.id 
-                          ? (language === 'en' ? 'Finish editing current package first' : 'Termine de editar el paquete actual primero')
+                          ? t('finishEditingFirst')
                           : undefined}
                       >
-                        {language === 'en' ? 'Edit' : 'Editar'}
+                        {t('edit')}
                       </button>
                       <button
                         onClick={() => handleDelete(pkg.id)}
@@ -778,10 +750,10 @@ export default function PackagesPage() {
                             : 'bg-red-100 text-red-600 hover:bg-red-200'
                         }`}
                         title={editingPackage 
-                          ? (language === 'en' ? 'Finish editing current package first' : 'Termine de editar el paquete actual primero')
+                          ? t('finishEditingFirst')
                           : undefined}
                       >
-                        {language === 'en' ? 'Delete' : 'Eliminar'}
+                        {t('delete')}
                       </button>
                     </>
                   )}
@@ -794,9 +766,7 @@ export default function PackagesPage() {
         {packages.length === 0 && !showForm && (
           <div className="text-center py-12 bg-white rounded-lg">
             <p className="text-gray-500">
-              {language === 'en' 
-                ? 'No packages created yet. Create your first package to offer special deals!'
-                : '¡No hay paquetes creados. Crea tu primer paquete para ofrecer ofertas especiales!'}
+              {t('noPackagesYet')}
             </p>
           </div>
         )}

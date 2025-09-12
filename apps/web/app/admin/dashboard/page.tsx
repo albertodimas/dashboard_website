@@ -52,7 +52,7 @@ interface Business {
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -146,14 +146,14 @@ export default function AdminDashboardPage() {
       await loadBusinesses()
     } catch (error) {
       console.error('Error blocking business:', error)
-      alert(t('language') === 'en' ? 'Failed to block business' : 'Error al bloquear negocio')
+      alert(t('failedToBlockBusiness') || 'Failed to block business')
     } finally {
       setSaving(false)
     }
   }
 
   const handleUnblockBusiness = async (business: Business) => {
-    if (confirm(t('language') === 'en' 
+    if (confirm(language.trim() === 'en' 
       ? `Unblock "${business.name}" and restore access?` 
       : `¿Desbloquear "${business.name}" y restaurar acceso?`)) {
       try {
@@ -176,7 +176,7 @@ export default function AdminDashboardPage() {
         await loadBusinesses()
       } catch (error) {
         console.error('Error unblocking business:', error)
-        alert(t('language') === 'en' ? 'Failed to unblock business' : 'Error al desbloquear negocio')
+        alert(t('failedToUnblockBusiness') || 'Failed to unblock business')
       } finally {
         setSaving(false)
       }
@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleDeleteBusiness = async (business: Business) => {
-    const confirmMsg = t('language') === 'en' 
+    const confirmMsg = language.trim() === 'en' 
       ? `Permanently delete "${business.name}"? This action cannot be undone.`
       : `¿Eliminar permanentemente "${business.name}"? Esta acción no se puede deshacer.`
     
@@ -200,7 +200,7 @@ export default function AdminDashboardPage() {
         await loadBusinesses()
       } catch (error) {
         console.error('Error deleting business:', error)
-        alert(t('language') === 'en' ? 'Failed to delete business' : 'Error al eliminar negocio')
+        alert(t('failedToDeleteBusiness') || 'Failed to delete business')
       } finally {
         setSaving(false)
       }
@@ -225,7 +225,7 @@ export default function AdminDashboardPage() {
       await loadBusinesses()
     } catch (error) {
       console.error('Error updating category:', error)
-      alert(t('language') === 'en' 
+      alert(language.trim() === 'en' 
         ? 'Failed to update category' 
         : 'Error al actualizar la categoría')
     }
@@ -268,9 +268,7 @@ export default function AdminDashboardPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold">
-                {t('language') === 'en' ? 'Directory Administrator' : 'Administrador del Directorio'}
-              </h1>
+              <h1 className="text-xl font-bold">{t('directoryAdministrator') || (language.trim() === 'en' ? 'Directory Administrator' : 'Administrador del Directorio')}</h1>
             </div>
             <div className="flex items-center gap-4">
               <Link
@@ -278,7 +276,7 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-2 text-gray-300 hover:text-white px-3 py-1 border border-gray-600 rounded hover:border-gray-400"
               >
                 <Settings className="w-4 h-4" />
-                {t('language') === 'en' ? 'Categories' : 'Categorías'}
+                {t('categories')}
               </Link>
               <span className="text-sm text-gray-300">
                 admin@directory.com
@@ -298,10 +296,10 @@ export default function AdminDashboardPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900">
-            {t('language') === 'en' ? 'Business Directory Management' : 'Gestión del Directorio de Negocios'}
+            {t('businessDirectoryManagement') || (language.trim() === 'en' ? 'Business Directory Management' : 'Gestión del Directorio de Negocios')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {t('language') === 'en' 
+            {language.trim() === 'en' 
               ? 'Manage business accounts, payments, and directory visibility'
               : 'Gestiona cuentas de negocios, pagos y visibilidad en el directorio'}
           </p>
@@ -312,7 +310,7 @@ export default function AdminDashboardPage() {
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {t('language') === 'en' ? 'Total Businesses' : 'Total de Negocios'}
+                {t('totalBusinesses') || (language.trim() === 'en' ? 'Total Businesses' : 'Total de Negocios')}
               </dt>
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
                 {businesses.length}
@@ -322,7 +320,7 @@ export default function AdminDashboardPage() {
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {t('language') === 'en' ? 'Active' : 'Activos'}
+                {t('active')}
               </dt>
               <dd className="mt-1 text-3xl font-semibold text-green-600">
                 {businesses.filter(b => b.isActive && !b.isBlocked).length}
@@ -332,7 +330,7 @@ export default function AdminDashboardPage() {
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {t('language') === 'en' ? 'Blocked' : 'Bloqueados'}
+                {t('blocked') || 'Blocked'}
               </dt>
               <dd className="mt-1 text-3xl font-semibold text-red-600">
                 {businesses.filter(b => b.isBlocked).length}
@@ -342,7 +340,7 @@ export default function AdminDashboardPage() {
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {t('language') === 'en' ? 'Premium' : 'Premium'}
+                {language.trim() === 'en' ? 'Premium' : 'Premium'}
               </dt>
               <dd className="mt-1 text-3xl font-semibold text-purple-600">
                 {businesses.filter(b => b.isPremium).length}
@@ -355,7 +353,7 @@ export default function AdminDashboardPage() {
         <div className="mb-6 flex gap-4">
           <input
             type="text"
-            placeholder={t('language') === 'en' ? 'Search businesses...' : 'Buscar negocios...'}
+            placeholder={t('searchBusinessesPlaceholder')}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -365,9 +363,9 @@ export default function AdminDashboardPage() {
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
-            <option value="all">{t('language') === 'en' ? 'All' : 'Todos'}</option>
-            <option value="active">{t('language') === 'en' ? 'Active' : 'Activos'}</option>
-            <option value="blocked">{t('language') === 'en' ? 'Blocked' : 'Bloqueados'}</option>
+            <option value="all">{t('all')}</option>
+            <option value="active">{t('active')}</option>
+            <option value="blocked">{t('blocked') || 'Blocked'}</option>
             <option value="premium">Premium</option>
           </select>
         </div>
@@ -379,19 +377,19 @@ export default function AdminDashboardPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Business' : 'Negocio'}
+                  {t('businessLabel') || (language.trim() === 'en' ? 'Business' : 'Negocio')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Category' : 'Categoría'}
+                  {t('category')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Contact' : 'Contacto'}
+                  {t('contact')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Status' : 'Estado'}
+                  {t('status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Actions' : 'Acciones'}
+                  {t('actions')}
                 </th>
               </tr>
             </thead>
@@ -411,7 +409,7 @@ export default function AdminDashboardPage() {
                       className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       disabled={saving}
                     >
-                      <option value="">Sin categoría</option>
+                      <option value="">{t('noCategory') || (language.trim() === 'en' ? 'No category' : 'Sin categoría')}</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.icon} {category.name}
@@ -427,14 +425,14 @@ export default function AdminDashboardPage() {
                     <div className="flex flex-col gap-1">
                       {business.isBlocked ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          {t('language') === 'en' ? 'BLOCKED' : 'BLOQUEADO'} - {
+                          {(t('blockedUpper') || 'BLOCKED')} - {
                             business.blockedReason 
                               ? (business.blockedReason === 'Non-payment' 
-                                ? (t('language') === 'en' ? 'Non-payment' : 'Falta de pago')
+                                ? (t('nonPayment') || 'Non-payment')
                                 : business.blockedReason === 'Terms violation'
-                                ? (t('language') === 'en' ? 'Terms violation' : 'Violación de términos')
-                                : (t('language') === 'en' ? 'Other' : 'Otro'))
-                              : (t('language') === 'en' ? 'Non-payment' : 'Falta de pago')
+                                ? (t('termsViolation') || 'Terms violation')
+                                : (t('other') || 'Other'))
+                              : (t('nonPayment') || 'Non-payment')
                           }
                         </span>
                       ) : (
@@ -442,8 +440,8 @@ export default function AdminDashboardPage() {
                           business.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {business.isActive 
-                            ? (t('language') === 'en' ? 'Active' : 'Activo')
-                            : (t('language') === 'en' ? 'Inactive' : 'Inactivo')}
+                            ? t('active')
+                            : t('inactive')}
                         </span>
                       )}
                       {business.isPremium && (
@@ -453,12 +451,12 @@ export default function AdminDashboardPage() {
                       )}
                       {business.enableStaffModule && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {t('language') === 'en' ? 'Staff Module' : 'Módulo Staff'}
+                          {t('staffModule') || 'Staff Module'}
                         </span>
                       )}
                         {(business as any).enablePackagesModule && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                          {t('language') === 'en' ? 'Packages Module' : 'Módulo Paquetes'}
+                          {t('packagesModule') || 'Packages Module'}
                         </span>
                       )}
                     </div>
@@ -504,14 +502,13 @@ export default function AdminDashboardPage() {
                                   if (!response.ok) throw new Error('Failed to toggle staff module')
                                   await loadBusinesses()
                                   setOpenMenuId(null)
-                                  alert(
-                                    newValue 
-                                      ? (t('language') === 'en' ? 'Staff module enabled successfully' : 'Módulo de staff habilitado exitosamente')
-                                      : (t('language') === 'en' ? 'Staff module disabled successfully' : 'Módulo de staff deshabilitado exitosamente')
+                                  alert(newValue 
+                                    ? (t('staffModuleEnabledSuccess') || 'Staff module enabled successfully')
+                                    : (t('staffModuleDisabledSuccess') || 'Staff module disabled successfully')
                                   )
                                 } catch (error) {
                                   console.error('Error toggling staff module:', error)
-                                  alert(t('language') === 'en' ? 'Failed to toggle staff module' : 'Error al cambiar el módulo de staff')
+                                  alert(t('failedToggleStaffModule') || 'Failed to toggle staff module')
                                 } finally {
                                   setSaving(false)
                                 }
@@ -522,8 +519,8 @@ export default function AdminDashboardPage() {
                               <Users className={`w-4 h-4 ${business.enableStaffModule ? 'text-blue-600' : 'text-gray-400'}`} />
                               <span className={business.enableStaffModule ? 'text-blue-600' : 'text-gray-700'}>
                                 {business.enableStaffModule 
-                                  ? (t('language') === 'en' ? 'Disable Staff' : 'Desactivar Staff')
-                                  : (t('language') === 'en' ? 'Enable Staff' : 'Activar Staff')}
+                                  ? (t('disableStaff') || 'Disable Staff')
+                                  : (t('enableStaff') || 'Enable Staff')}
                               </span>
                             </button>
                             
@@ -544,14 +541,13 @@ export default function AdminDashboardPage() {
                                   if (!response.ok) throw new Error('Failed to toggle packages module')
                                   await loadBusinesses()
                                   setOpenMenuId(null)
-                                  alert(
-                                    newValue 
-                                      ? (t('language') === 'en' ? 'Packages module enabled successfully' : 'Módulo de paquetes habilitado exitosamente')
-                                      : (t('language') === 'en' ? 'Packages module disabled successfully' : 'Módulo de paquetes deshabilitado exitosamente')
+                                  alert(newValue 
+                                    ? (t('packagesModuleEnabledSuccess') || 'Packages module enabled successfully')
+                                    : (t('packagesModuleDisabledSuccess') || 'Packages module disabled successfully')
                                   )
                                 } catch (error) {
                                   console.error('Error toggling packages module:', error)
-                                  alert(t('language') === 'en' ? 'Failed to toggle packages module' : 'Error al cambiar el módulo de paquetes')
+                                  alert(t('failedTogglePackagesModule') || 'Failed to toggle packages module')
                                 } finally {
                                   setSaving(false)
                                 }
@@ -562,8 +558,8 @@ export default function AdminDashboardPage() {
                                 <Package className={`w-4 h-4 ${(business as any).enablePackagesModule ? 'text-indigo-600' : 'text-gray-400'}`} />
                                 <span className={(business as any).enablePackagesModule ? 'text-indigo-600' : 'text-gray-700'}>
                                   {(business as any).enablePackagesModule 
-                                  ? (t('language') === 'en' ? 'Disable Packages' : 'Desactivar Paquetes')
-                                  : (t('language') === 'en' ? 'Enable Packages' : 'Activar Paquetes')}
+                                  ? (t('disablePackages') || 'Disable Packages')
+                                  : (t('enablePackages') || 'Enable Packages')}
                               </span>
                             </button>
                             
@@ -580,9 +576,9 @@ export default function AdminDashboardPage() {
                                 className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3"
                               >
                                 <Unlock className="w-4 h-4 text-green-600" />
-                                <span className="text-green-600">
-                                  {t('language') === 'en' ? 'Unblock' : 'Desbloquear'}
-                                </span>
+                                  <span className="text-green-600">
+                                  {t('unblock') || 'Unblock'}
+                                  </span>
                               </button>
                             ) : (
                               <button
@@ -596,8 +592,8 @@ export default function AdminDashboardPage() {
                               >
                                 <Ban className="w-4 h-4 text-orange-600" />
                                 <span className="text-orange-600">
-                                  {t('language') === 'en' ? 'Block' : 'Bloquear'}
-                                </span>
+                                  {t('block') || 'Block'}
+                                  </span>
                               </button>
                             )}
                             
@@ -614,7 +610,7 @@ export default function AdminDashboardPage() {
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
                               <span className="text-red-600">
-                                {t('language') === 'en' ? 'Delete' : 'Eliminar'}
+                                {t('delete')}
                               </span>
                             </button>
                           </div>
@@ -633,16 +629,16 @@ export default function AdminDashboardPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
-                {t('language') === 'en' ? 'Block Business' : 'Bloquear Negocio'}
+                {t('blockBusiness') || 'Block Business'}
               </h2>
               <p className="text-gray-600 mb-4">
-                {t('language') === 'en' 
+                {language.trim() === 'en' 
                   ? `Block "${selectedBusiness.name}" from the directory?`
                   : `¿Bloquear "${selectedBusiness.name}" del directorio?`}
               </p>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('language') === 'en' ? 'Reason' : 'Razón'}
+                  {t('reasonLabel') || 'Reason'}
                 </label>
                 <select 
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -650,13 +646,13 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setBlockReason(e.target.value)}
                 >
                   <option value="payment">
-                    {t('language') === 'en' ? 'Non-payment' : 'Falta de pago'}
+                    {t('nonPayment') || 'Non-payment'}
                   </option>
                   <option value="violation">
-                    {t('language') === 'en' ? 'Terms violation' : 'Violación de términos'}
+                    {t('termsViolation') || 'Terms violation'}
                   </option>
                   <option value="other">
-                    {t('language') === 'en' ? 'Other' : 'Otro'}
+                    {t('other')}
                   </option>
                 </select>
               </div>
@@ -668,7 +664,7 @@ export default function AdminDashboardPage() {
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                 >
-                  {t('language') === 'en' ? 'Cancel' : 'Cancelar'}
+                  {t('cancelBtn')}
                 </button>
                 <button
                   onClick={handleBlockBusiness}
@@ -676,8 +672,8 @@ export default function AdminDashboardPage() {
                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
                 >
                   {saving 
-                    ? (t('language') === 'en' ? 'Blocking...' : 'Bloqueando...')
-                    : (t('language') === 'en' ? 'Block Business' : 'Bloquear Negocio')}
+                    ? (t('blocking') || 'Blocking...')
+                    : (t('blockBusiness') || 'Block Business')}
                 </button>
               </div>
             </div>
@@ -687,3 +683,4 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
+

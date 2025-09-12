@@ -123,7 +123,9 @@ export default function ReportsPage() {
   }, [router, period, customDateRange, startDate, endDate])
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(language === 'en' ? 'en-US' : 'es-ES', {
+    const localeMap: Record<string, string> = { en: 'en-US', es: 'es-ES' }
+    const locale = localeMap[language] || 'en-US'
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'USD'
     }).format(value)
@@ -137,14 +139,14 @@ export default function ReportsPage() {
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
   const customerData = metrics ? [
-    { name: language === 'en' ? 'New' : 'Nuevos', value: metrics.customers.new },
-    { name: language === 'en' ? 'Returning' : 'Recurrentes', value: metrics.customers.returning }
+    { name: t('newLabel') || 'New', value: metrics.customers.new },
+    { name: t('returningLabel') || 'Returning', value: metrics.customers.returning }
   ] : []
 
   const appointmentStatusData = metrics ? [
-    { name: language === 'en' ? 'Completed' : 'Completadas', value: metrics.appointments.completed },
-    { name: language === 'en' ? 'Pending' : 'Pendientes', value: metrics.appointments.pending },
-    { name: language === 'en' ? 'Cancelled' : 'Canceladas', value: metrics.appointments.cancelled }
+    { name: t('completed') || 'Completed', value: metrics.appointments.completed },
+    { name: t('pending') || 'Pending', value: metrics.appointments.pending },
+    { name: t('cancelled') || 'Cancelled', value: metrics.appointments.cancelled }
   ] : []
 
   if (loading) {
@@ -164,14 +166,8 @@ export default function ReportsPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {language === 'en' ? 'Business Reports' : 'Reportes del Negocio'}
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            {language === 'en' 
-              ? 'Track your business performance and growth' 
-              : 'Rastrea el rendimiento y crecimiento de tu negocio'}
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('businessReportsTitle') || 'Business Reports'}</h1>
+          <p className="mt-2 text-sm text-gray-600">{t('businessReportsSubtitle') || 'Track your business performance and growth'}</p>
         </div>
 
         {/* Period Selector */}
@@ -181,25 +177,25 @@ export default function ReportsPage() {
               onClick={() => { setPeriod('daily'); setCustomDateRange(false) }}
               className={`px-4 py-2 rounded-lg ${period === 'daily' && !customDateRange ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              {language === 'en' ? 'Daily' : 'Diario'}
+              {t('daily') || 'Daily'}
             </button>
             <button
               onClick={() => { setPeriod('weekly'); setCustomDateRange(false) }}
               className={`px-4 py-2 rounded-lg ${period === 'weekly' && !customDateRange ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              {language === 'en' ? 'Weekly' : 'Semanal'}
+              {t('weekly') || 'Weekly'}
             </button>
             <button
               onClick={() => { setPeriod('monthly'); setCustomDateRange(false) }}
               className={`px-4 py-2 rounded-lg ${period === 'monthly' && !customDateRange ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              {language === 'en' ? 'Monthly' : 'Mensual'}
+              {t('monthly') || 'Monthly'}
             </button>
             <button
               onClick={() => { setPeriod('yearly'); setCustomDateRange(false) }}
               className={`px-4 py-2 rounded-lg ${period === 'yearly' && !customDateRange ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              {language === 'en' ? 'Yearly' : 'Anual'}
+              {t('yearly') || 'Yearly'}
             </button>
             
             <div className="ml-auto flex gap-2 items-center">
@@ -207,7 +203,7 @@ export default function ReportsPage() {
                 onClick={() => setCustomDateRange(!customDateRange)}
                 className={`px-4 py-2 rounded-lg ${customDateRange ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
-                {language === 'en' ? 'Custom Range' : 'Rango Personalizado'}
+                {t('customRange') || 'Custom Range'}
               </button>
               
               {customDateRange && (
@@ -216,14 +212,14 @@ export default function ReportsPage() {
                     value={startDate}
                     onChange={setStartDate}
                     className="px-3 py-2 border rounded-lg"
-                    placeholder={language === 'en' ? 'Start date' : 'Fecha inicio'}
+                    placeholder={t('startDate') || 'Start date'}
                   />
                   <span className="text-gray-500">-</span>
                   <DatePicker
                     value={endDate}
                     onChange={setEndDate}
                     className="px-3 py-2 border rounded-lg"
-                    placeholder={language === 'en' ? 'End date' : 'Fecha fin'}
+                    placeholder={t('endDate') || 'End date'}
                   />
                 </>
               )}
@@ -238,7 +234,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">
-                  {language === 'en' ? 'Total Revenue' : 'Ingresos Totales'}
+                  {t('totalRevenue')}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {metrics ? formatCurrency(metrics.revenue.total) : '$0'}
@@ -246,9 +242,7 @@ export default function ReportsPage() {
                 {metrics && (
                   <p className={`text-sm mt-2 ${metrics.revenue.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatPercentage(metrics.revenue.change)} 
-                    <span className="text-gray-500 ml-1">
-                      {language === 'en' ? 'vs previous' : 'vs anterior'}
-                    </span>
+                    <span className="text-gray-500 ml-1">{t('vsPrevious') || 'vs previous'}</span>
                   </p>
                 )}
               </div>
@@ -265,7 +259,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">
-                  {language === 'en' ? 'Total Appointments' : 'Citas Totales'}
+                  {t('appointmentsTitle') || 'Total Appointments'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {metrics?.appointments.total || 0}
@@ -273,9 +267,7 @@ export default function ReportsPage() {
                 {metrics && (
                   <p className={`text-sm mt-2 ${metrics.appointments.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatPercentage(metrics.appointments.change)}
-                    <span className="text-gray-500 ml-1">
-                      {language === 'en' ? 'vs previous' : 'vs anterior'}
-                    </span>
+                    <span className="text-gray-500 ml-1">{t('vsPrevious') || 'vs previous'}</span>
                   </p>
                 )}
               </div>
@@ -291,18 +283,14 @@ export default function ReportsPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">
-                  {language === 'en' ? 'Unique Customers' : 'Clientes Únicos'}
-                </p>
+                <p className="text-sm text-gray-600">{t('uniqueCustomers') || 'Unique Customers'}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {metrics?.customers.unique || 0}
                 </p>
                 {metrics && (
                   <p className={`text-sm mt-2 ${metrics.customers.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatPercentage(metrics.customers.change)}
-                    <span className="text-gray-500 ml-1">
-                      {language === 'en' ? 'vs previous' : 'vs anterior'}
-                    </span>
+                    <span className="text-gray-500 ml-1">{t('vsPrevious') || 'vs previous'}</span>
                   </p>
                 )}
               </div>
@@ -319,14 +307,12 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">
-                  {language === 'en' ? 'Average Ticket' : 'Ticket Promedio'}
+                  {t('averageTicket') || 'Average Ticket'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {metrics ? formatCurrency(metrics.averageTicket) : '$0'}
                 </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  {language === 'en' ? 'Per appointment' : 'Por cita'}
-                </p>
+                <p className="text-sm text-gray-500 mt-2">{t('perAppointment') || 'Per appointment'}</p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-full">
                 <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,9 +326,7 @@ export default function ReportsPage() {
         {/* Staff Reports Section */}
         {staffReports && staffReports.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Professional Reports' : 'Reportes por Profesional'}
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('professionalReportsTitle') || 'Professional Reports'}</h2>
             
             {/* Staff Selector Tabs */}
             <div className="bg-white rounded-lg shadow mb-4">
@@ -352,7 +336,7 @@ export default function ReportsPage() {
                     onClick={() => setSelectedStaffId(null)}
                     className={`px-4 py-2 rounded-lg ${!selectedStaffId ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                   >
-                    {language === 'en' ? 'All Professionals' : 'Todos los Profesionales'}
+                    {t('allProfessionals') || 'All Professionals'}
                   </button>
                   {staffReports.map((staff) => (
                     <button
@@ -389,34 +373,32 @@ export default function ReportsPage() {
                       )}
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{staff.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {staff.metrics.hoursWorked} {language === 'en' ? 'hours worked' : 'horas trabajadas'}
-                        </p>
+                        <p className="text-sm text-gray-500">{staff.metrics.hoursWorked} {t('hoursLower') || 'hours'}</p>
                       </div>
                     </div>
                     
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-gray-600">{language === 'en' ? 'Revenue' : 'Ingresos'}</p>
+                        <p className="text-sm text-gray-600">{t('revenue') || 'Revenue'}</p>
                         <p className="text-xl font-bold text-gray-900">{formatCurrency(staff.metrics.revenue)}</p>
                         <p className={`text-sm ${staff.metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatPercentage(staff.metrics.revenueChange)} vs {language === 'en' ? 'previous' : 'anterior'}
+                          {formatPercentage(staff.metrics.revenueChange)} {t('vsPrevious') || 'vs previous'}
                         </p>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <p className="text-gray-600">{language === 'en' ? 'Appointments' : 'Citas'}</p>
+                          <p className="text-gray-600">{t('appointmentsTitle') || 'Appointments'}</p>
                           <p className="font-semibold">{staff.metrics.appointments}</p>
                         </div>
                         <div>
-                          <p className="text-gray-600">{language === 'en' ? 'Avg Ticket' : 'Ticket Promedio'}</p>
+                          <p className="text-gray-600">{t('averageTicket') || 'Avg Ticket'}</p>
                           <p className="font-semibold">{formatCurrency(staff.metrics.averageTicket)}</p>
                         </div>
                       </div>
 
                       <div className="pt-2 border-t">
-                        <p className="text-xs text-gray-600 mb-1">{language === 'en' ? 'Top Services' : 'Servicios Top'}</p>
+                        <p className="text-xs text-gray-600 mb-1">{t('topServices') || 'Top Services'}</p>
                         {staff.metrics.services.slice(0, 3).map((service, idx) => (
                           <div key={idx} className="text-xs flex justify-between">
                             <span className="text-gray-700 truncate">{service.name}</span>
@@ -448,14 +430,14 @@ export default function ReportsPage() {
                         <div>
                           <h3 className="text-2xl font-bold text-gray-900">{staff.name}</h3>
                           <p className="text-gray-500">
-                            {language === 'en' ? 'Professional Report' : 'Reporte del Profesional'}
+                            {t('professionalReport') || 'Professional Report'}
                           </p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div className="bg-blue-50 rounded-lg p-4">
-                          <p className="text-sm text-blue-600">{language === 'en' ? 'Total Revenue' : 'Ingresos Totales'}</p>
+                          <p className="text-sm text-blue-600">{t('totalRevenue')}</p>
                           <p className="text-2xl font-bold text-blue-900">{formatCurrency(staff.metrics.revenue)}</p>
                           <p className={`text-sm mt-1 ${staff.metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {formatPercentage(staff.metrics.revenueChange)}
@@ -463,51 +445,41 @@ export default function ReportsPage() {
                         </div>
                         
                         <div className="bg-green-50 rounded-lg p-4">
-                          <p className="text-sm text-green-600">{language === 'en' ? 'Hours Worked' : 'Horas Trabajadas'}</p>
+                          <p className="text-sm text-green-600">{t('hoursWorked') || 'Hours Worked'}</p>
                           <p className="text-2xl font-bold text-green-900">{staff.metrics.hoursWorked}</p>
                           <p className="text-sm text-green-600 mt-1">
-                            {language === 'en' ? 'hours' : 'horas'}
+                            {t('hoursLower') || 'hours'}
                           </p>
                         </div>
                         
                         <div className="bg-purple-50 rounded-lg p-4">
-                          <p className="text-sm text-purple-600">{language === 'en' ? 'Total Appointments' : 'Citas Totales'}</p>
+                          <p className="text-sm text-purple-600">{t('appointmentsTitle') || 'Total Appointments'}</p>
                           <p className="text-2xl font-bold text-purple-900">{staff.metrics.appointments}</p>
                           <p className="text-sm text-purple-600 mt-1">
-                            {staff.metrics.completedAppointments} {language === 'en' ? 'completed' : 'completadas'}
+                            {staff.metrics.completedAppointments} {t('completed') || 'completed'}
                           </p>
                         </div>
                         
                         <div className="bg-yellow-50 rounded-lg p-4">
-                          <p className="text-sm text-yellow-600">{language === 'en' ? 'Average Ticket' : 'Ticket Promedio'}</p>
+                          <p className="text-sm text-yellow-600">{t('averageTicket') || 'Average Ticket'}</p>
                           <p className="text-2xl font-bold text-yellow-900">{formatCurrency(staff.metrics.averageTicket)}</p>
-                          <p className="text-sm text-yellow-600 mt-1">
-                            {language === 'en' ? 'per appointment' : 'por cita'}
-                          </p>
+                          <p className="text-sm text-yellow-600 mt-1">{t('perAppointment') || 'per appointment'}</p>
                         </div>
                       </div>
 
                       {/* Service Breakdown */}
                       <div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                          {language === 'en' ? 'Service Performance' : 'Rendimiento por Servicio'}
+                          {t('servicePerformance') || 'Service Performance'}
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                               <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  {language === 'en' ? 'Service' : 'Servicio'}
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  {language === 'en' ? 'Count' : 'Cantidad'}
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  {language === 'en' ? 'Revenue' : 'Ingresos'}
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  {language === 'en' ? 'Avg Price' : 'Precio Promedio'}
-                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('service') || 'Service'}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('count') || 'Count'}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('revenue') || 'Revenue'}</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('avgPrice') || 'Avg Price'}</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -543,7 +515,7 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Revenue Trend' : 'Tendencia de Ingresos'}
+              {t('revenueTrend') || 'Revenue Trend'}
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={chartData}>
@@ -557,9 +529,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Appointments Trend' : 'Tendencia de Citas'}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('appointmentsTrend') || 'Appointments Trend'}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -575,9 +545,7 @@ export default function ReportsPage() {
         {/* Service Performance & Customer Types */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Top Services by Revenue' : 'Servicios Top por Ingresos'}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('topServicesByRevenue') || 'Top Services by Revenue'}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={serviceStats.slice(0, 5)}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -590,9 +558,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Customer Types' : 'Tipos de Clientes'}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('customerTypes') || 'Customer Types'}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -618,9 +584,7 @@ export default function ReportsPage() {
         {/* Appointment Status Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Appointment Status' : 'Estado de Citas'}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('appointmentStatus') || 'Appointment Status'}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -645,7 +609,7 @@ export default function ReportsPage() {
           {/* Peak Hours */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Peak Business Hours' : 'Horas Pico del Negocio'}
+              {t('peakBusinessHours') || 'Peak Business Hours'}
             </h3>
             <div className="space-y-4">
               {peakHours.length > 0 ? (
@@ -663,14 +627,12 @@ export default function ReportsPage() {
                       </span>
                     </div>
                     <span className="text-gray-500">
-                      {language === 'en' ? 'Most bookings' : 'Más reservas'}
+                      {t('mostBookings') || 'Most bookings'}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500">
-                  {language === 'en' ? 'No data available' : 'No hay datos disponibles'}
-                </p>
+                <p className="text-gray-500">{t('noDataAvailable') || 'No data available'}</p>
               )}
             </div>
           </div>
@@ -679,7 +641,7 @@ export default function ReportsPage() {
         {/* Export Buttons */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {language === 'en' ? 'Export Reports' : 'Exportar Reportes'}
+            {t('exportReports') || 'Export Reports'}
           </h3>
           <div className="flex gap-4">
             <button 
@@ -704,7 +666,7 @@ export default function ReportsPage() {
                   window.URL.revokeObjectURL(downloadUrl)
                 } catch (error) {
                   console.error('Export error:', error)
-                  alert(language === 'en' ? 'Failed to export report' : 'Error al exportar el reporte')
+                  alert(t('failedToExportReport') || 'Failed to export report')
                 }
               }}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
@@ -712,7 +674,7 @@ export default function ReportsPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {language === 'en' ? 'Export as Excel' : 'Exportar como Excel'}
+              {t('exportAsExcel') || 'Export as Excel'}
             </button>
             <button 
               onClick={async () => {
@@ -736,7 +698,7 @@ export default function ReportsPage() {
                   window.URL.revokeObjectURL(downloadUrl)
                 } catch (error) {
                   console.error('Export error:', error)
-                  alert(language === 'en' ? 'Failed to export report' : 'Error al exportar el reporte')
+                  alert(t('failedToExportReport') || 'Failed to export report')
                 }
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -744,7 +706,7 @@ export default function ReportsPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {language === 'en' ? 'Export as CSV' : 'Exportar como CSV'}
+              {t('exportAsCSV') || 'Export as CSV'}
             </button>
           </div>
         </div>

@@ -84,7 +84,7 @@ export default function PackagePurchasesPage() {
         setShowAddModal(false)
         setFormData({ customerId: '', packageId: '', paymentMethod: 'CASH', paymentReceived: false })
         await loadData()
-        alert(language === 'en' ? 'Package purchase registered successfully!' : '¡Compra de paquete registrada exitosamente!')
+        alert(t('packagePurchaseRegistered') || 'Package purchase registered successfully!')
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to register purchase')
@@ -97,7 +97,7 @@ export default function PackagePurchasesPage() {
 
   const handleActivatePurchase = async () => {
     if (!selectedPurchase || !activationData.paymentConfirmed) {
-      alert(language === 'en' ? 'Please confirm payment receipt' : 'Por favor confirme la recepción del pago')
+      alert(t('pleaseConfirmPayment') || 'Please confirm payment receipt')
       return
     }
 
@@ -117,7 +117,7 @@ export default function PackagePurchasesPage() {
         setSelectedPurchase(null)
         setActivationData({ paymentConfirmed: false, notes: '' })
         await loadData()
-        alert(language === 'en' ? 'Package activated successfully!' : '¡Paquete activado exitosamente!')
+        alert(t('packageActivatedSuccessfully') || 'Package activated successfully!')
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to activate package')
@@ -142,7 +142,7 @@ export default function PackagePurchasesPage() {
         setShowDeleteModal(false)
         setSelectedPurchase(null)
         await loadData()
-        alert(language === 'en' ? 'Pending package deleted successfully!' : '¡Paquete pendiente eliminado exitosamente!')
+        alert(t('pendingPackageDeleted') || 'Pending package deleted successfully!')
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to delete package')
@@ -201,7 +201,7 @@ export default function PackagePurchasesPage() {
         <DashboardNav />
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">
-            {language === 'en' ? 'Loading...' : 'Cargando...'}
+            {t('loading')}
           </div>
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function PackagePurchasesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            {language === 'en' ? 'Package Purchases' : 'Compras de Paquetes'}
+            {t('packagePurchasesTitle')}
           </h1>
           <div className="flex items-center gap-4">
             {/* View Mode Toggle */}
@@ -228,7 +228,7 @@ export default function PackagePurchasesPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {language === 'en' ? 'By Customer' : 'Por Cliente'}
+                {t('byCustomer')}
               </button>
               <button
                 onClick={() => setViewMode('detailed')}
@@ -238,14 +238,14 @@ export default function PackagePurchasesPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {language === 'en' ? 'Detailed' : 'Detallado'}
+                {t('detailed')}
               </button>
             </div>
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
-              {language === 'en' ? '+ Manual Purchase' : '+ Compra Manual'}
+              {t('manualPurchaseBtn')}
             </button>
           </div>
         </div>
@@ -254,31 +254,31 @@ export default function PackagePurchasesPage() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-sm text-gray-600">
-              {language === 'en' ? 'Total Purchases' : 'Compras Totales'}
+              {t('totalPurchasesTitle')}
             </div>
             <div className="text-2xl font-bold text-gray-900">{stats.totalPurchases}</div>
           </div>
           <div className="bg-yellow-50 p-4 rounded-lg shadow">
             <div className="text-sm text-yellow-600">
-              {language === 'en' ? 'Pending Activation' : 'Pendientes'}
+              {t('pendingActivation')}
             </div>
             <div className="text-2xl font-bold text-yellow-700">{stats.pendingPurchases}</div>
           </div>
           <div className="bg-green-50 p-4 rounded-lg shadow">
             <div className="text-sm text-green-600">
-              {language === 'en' ? 'Active Packages' : 'Paquetes Activos'}
+              {t('activePackages')}
             </div>
             <div className="text-2xl font-bold text-green-700">{stats.activePurchases}</div>
           </div>
           <div className="bg-blue-50 p-4 rounded-lg shadow">
             <div className="text-sm text-blue-600">
-              {language === 'en' ? 'Available Sessions' : 'Sesiones Disponibles'}
+              {t('availableSessions')}
             </div>
             <div className="text-2xl font-bold text-blue-700">{stats.totalSessions}</div>
           </div>
           <div className="bg-purple-50 p-4 rounded-lg shadow">
             <div className="text-sm text-purple-600">
-              {language === 'en' ? 'Total Revenue' : 'Ingresos Totales'}
+              {t('totalRevenue')}
             </div>
             <div className="text-2xl font-bold text-purple-700">${stats.totalRevenue.toFixed(2)}</div>
           </div>
@@ -295,7 +295,7 @@ export default function PackagePurchasesPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {language === 'en' ? 'Pending Activation' : 'Pendientes de Activación'}
+              {t('pendingActivation')}
               {stats.pendingPurchases > 0 && (
                 <span className="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
                   {stats.pendingPurchases}
@@ -310,7 +310,7 @@ export default function PackagePurchasesPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {language === 'en' ? 'Active Packages' : 'Paquetes Activos'}
+              {t('activePackages')}
             </button>
             <button
               onClick={() => setActiveTab('all')}
@@ -320,7 +320,7 @@ export default function PackagePurchasesPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {language === 'en' ? 'All Purchases' : 'Todas las Compras'}
+              {t('allPurchases')}
             </button>
           </nav>
         </div>
@@ -345,25 +345,25 @@ export default function PackagePurchasesPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Customer' : 'Cliente'}
+                  {t('customer')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Package' : 'Paquete'}
+                  {t('packageTitle')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Sessions' : 'Sesiones'}
+                  {t('sessionsLower')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Price' : 'Precio'}
+                  {t('price')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Status' : 'Estado'}
+                  {t('status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Date' : 'Fecha'}
+                  {t('date')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'en' ? 'Actions' : 'Acciones'}
+                  {t('actions')}
                 </th>
               </tr>
             </thead>
@@ -445,7 +445,7 @@ export default function PackagePurchasesPage() {
                           }}
                           className="text-green-600 hover:text-green-900 mr-2"
                         >
-                          {language === 'en' ? 'Activate' : 'Activar'}
+                          {t('activate')}
                         </button>
                         <button
                           onClick={() => {
@@ -454,7 +454,7 @@ export default function PackagePurchasesPage() {
                           }}
                           className="text-red-600 hover:text-red-900 mr-2"
                         >
-                          {language === 'en' ? 'Delete' : 'Eliminar'}
+                          {t('delete')}
                         </button>
                       </>
                     )}
@@ -462,7 +462,7 @@ export default function PackagePurchasesPage() {
                       onClick={() => console.log('View details', purchase.id)}
                       className="text-blue-600 hover:text-blue-900"
                     >
-                      {language === 'en' ? 'Details' : 'Detalles'}
+                      {t('details')}
                     </button>
                   </td>
                 </tr>
@@ -477,12 +477,12 @@ export default function PackagePurchasesPage() {
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
               <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {language === 'en' ? 'Manual Package Purchase' : 'Compra Manual de Paquete'}
+                {t('manualPackagePurchase')}
               </h3>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'en' ? 'Customer' : 'Cliente'}
+                    {t('customer')}
                   </label>
                   <select
                     value={formData.customerId}
@@ -490,7 +490,7 @@ export default function PackagePurchasesPage() {
                     className="w-full border border-gray-300 rounded px-3 py-2"
                     required
                   >
-                    <option value="">{language === 'en' ? 'Select customer' : 'Seleccionar cliente'}</option>
+                    <option value="">{t('selectCustomer')}</option>
                     {customers.map((customer) => (
                       <option key={customer.id} value={customer.id}>
                         {customer.name} - {customer.email}
@@ -500,7 +500,7 @@ export default function PackagePurchasesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'en' ? 'Package' : 'Paquete'}
+                    {t('packageTitle')}
                   </label>
                   <select
                     value={formData.packageId}
@@ -508,7 +508,7 @@ export default function PackagePurchasesPage() {
                     className="w-full border border-gray-300 rounded px-3 py-2"
                     required
                   >
-                    <option value="">{language === 'en' ? 'Select package' : 'Seleccionar paquete'}</option>
+                    <option value="">{t('selectPackage')}</option>
                     {packages.map((pkg) => (
                       <option key={pkg.id} value={pkg.id}>
                         {pkg.name} - ${typeof pkg.price === 'number' ? pkg.price.toFixed(2) : pkg.price} ({pkg.sessionCount} sessions)
@@ -518,16 +518,16 @@ export default function PackagePurchasesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'en' ? 'Payment Method' : 'Método de Pago'}
+                    {t('paymentMethod')}
                   </label>
                   <select
                     value={formData.paymentMethod}
                     onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                     className="w-full border border-gray-300 rounded px-3 py-2"
                   >
-                    <option value="CASH">{language === 'en' ? 'Cash' : 'Efectivo'}</option>
-                    <option value="CARD">{language === 'en' ? 'Card' : 'Tarjeta'}</option>
-                    <option value="TRANSFER">{language === 'en' ? 'Transfer' : 'Transferencia'}</option>
+                    <option value="CASH">{t('cash')}</option>
+                    <option value="CARD">{t('card')}</option>
+                    <option value="TRANSFER">{t('transfer')}</option>
                   </select>
                 </div>
                 <div className="mb-4">
@@ -538,17 +538,9 @@ export default function PackagePurchasesPage() {
                       onChange={(e) => setFormData({ ...formData, paymentReceived: e.target.checked })}
                       className="mr-2"
                     />
-                    <span className="text-sm font-medium text-gray-700">
-                      {language === 'en' 
-                        ? 'Payment has been received (activate immediately)' 
-                        : 'El pago ha sido recibido (activar inmediatamente)'}
-                    </span>
+                    <span className="text-sm font-medium text-gray-700">{t('paymentReceivedActivate') || 'Payment has been received (activate immediately)'}</span>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1 ml-6">
-                    {language === 'en'
-                      ? 'Leave unchecked to create as pending payment'
-                      : 'Deja sin marcar para crear como pago pendiente'}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1 ml-6">{t('leaveUncheckedPending') || 'Leave unchecked to create as pending payment'}</p>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <button
@@ -559,14 +551,14 @@ export default function PackagePurchasesPage() {
                     }}
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                   >
-                    {language === 'en' ? 'Cancel' : 'Cancelar'}
+                    {t('cancelBtn')}
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
                   >
-                    {loading ? '...' : language === 'en' ? 'Register Purchase' : 'Registrar Compra'}
+                    {loading ? '...' : t('registerPurchase')}
                   </button>
                 </div>
               </form>
@@ -579,7 +571,7 @@ export default function PackagePurchasesPage() {
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
               <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {language === 'en' ? 'Activate Package Purchase' : 'Activar Compra de Paquete'}
+                {t('activatePackagePurchase')}
               </h3>
               
               <div className="mb-4 p-3 bg-gray-50 rounded">
@@ -608,17 +600,13 @@ export default function PackagePurchasesPage() {
                     className="mr-2"
                   />
                   <span className="text-sm font-medium text-gray-700">
-                    {language === 'en' 
-                      ? 'I confirm that payment has been received' 
-                      : 'Confirmo que el pago ha sido recibido'}
+                  {t('confirmPaymentReceived')}
                   </span>
                 </label>
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Notes (optional)' : 'Notas (opcional)'}
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('notesOptional')}</label>
                 <textarea
                   value={activationData.notes}
                   onChange={(e) => setActivationData({ 
@@ -627,9 +615,7 @@ export default function PackagePurchasesPage() {
                   })}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   rows={3}
-                  placeholder={language === 'en' 
-                    ? 'Payment confirmation details...' 
-                    : 'Detalles de confirmación del pago...'}
+                  placeholder={t('paymentConfirmationDetails')}
                 />
               </div>
 
@@ -643,14 +629,14 @@ export default function PackagePurchasesPage() {
                   }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                 >
-                  {language === 'en' ? 'Cancel' : 'Cancelar'}
+                  {t('cancelBtn')}
                 </button>
                 <button
                   onClick={handleActivatePurchase}
                   disabled={loading || !activationData.paymentConfirmed}
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
                 >
-                  {loading ? '...' : language === 'en' ? 'Activate Package' : 'Activar Paquete'}
+                  {loading ? '...' : t('activatePackage')}
                 </button>
               </div>
             </div>
@@ -661,26 +647,20 @@ export default function PackagePurchasesPage() {
         {showDeleteModal && selectedPurchase && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {language === 'en' ? 'Delete Pending Package' : 'Eliminar Paquete Pendiente'}
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">{t('deletePendingPackage')}</h3>
               
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
                 <div className="text-sm text-red-800 mb-2">
-                  {language === 'en' 
-                    ? '⚠️ Warning: This action cannot be undone.' 
-                    : '⚠️ Advertencia: Esta acción no se puede deshacer.'}
+                  {t('warningIrreversible')}
                 </div>
                 <div className="text-sm text-gray-600">
-                  {language === 'en' 
-                    ? 'The customer will be notified that their reservation has been cancelled.' 
-                    : 'Se notificará al cliente que su reserva ha sido cancelada.'}
+                  {t('customerWillBeNotifiedCancellation')}
                 </div>
               </div>
               
               <div className="mb-4 p-3 bg-gray-50 rounded">
                 <div className="text-sm text-gray-600">
-                  {language === 'en' ? 'Customer:' : 'Cliente:'}
+                  {t('customer') + ':'}
                 </div>
                 <div className="font-medium">{selectedPurchase.customer?.name}</div>
                 <div className="text-sm text-gray-500">{selectedPurchase.customer?.email}</div>
@@ -688,21 +668,19 @@ export default function PackagePurchasesPage() {
 
               <div className="mb-4 p-3 bg-gray-50 rounded">
                 <div className="text-sm text-gray-600">
-                  {language === 'en' ? 'Package:' : 'Paquete:'}
+                  {t('packageTitle') + ':'}
                 </div>
                 <div className="font-medium">{selectedPurchase.package?.name}</div>
                 <div className="text-sm text-gray-500">
-                  {selectedPurchase.totalSessions} {language === 'en' ? 'sessions' : 'sesiones'} - ${typeof selectedPurchase.pricePaid === 'number' ? selectedPurchase.pricePaid.toFixed(2) : selectedPurchase.pricePaid}
+                  {selectedPurchase.totalSessions} {t('sessionsLower')} - ${typeof selectedPurchase.pricePaid === 'number' ? selectedPurchase.pricePaid.toFixed(2) : selectedPurchase.pricePaid}
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
-                  {language === 'en' ? 'Payment Method:' : 'Método de Pago:'} {selectedPurchase.paymentMethod}
+                  {t('paymentMethod') + ':'} {selectedPurchase.paymentMethod}
                 </div>
               </div>
 
               <div className="mb-4 text-sm text-gray-600">
-                {language === 'en' 
-                  ? 'Are you sure you want to delete this pending package purchase?' 
-                  : '¿Está seguro que desea eliminar esta compra de paquete pendiente?'}
+                {t('confirmDeletePendingPackage')}
               </div>
 
               <div className="flex justify-end space-x-2">
@@ -714,14 +692,14 @@ export default function PackagePurchasesPage() {
                   }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                 >
-                  {language === 'en' ? 'Cancel' : 'Cancelar'}
+                  {t('cancelBtn')}
                 </button>
                 <button
                   onClick={handleDeletePurchase}
                   disabled={loading}
                   className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
                 >
-                  {loading ? '...' : language === 'en' ? 'Delete Package' : 'Eliminar Paquete'}
+                  {loading ? '...' : t('deletePackage')}
                 </button>
               </div>
             </div>

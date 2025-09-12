@@ -10,7 +10,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [mode, setMode] = useState<'RESERVA' | 'PROYECTO'>('RESERVA')
-  const { t, language } = useLanguage()
+  const { t } = useLanguage()
 
   useEffect(() => {
     // Ensure user is authenticated and load current business
@@ -62,7 +62,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="max-w-xl w-full bg-white rounded-xl p-6 shadow">
-        <h1 className="text-2xl font-bold mb-2">{language==='en' ? 'Set up your business' : 'Configura tu negocio'}</h1>
+        <h1 className="text-2xl font-bold mb-2">{t('onboardingTitle') || 'Set up your business'}</h1>
         <p className="text-sm text-gray-600 mb-4">{t('operationModeDesc')}</p>
         <OperationModeSelector value={mode} onChange={setMode} />
         <button
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
           disabled={saving}
           className="mt-4 px-4 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50"
         >
-          {saving ? 'Guardando…' : 'Continuar'}
+          {saving ? (t('saving') || 'Saving...') : (t('continue') || 'Continue')}
         </button>
       </div>
     </div>

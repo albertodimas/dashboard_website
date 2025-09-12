@@ -25,7 +25,7 @@ interface Staff {
 
 export default function ServicesPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [services, setServices] = useState<Service[]>([])
@@ -342,7 +342,7 @@ export default function ServicesPage() {
                 {staffModuleEnabled && service.assignedStaff && service.assignedStaff.length > 0 && (
                   <div className="mb-3">
                     <p className="text-xs text-gray-500 mb-1">
-                      {t('language') === 'en' ? 'Assigned Staff:' : 'Trabajadores Asignados:'}
+                      {t('assignedStaff') + ':'}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {service.assignedStaff.map((staffId) => {
@@ -450,7 +450,7 @@ export default function ServicesPage() {
                 {staffModuleEnabled && availableStaff.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('language') === 'en' ? 'Assigned Staff' : 'Trabajadores Asignados'}
+                      {t('assignedStaff')}
                     </label>
                     <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
                       {availableStaff.map(staff => (
@@ -560,7 +560,7 @@ export default function ServicesPage() {
                 {staffModuleEnabled && availableStaff.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('language') === 'en' ? 'Assigned Staff' : 'Trabajadores Asignados'}
+                      {t('assignedStaff')}
                     </label>
                     <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
                       {availableStaff.map(staff => (

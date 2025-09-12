@@ -108,17 +108,17 @@ export default function GalleryPage() {
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
-                {t('language') === 'en' ? 'Back to Directory' : 'Volver al Directorio'}
+                {t('backToDirectory') || 'Back to Directory'}
               </Link>
               <span className="text-gray-400">|</span>
               <Link 
                 href={`/book/${businessId}`}
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                {t('language') === 'en' ? 'Book Appointment' : 'Reservar Cita'}
+                {t('bookAppointmentCTA') || 'Book Appointment'}
               </Link>
               <span className="text-gray-400">|</span>
-              <h1 className="text-2xl font-bold text-gray-900">{getBusinessName()} - {t('language') === 'en' ? 'Gallery' : 'Galería'}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{getBusinessName()} - {t('gallery') || 'Gallery'}</h1>
             </div>
             <LanguageSelector />
           </div>
@@ -140,9 +140,7 @@ export default function GalleryPage() {
                       : 'bg-white text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  {category === 'all' 
-                    ? (t('language') === 'en' ? 'All' : 'Todos')
-                    : category}
+                  {category === 'all' ? (t('all') || 'All') : category}
                 </button>
               ))}
             </div>
@@ -155,19 +153,13 @@ export default function GalleryPage() {
             <svg className="w-24 h-24 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('language') === 'en' ? 'No images or videos yet' : 'No hay imágenes o videos aún'}
-            </h3>
-            <p className="text-gray-600">
-              {t('language') === 'en' 
-                ? 'The business hasn\'t uploaded any work samples yet.'
-                : 'El negocio aún no ha subido muestras de su trabajo.'}
-            </p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noImagesOrVideosYet') || 'No images or videos yet'}</h3>
+            <p className="text-gray-600">{t('noWorkSamplesYet') || "The business hasn't uploaded any work samples yet."}</p>
             <Link
               href={`/book/${businessId}`}
               className="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              {t('language') === 'en' ? 'Book Appointment' : 'Reservar Cita'}
+              {t('bookAppointmentCTA') || 'Book Appointment'}
             </Link>
           </div>
         ) : (

@@ -333,7 +333,7 @@ export default function BookingPage() {
       
       // Mensaje específico si es por horario del trabajador
       const message = staffSchedule 
-        ? `${selectedStaff?.name} ${t('language') === 'en' ? 'does not work on' : 'no trabaja los'} ${dayName}`
+        ? `${selectedStaff?.name} ${t('doesNotWorkOn') || 'does not work on'} ${dayName}`
         : `${dayName} ${t('isNotWorkingDay')}`
       
       alert(message)
@@ -497,7 +497,7 @@ export default function BookingPage() {
             </span>
             {staffModuleEnabled && (
               <span className={`text-sm ${step === 2 ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
-                {t('language') === 'en' ? 'Select Staff' : 'Seleccionar Trabajador'}
+                {t('selectStaff') || 'Select Staff'}
               </span>
             )}
             <span className={`text-sm ${step === (staffModuleEnabled ? 3 : 2) ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
@@ -691,7 +691,7 @@ export default function BookingPage() {
         {step === 2 && staffModuleEnabled && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">
-              {t('language') === 'en' ? 'Select Staff Member' : 'Seleccionar Trabajador'}
+              {t('selectStaffMember') || 'Select Staff Member'}
             </h2>
             {availableStaff.length > 0 ? (
               <div className="space-y-3">
@@ -755,13 +755,13 @@ export default function BookingPage() {
                           <div className="flex items-center mt-2">
                             <span className="text-yellow-400">★</span>
                             <span className="text-sm text-gray-600 ml-1">
-                              {staff.rating.toFixed(1)} ({staff.totalReviews} {t('language') === 'en' ? 'reviews' : 'reseñas'})
+                              {staff.rating.toFixed(1)} ({staff.totalReviews} {t('reviewsLower') || 'reviews'})
                             </span>
                           </div>
                         )}
                         {staff.workingHours && staff.workingHours.length > 0 && (
                           <div className="mt-2 text-xs text-gray-500">
-                            {t('language') === 'en' ? 'Has specific schedule' : 'Tiene horario específico'}
+                            {t('hasSpecificSchedule') || 'Has specific schedule'}
                           </div>
                         )}
                       </div>
@@ -771,7 +771,7 @@ export default function BookingPage() {
               </div>
             ) : (
               <p className="text-gray-500 text-center py-8">
-                {t('language') === 'en' ? 'No staff members available for this service' : 'No hay trabajadores disponibles para este servicio'}
+                {t('noStaffAvailableForService') || 'No staff members available for this service'}
               </p>
             )}
             
@@ -886,7 +886,7 @@ export default function BookingPage() {
                 </div>
                 {selectedStaff && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('language') === 'en' ? 'Staff' : 'Trabajador'}:</span>
+                    <span className="text-gray-600">{t('staffNav') || 'Staff'}:</span>
                     <span className="font-medium">{selectedStaff.name}</span>
                   </div>
                 )}
@@ -964,3 +964,4 @@ export default function BookingPage() {
     </div>
   )
 }
+

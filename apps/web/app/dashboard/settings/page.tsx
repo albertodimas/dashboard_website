@@ -170,7 +170,7 @@ export default function SettingsPage() {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(language === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
+      alert(t('pleaseSelectImageFile') || 'Please select an image file')
       return
     }
     
@@ -195,16 +195,16 @@ export default function SettingsPage() {
         
         // Show success message with compression info if file was compressed
         if (file.size !== compressedFile.size) {
-          const message = language === 'en' 
-            ? `Logo uploaded successfully! (Compressed from ${originalSize} to ${compressedSize})`
-            : `¡Logo subido exitosamente! (Comprimido de ${originalSize} a ${compressedSize})`
+          const message = (t('logoUploadedCompressed') || 'Logo uploaded successfully! (Compressed from {a} to {b})')
+            .replace('{a}', originalSize)
+            .replace('{b}', compressedSize)
           console.log(message)
         }
       }
       reader.readAsDataURL(compressedFile)
     } catch (error) {
       console.error('Error uploading logo:', error)
-      alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
+      alert(t('failedToUploadImage') || 'Failed to upload image')
       setUploadingLogo(false)
     }
   }
@@ -224,10 +224,10 @@ export default function SettingsPage() {
         body: JSON.stringify({ settings: updatedSettings }),
       })
       if (!response.ok) throw new Error('Failed to save mode')
-      alert(language === 'en' ? 'Operation mode saved!' : '¡Modo de operación guardado!')
+      alert(t('operationModeSaved') || 'Operation mode saved!')
     } catch (e) {
       console.error('Error saving operation mode:', e)
-      alert(language === 'en' ? 'Failed to save operation mode' : 'Error al guardar el modo de operación')
+      alert(t('failedToSaveOperationMode') || 'Failed to save operation mode')
     } finally {
       setSaving(false)
     }
@@ -239,7 +239,7 @@ export default function SettingsPage() {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(language === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
+      alert(t('pleaseSelectImageFile') || 'Please select an image file')
       return
     }
     
@@ -264,16 +264,16 @@ export default function SettingsPage() {
         
         // Show success message with compression info if file was compressed
         if (file.size !== compressedFile.size) {
-          const message = language === 'en' 
-            ? `Avatar uploaded successfully! (Compressed from ${originalSize} to ${compressedSize})`
-            : `¡Avatar subido exitosamente! (Comprimido de ${originalSize} a ${compressedSize})`
+          const message = (t('avatarUploadedCompressed') || 'Avatar uploaded successfully! (Compressed from {a} to {b})')
+            .replace('{a}', originalSize)
+            .replace('{b}', compressedSize)
           console.log(message)
         }
       }
       reader.readAsDataURL(compressedFile)
     } catch (error) {
       console.error('Error uploading avatar:', error)
-      alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
+      alert(t('failedToUploadImage') || 'Failed to upload image')
       setUploadingAvatar(false)
     }
   }
@@ -294,10 +294,10 @@ export default function SettingsPage() {
         throw new Error('Failed to save profile')
       }
 
-      alert(language === 'en' ? 'Profile saved successfully!' : '¡Perfil guardado exitosamente!')
+      alert(t('profileSavedSuccessfully') || 'Profile saved successfully!')
     } catch (error) {
       console.error('Error saving profile:', error)
-      alert(language === 'en' ? 'Failed to save profile' : 'Error al guardar el perfil')
+      alert(t('failedToSaveProfile') || 'Failed to save profile')
     } finally {
       setSaving(false)
     }
@@ -332,18 +332,14 @@ export default function SettingsPage() {
         // Show success message with new URL if name changed
         if (result.business.customSlug) {
           const publicUrl = `${window.location.origin}/${result.business.customSlug}`
-          alert(
-            language === 'en' 
-              ? `Business information saved!\nYour public page: ${publicUrl}` 
-              : `¡Información del negocio guardada!\nTu página pública: ${publicUrl}`
-          )
+          alert((t('businessInfoSavedWithUrl') || 'Business information saved!\nYour public page: {url}').replace('{url}', publicUrl))
         } else {
-          alert(language === 'en' ? 'Business information saved!' : '¡Información del negocio guardada!')
+          alert(t('businessInfoSaved') || 'Business information saved!')
         }
       }
     } catch (error) {
       console.error('Error saving business info:', error)
-      alert(language === 'en' ? 'Failed to save business information' : 'Error al guardar la información del negocio')
+      alert(t('failedToSaveBusinessInfo') || 'Failed to save business information')
     } finally {
       setSaving(false)
     }
@@ -377,10 +373,10 @@ export default function SettingsPage() {
         throw new Error('Failed to save notifications')
       }
       
-      alert(language === 'en' ? 'Notification settings saved!' : '¡Configuración de notificaciones guardada!')
+      alert(t('notificationSettingsSaved') || 'Notification settings saved!')
     } catch (error) {
       console.error('Error saving notifications:', error)
-      alert(language === 'en' ? 'Failed to save notification settings' : 'Error al guardar la configuración de notificaciones')
+      alert(t('failedToSaveNotificationSettings') || 'Failed to save notification settings')
     } finally {
       setSaving(false)
     }
@@ -414,10 +410,10 @@ export default function SettingsPage() {
         throw new Error('Failed to save schedule')
       }
       
-      alert(language === 'en' ? 'Schedule settings saved!' : '¡Configuración de horarios guardada!')
+      alert(t('scheduleSettingsSaved') || 'Schedule settings saved!')
     } catch (error) {
       console.error('Error saving schedule:', error)
-      alert(language === 'en' ? 'Failed to save schedule settings' : 'Error al guardar la configuración de horarios')
+      alert(t('failedToSaveScheduleSettings') || 'Failed to save schedule settings')
     } finally {
       setSaving(false)
     }
@@ -431,17 +427,15 @@ export default function SettingsPage() {
   }
 
   const handleClearData = async () => {
-    if (confirm(language === 'en' 
-      ? 'Are you sure? This will delete all your data (appointments, customers, services).' 
-      : '¿Estás seguro? Esto eliminará todos tus datos (citas, clientes, servicios).')) {
+    if (confirm(t('clearAllDataConfirmDetailed') || 'Are you sure? This will delete all your data (appointments, customers, services).')) {
       try {
         // Clear data from database
         await fetch('/api/dashboard/clear-data', { method: 'POST' })
-        alert(language === 'en' ? 'All data has been cleared.' : 'Todos los datos han sido eliminados.')
+        alert(t('dataCleared') || 'All data has been cleared.')
         router.push('/dashboard')
       } catch (error) {
         console.error('Error clearing data:', error)
-        alert(language === 'en' ? 'Failed to clear data' : 'Error al eliminar los datos')
+        alert(t('failedToClearData') || 'Failed to clear data')
       }
     }
   }
@@ -464,7 +458,7 @@ export default function SettingsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{t('settings')}</h1>
           <p className="mt-2 text-sm text-gray-600">
-            {language === 'en' ? 'Manage your account and application settings' : 'Administra tu cuenta y configuración de la aplicación'}
+            {t('manageAccountAndSettings') || 'Manage your account and application settings'}
           </p>
         </div>
 
@@ -472,7 +466,7 @@ export default function SettingsPage() {
           {/* Operation Mode */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              {language === 'en' ? 'Operation Mode' : 'Modo de Operación'}
+              {t('operationModeTitle') || 'Operation Mode'}
             </h2>
             <p className="text-sm text-gray-600 mb-4">{t('operationModeDesc')}</p>
             <OperationModeSelector value={operationMode} onChange={setOperationMode as any} />
@@ -481,7 +475,7 @@ export default function SettingsPage() {
               disabled={saving}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
             >
-              {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : (language === 'en' ? 'Save' : 'Guardar')}
+              {saving ? (t('saving') || 'Saving...') : (t('saveChanges') || 'Save')}
             </button>
           </div>
           {/* Language preference managed from top-right selector. Block removed to avoid duplication. */}
@@ -489,13 +483,13 @@ export default function SettingsPage() {
           {/* User Profile */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'User Profile' : 'Perfil de Usuario'}
+              {t('userProfileTitle') || 'User Profile'}
             </h2>
             <form onSubmit={handleSaveUserProfile} className="space-y-4">
               {/* Profile Photo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Profile Photo' : 'Foto de Perfil'}
+                  {t('profilePhoto') || 'Profile Photo'}
                 </label>
                 <div className="flex items-center space-x-4">
                   <div className="relative">
@@ -528,13 +522,11 @@ export default function SettingsPage() {
                       className="hidden"
                     />
                     <p className="text-sm text-gray-500">
-                      {language === 'en' 
-                        ? 'Click the camera icon to upload a new photo. Large images will be automatically optimized.'
-                        : 'Haz clic en el ícono de la cámara para subir una nueva foto. Las imágenes grandes se optimizarán automáticamente.'}
+                      {t('cameraUploadHint') || 'Click the camera icon to upload a new photo. Large images will be automatically optimized.'}
                     </p>
                     {uploadingAvatar && (
                       <p className="text-sm text-blue-600">
-                        {language === 'en' ? 'Uploading...' : 'Subiendo...'}
+                        {t('uploading') || 'Uploading...'}
                       </p>
                     )}
                   </div>
@@ -543,34 +535,34 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'First Name' : 'Nombre'}
+                    {t('firstName') || 'First Name'}
                   </label>
                   <input
                     type="text"
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     value={userProfile.name}
                     onChange={(e) => setUserProfile({...userProfile, name: e.target.value})}
-                    placeholder={language === 'en' ? 'First Name' : 'Nombre'}
+                    placeholder={t('firstName') || 'First Name'}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'Last Name' : 'Apellidos'}
+                    {t('lastName') || 'Last Name'}
                   </label>
                   <input
                     type="text"
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     value={userProfile.lastName}
                     onChange={(e) => setUserProfile({...userProfile, lastName: e.target.value})}
-                    placeholder={language === 'en' ? 'Last Name' : 'Apellidos'}
+                    placeholder={t('lastName') || 'Last Name'}
                     required
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Email' : 'Correo Electrónico'}
+                  {t('email') || 'Email'}
                 </label>
                 <input
                   type="email"
@@ -583,7 +575,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Phone (Optional)' : 'Teléfono (Opcional)'}
+                  {t('phoneOptional') || 'Phone (Optional)'}
                 </label>
                 <input
                   type="tel"
@@ -603,8 +595,8 @@ export default function SettingsPage() {
                 }`}
               >
                 {saving 
-                  ? (language === 'en' ? 'Saving...' : 'Guardando...') 
-                  : (language === 'en' ? 'Save Profile' : 'Guardar Perfil')}
+                  ? (t('saving') || 'Saving...') 
+                  : (t('saveProfile') || 'Save Profile')}
               </button>
             </form>
           </div>
@@ -612,7 +604,7 @@ export default function SettingsPage() {
           {/* Business Information */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Business Information' : 'Información del Negocio'}
+              {t('businessInformationTitle') || 'Business Information'}
             </h2>
             <form onSubmit={handleSaveBusinessInfo} className="space-y-4">
               <div>
@@ -624,7 +616,7 @@ export default function SettingsPage() {
                   className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={businessInfo.name}
                   onChange={(e) => setBusinessInfo({...businessInfo, name: e.target.value})}
-                  placeholder={language === 'en' ? 'Your Business Name' : 'Nombre de tu Negocio'}
+                  placeholder={t('yourBusinessName') || 'Your Business Name'}
                 />
               </div>
               <div>
@@ -653,27 +645,27 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Address' : 'Dirección'}
+                  {t('address') || 'Address'}
                 </label>
                 <input
                   type="text"
                   className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={businessInfo.address}
                   onChange={(e) => setBusinessInfo({...businessInfo, address: e.target.value})}
-                  placeholder={language === 'en' ? '123 Main Street' : '123 Calle Principal'}
+                  placeholder={t('addressPlaceholder') || '123 Main Street'}
                 />
               </div>
               {/* Country Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Country' : 'País'}
+                  {t('country') || 'Country'}
                 </label>
                 <select
                   className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={businessInfo.country}
                   onChange={(e) => handleCountryChange(e.target.value)}
                 >
-                  <option value="">{language === 'en' ? 'Select Country' : 'Seleccionar País'}</option>
+                  <option value="">{t('selectCountry') || 'Select Country'}</option>
                   {countries.map(country => (
                     <option key={country.code} value={country.code}>
                       {country.name}
@@ -685,7 +677,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'State/Province' : 'Estado/Provincia'}
+                    {t('stateProvince') || 'State/Province'}
                   </label>
                   <select
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -693,7 +685,7 @@ export default function SettingsPage() {
                     onChange={(e) => handleStateChange(e.target.value)}
                     disabled={!businessInfo.country}
                   >
-                    <option value="">{language === 'en' ? 'Select State/Province' : 'Seleccionar Estado/Provincia'}</option>
+                    <option value="">{t('selectStateProvince') || 'Select State/Province'}</option>
                     {availableStates.map(state => (
                       <option key={state.code} value={state.code}>
                         {state.name}
@@ -703,7 +695,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {language === 'en' ? 'City' : 'Ciudad'}
+                    {t('city') || 'City'}
                   </label>
                   <select
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -711,7 +703,7 @@ export default function SettingsPage() {
                     onChange={(e) => setBusinessInfo({...businessInfo, city: e.target.value})}
                     disabled={!businessInfo.country}
                   >
-                    <option value="">{language === 'en' ? 'Select City' : 'Seleccionar Ciudad'}</option>
+                    <option value="">{t('selectCity') || 'Select City'}</option>
                     {availableCities.map(city => (
                       <option key={city} value={city}>
                         {city}
@@ -722,7 +714,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Postal Code' : 'Código Postal'}
+                  {t('postalCode') || 'Postal Code'}
                 </label>
                 <input
                   type="text"
@@ -734,21 +726,21 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {language === 'en' ? 'Description' : 'Descripción'}
+                  {t('descriptionTitle') || 'Description'}
                 </label>
                 <textarea
                   className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   rows={3}
                   value={businessInfo.description}
                   onChange={(e) => setBusinessInfo({...businessInfo, description: e.target.value})}
-                  placeholder={language === 'en' ? 'Brief description of your business' : 'Breve descripción de tu negocio'}
+                  placeholder={t('businessDescriptionPlaceholder') || 'Brief description of your business'}
                 />
               </div>
               
               {/* Business Logo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Business Logo' : 'Logo del Negocio'}
+                  {t('businessLogoTitle') || 'Business Logo'}
                 </label>
                 <div className="flex items-center space-x-4">
                   <div className="relative">
@@ -781,13 +773,11 @@ export default function SettingsPage() {
                       className="hidden"
                     />
                     <p className="text-sm text-gray-500">
-                      {language === 'en' 
-                        ? 'Click the camera icon to upload your business logo. Large images will be automatically optimized.'
-                        : 'Haz clic en el ícono de la cámara para subir el logo de tu negocio. Las imágenes grandes se optimizarán automáticamente.'}
+                      {t('logoUploadHint') || 'Click the camera icon to upload your business logo. Large images will be automatically optimized.'}
                     </p>
                     {uploadingLogo && (
                       <p className="text-sm text-blue-600">
-                        {language === 'en' ? 'Uploading...' : 'Subiendo...'}
+                        {t('uploading') || 'Uploading...'}
                       </p>
                     )}
                   </div>
@@ -796,7 +786,7 @@ export default function SettingsPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Business Type' : 'Tipo de Negocio'}
+                  {t('businessType') || 'Business Type'}
                 </label>
                 <BusinessTypeSelector 
                   value={businessInfo.businessType}
@@ -809,7 +799,7 @@ export default function SettingsPage() {
                 disabled={saving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                {saving ? (t('saving') || 'Saving...') : t('saveChanges')}
               </button>
             </form>
           </div>
@@ -817,31 +807,31 @@ export default function SettingsPage() {
           {/* Schedule Settings */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Schedule Settings' : 'Configuración de Horarios'}
+              {t('scheduleSettingsTitle') || 'Schedule Settings'}
             </h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Time Interval (minutes)' : 'Intervalo de Tiempo (minutos)'}
+                  {t('timeIntervalMinutes') || 'Time Interval (minutes)'}
                 </label>
                 <select
                   className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   value={scheduleSettings.timeInterval}
                   onChange={(e) => setScheduleSettings({...scheduleSettings, timeInterval: parseInt(e.target.value)})}
                 >
-                  <option value="15">15 {language === 'en' ? 'minutes' : 'minutos'}</option>
-                  <option value="30">30 {language === 'en' ? 'minutes' : 'minutos'}</option>
-                  <option value="45">45 {language === 'en' ? 'minutes' : 'minutos'}</option>
-                  <option value="60">1 {language === 'en' ? 'hour' : 'hora'}</option>
-                  <option value="90">1.5 {language === 'en' ? 'hours' : 'horas'}</option>
-                  <option value="120">2 {language === 'en' ? 'hours' : 'horas'}</option>
+                  <option value="15">15 {t('minutesWord') || 'minutes'}</option>
+                  <option value="30">30 {t('minutesWord') || 'minutes'}</option>
+                  <option value="45">45 {t('minutesWord') || 'minutes'}</option>
+                  <option value="60">1 {t('hourLower') || 'hour'}</option>
+                  <option value="90">1.5 {t('hoursLower') || 'hours'}</option>
+                  <option value="120">2 {t('hoursLower') || 'hours'}</option>
                 </select>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'en' ? 'Start Time' : 'Hora de Inicio'}
+                    {t('startTime') || 'Start Time'}
                   </label>
                   <input
                     type="time"
@@ -852,7 +842,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {language === 'en' ? 'End Time' : 'Hora de Fin'}
+                    {t('endTime') || 'End Time'}
                   </label>
                   <input
                     type="time"
@@ -865,17 +855,17 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {language === 'en' ? 'Working Days' : 'Días de Trabajo'}
+                  {t('workingDays') || 'Working Days'}
                 </label>
                 <div className="grid grid-cols-7 gap-2">
                   {[
-                    {day: 0, name: language === 'en' ? 'Sun' : 'Dom'},
-                    {day: 1, name: language === 'en' ? 'Mon' : 'Lun'},
-                    {day: 2, name: language === 'en' ? 'Tue' : 'Mar'},
-                    {day: 3, name: language === 'en' ? 'Wed' : 'Mié'},
-                    {day: 4, name: language === 'en' ? 'Thu' : 'Jue'},
-                    {day: 5, name: language === 'en' ? 'Fri' : 'Vie'},
-                    {day: 6, name: language === 'en' ? 'Sat' : 'Sáb'}
+                    {day: 0, name: t('sunShort') || 'Sun'},
+                    {day: 1, name: t('monShort') || 'Mon'},
+                    {day: 2, name: t('tueShort') || 'Tue'},
+                    {day: 3, name: t('wedShort') || 'Wed'},
+                    {day: 4, name: t('thuShort') || 'Thu'},
+                    {day: 5, name: t('friShort') || 'Fri'},
+                    {day: 6, name: t('satShort') || 'Sat'}
                   ].map(({day, name}) => (
                     <button
                       key={day}
@@ -898,7 +888,7 @@ export default function SettingsPage() {
                 disabled={saving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                {saving ? (t('saving') || 'Saving...') : t('saveChanges')}
               </button>
             </div>
           </div>
@@ -906,7 +896,7 @@ export default function SettingsPage() {
           {/* Notification Settings */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Notification Settings' : 'Configuración de Notificaciones'}
+            {t('notificationSettingsTitle') || 'Notification Settings'}
             </h2>
             <div className="space-y-4">
               <label className="flex items-center">
@@ -917,7 +907,7 @@ export default function SettingsPage() {
                   onChange={(e) => setNotifications({...notifications, emailNotifications: e.target.checked})}
                 />
                 <span className="ml-2 text-sm text-gray-700">
-                  {language === 'en' ? 'Email notifications' : 'Notificaciones por correo'}
+                  {t('emailNotifications') || 'Email notifications'}
                 </span>
               </label>
               <label className="flex items-center">
@@ -928,7 +918,7 @@ export default function SettingsPage() {
                   onChange={(e) => setNotifications({...notifications, smsNotifications: e.target.checked})}
                 />
                 <span className="ml-2 text-sm text-gray-700">
-                  {language === 'en' ? 'SMS notifications' : 'Notificaciones por SMS'}
+                  {t('smsNotifications') || 'SMS notifications'}
                 </span>
               </label>
               <label className="flex items-center">
@@ -939,7 +929,7 @@ export default function SettingsPage() {
                   onChange={(e) => setNotifications({...notifications, appointmentReminders: e.target.checked})}
                 />
                 <span className="ml-2 text-sm text-gray-700">
-                  {language === 'en' ? 'Appointment reminders' : 'Recordatorios de citas'}
+                  {t('appointmentReminders') || 'Appointment reminders'}
                 </span>
               </label>
               <button
@@ -947,7 +937,7 @@ export default function SettingsPage() {
                 disabled={saving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                {saving ? (t('saving') || 'Saving...') : t('saveChanges')}
               </button>
             </div>
           </div>
@@ -964,7 +954,7 @@ export default function SettingsPage() {
           {/* Email Configuration */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Email Configuration' : 'Configuración de Email'}
+              {t('emailConfigurationTitle') || 'Email Configuration'}
             </h2>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <div className="flex">
@@ -973,14 +963,10 @@ export default function SettingsPage() {
                 </svg>
                 <div>
                   <p className="text-sm text-green-800">
-                    {language === 'en' 
-                      ? 'Email confirmations are configured and working with Gmail.'
-                      : 'Las confirmaciones por email están configuradas y funcionando con Gmail.'}
+                    {t('emailConfiguredGmail') || 'Email confirmations are configured and working with Gmail.'}
                   </p>
                   <p className="text-xs text-green-700 mt-1">
-                    {language === 'en' 
-                      ? 'Emails are being sent successfully to customers with calendar attachments (.ics files).'
-                      : 'Los emails se están enviando exitosamente a los clientes con archivos de calendario adjuntos (.ics).'}
+                    {t('emailsSentWithIcs') || 'Emails are being sent successfully to customers with calendar attachments (.ics files).'}
                   </p>
                 </div>
               </div>
@@ -988,18 +974,18 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">
-                  {language === 'en' ? 'Send confirmation emails' : 'Enviar emails de confirmación'}
+                  {t('sendConfirmationEmails') || 'Send confirmation emails'}
                 </span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  {language === 'en' ? 'Active' : 'Activo'}
+                  {t('active') || 'Active'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">
-                  {language === 'en' ? 'Include calendar file (.ics)' : 'Incluir archivo de calendario (.ics)'}
+                  {t('includeCalendarFile') || 'Include calendar file (.ics)'}
                 </span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  {language === 'en' ? 'Active' : 'Activo'}
+                  {t('active') || 'Active'}
                 </span>
               </div>
             </div>
@@ -1008,19 +994,17 @@ export default function SettingsPage() {
           {/* Data Management */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Data Management' : 'Gestión de Datos'}
+              {t('dataManagementTitle') || 'Data Management'}
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              {language === 'en' 
-                ? 'Manage your stored data. Be careful, these actions cannot be undone.'
-                : 'Gestiona tus datos almacenados. Ten cuidado, estas acciones no se pueden deshacer.'}
+              {t('dataManagementHelp') || 'Manage your stored data. Be careful, these actions cannot be undone.'}
             </p>
             <div className="space-y-4">
               <button
                 onClick={handleClearData}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
-                {language === 'en' ? 'Clear All Data' : 'Eliminar Todos los Datos'}
+                {t('clearAllData') || 'Clear All Data'}
               </button>
             </div>
           </div>

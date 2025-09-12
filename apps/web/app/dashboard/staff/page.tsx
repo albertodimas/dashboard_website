@@ -51,7 +51,7 @@ const DAYS_OF_WEEK = [
 
 export default function StaffPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [staff, setStaff] = useState<Staff[]>([])
   const [business, setBusiness] = useState<Business | null>(null)
@@ -159,7 +159,7 @@ export default function StaffPage() {
 
     // Validar tipo de archivo
     if (!originalFile.type.startsWith('image/')) {
-      alert(t('language') === 'en' ? 'Please select an image file' : 'Por favor selecciona un archivo de imagen')
+      alert(t('pleaseSelectImageFile') || 'Please select an image file')
       return
     }
 
@@ -168,31 +168,19 @@ export default function StaffPage() {
     try {
       // Mostrar tamaño original
       const originalSize = formatFileSize(originalFile.size)
-      setUploadProgress(
-        t('language') === 'en' 
-          ? `Processing image (${originalSize})...` 
-          : `Procesando imagen (${originalSize})...`
-      )
+      setUploadProgress(t('processingImageWithSize') || `Processing image (${originalSize})...`)
 
       // Comprimir imagen automáticamente si es necesaria
       let fileToUpload = originalFile
       
       // Si la imagen es mayor a 5MB, comprimirla
       if (originalFile.size > 5 * 1024 * 1024) {
-        setUploadProgress(
-          t('language') === 'en' 
-            ? 'Compressing image...' 
-            : 'Comprimiendo imagen...'
-        )
+        setUploadProgress(t('compressingImage') || 'Compressing image...')
         
         fileToUpload = await compressImage(originalFile, 5) // Comprimir a máximo 5MB
         
         const newSize = formatFileSize(fileToUpload.size)
-        setUploadProgress(
-          t('language') === 'en' 
-            ? `Image compressed from ${originalSize} to ${newSize}` 
-            : `Imagen comprimida de ${originalSize} a ${newSize}`
-        )
+        setUploadProgress((t('imageCompressedFromTo') || 'Image compressed from {a} to {b}').replace('{a}', originalSize).replace('{b}', newSize))
       }
 
       // Crear preview local inmediatamente antes de comprimir
@@ -210,11 +198,7 @@ export default function StaffPage() {
         formData.append('id', `staff_${selectedStaff.id}`)
       }
 
-      setUploadProgress(
-        t('language') === 'en' 
-          ? 'Uploading image...' 
-          : 'Subiendo imagen...'
-      )
+      setUploadProgress(t('uploadingImage') || 'Uploading image...')
 
       // Subir imagen
       const response = await fetch('/api/upload', {
@@ -234,17 +218,13 @@ export default function StaffPage() {
       // Actualizar preview con la URL del servidor
       setPhotoPreview(data.url)
       
-      setUploadProgress(
-        t('language') === 'en' 
-          ? 'Image uploaded successfully!' 
-          : '¡Imagen subida exitosamente!'
-      )
+      setUploadProgress(t('imageUploadedSuccessfully') || 'Image uploaded successfully!')
       
       // Limpiar mensaje después de 3 segundos
       setTimeout(() => setUploadProgress(''), 3000)
     } catch (error) {
       console.error('Error uploading photo:', error)
-      alert(t('language') === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
+      alert(t('failedToUploadImage') || 'Failed to upload image')
       setUploadProgress('')
     } finally {
       setUploadingPhoto(false)
@@ -291,16 +271,14 @@ export default function StaffPage() {
       setUploadProgress('')
     } catch (error) {
       console.error('Error saving staff:', error)
-      alert(t('language') === 'en' ? 'Failed to save staff member' : 'Error al guardar el trabajador')
+      alert(t('failedToSaveStaffMember') || 'Failed to save staff member')
     } finally {
       setSaving(false)
     }
   }
 
   const handleDeleteStaff = async (staffId: string) => {
-    if (!confirm(t('language') === 'en' 
-      ? 'Are you sure you want to delete this staff member?' 
-      : '¿Estás seguro de que quieres eliminar este trabajador?')) {
+    if (!confirm(t('deleteStaffConfirm') || 'Are you sure you want to delete this staff member?')) {
       return
     }
 
@@ -341,13 +319,13 @@ export default function StaffPage() {
       }
 
       await loadStaff()
-      alert(t('language') === 'en' ? 'Schedule saved successfully' : 'Horario guardado exitosamente')
+      alert(t('scheduleSaved') || 'Schedule saved successfully')
       // Cerrar el modal después de guardar exitosamente
       setShowScheduleModal(false)
       setSelectedStaff(null)
     } catch (error) {
       console.error('Error saving schedule:', error)
-      alert(t('language') === 'en' ? 'Failed to save schedule' : 'Error al guardar el horario')
+      alert(t('failedToSaveSchedule') || 'Failed to save schedule')
     } finally {
       setSaving(false)
     }
@@ -390,14 +368,8 @@ export default function StaffPage() {
     return (
       <DashboardLayout>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-yellow-900 mb-2">
-            {t('language') === 'en' ? 'Staff Module Not Enabled' : 'Módulo de Trabajadores No Habilitado'}
-          </h2>
-          <p className="text-yellow-700">
-            {t('language') === 'en' 
-              ? 'The staff management module is not enabled for your business. Please contact the administrator to enable this feature.'
-              : 'El módulo de gestión de trabajadores no está habilitado para tu negocio. Por favor contacta al administrador para habilitar esta función.'}
-          </p>
+            <h2 className="text-lg font-semibold text-yellow-900 mb-2">{t('staffModuleNotEnabled') || 'Staff Module Not Enabled'}</h2>
+          <p className="text-yellow-700">{t('staffModuleNotEnabledDesc') || 'The staff management module is not enabled for your business. Please contact the administrator to enable this feature.'}</p>
         </div>
       </DashboardLayout>
     )
@@ -410,12 +382,10 @@ export default function StaffPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {t('language') === 'en' ? 'Staff Management' : 'Gestión de Trabajadores'}
+              {t('staffManagement') || 'Staff Management'}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              {t('language') === 'en' 
-                ? 'Manage your staff members, schedules, and availability'
-                : 'Gestiona tus trabajadores, horarios y disponibilidad'}
+              {t('staffManagementSubtitle') || 'Manage your staff members, schedules, and availability'}
             </p>
           </div>
           <button
@@ -438,7 +408,7 @@ export default function StaffPage() {
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            {t('language') === 'en' ? '+ Add Staff Member' : '+ Agregar Trabajador'}
+            {t('addStaffMemberBtn') || '+ Add Staff Member'}
           </button>
         </div>
 
@@ -447,9 +417,7 @@ export default function StaffPage() {
         {staff.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-500 mb-4">
-              {t('language') === 'en' 
-                ? 'No staff members found. Add your first staff member to get started.'
-                : 'No se encontraron trabajadores. Agrega tu primer trabajador para comenzar.'}
+              {t('noStaffMembersFound') || 'No staff members found. Add your first staff member to get started.'}
             </p>
             <button
               onClick={() => {
@@ -470,7 +438,7 @@ export default function StaffPage() {
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              {t('language') === 'en' ? '+ Add First Staff Member' : '+ Agregar Primer Trabajador'}
+              {t('addFirstStaffMemberBtn') || '+ Add First Staff Member'}
             </button>
           </div>
         ) : (
@@ -505,10 +473,10 @@ export default function StaffPage() {
                       : 'bg-gray-100 text-gray-800'
                   }`}>
                     {member.isActive && member.canAcceptBookings
-                      ? (t('language') === 'en' ? 'Available' : 'Disponible')
+                      ? (t('availableLabel') || 'Available')
                       : member.isActive
-                      ? (t('language') === 'en' ? 'Busy' : 'Ocupado')
-                      : (t('language') === 'en' ? 'Inactive' : 'Inactivo')}
+                      ? (t('busyLabel') || 'Busy')
+                      : (t('inactive') || 'Inactive')}
                   </span>
                 </div>
               </div>
@@ -568,10 +536,10 @@ export default function StaffPage() {
                 {/* Stats */}
                 <div className="mt-3 pt-3 border-t flex justify-between text-sm text-gray-600">
                   <span>
-                    {member._count?.appointments || 0} {t('language') === 'en' ? 'appointments' : 'citas'}
+                    {member._count?.appointments || 0} {t('appointmentsLower') || 'appointments'}
                   </span>
                   <span>
-                    {member._count?.staffReviews || 0} {t('language') === 'en' ? 'reviews' : 'reseñas'}
+                    {member._count?.staffReviews || 0} {t('reviewsLower') || 'reviews'}
                   </span>
                 </div>
 
@@ -599,19 +567,19 @@ export default function StaffPage() {
                     }}
                     className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
                   >
-                    {t('language') === 'en' ? 'Schedule' : 'Horario'}
+                    {t('schedule') || 'Schedule'}
                   </button>
                   <button
                     onClick={() => openEditModal(member)}
                     className="flex-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    {t('language') === 'en' ? 'Edit' : 'Editar'}
+                    {t('edit') || 'Edit'}
                   </button>
                   <button
                     onClick={() => handleDeleteStaff(member.id)}
                     className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50"
                   >
-                    {t('language') === 'en' ? 'Delete' : 'Eliminar'}
+                    {t('delete') || 'Delete'}
                   </button>
                 </div>
               </div>
@@ -625,17 +593,13 @@ export default function StaffPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
-                <h2 className="text-xl font-bold mb-4">
-                  {selectedStaff 
-                    ? (t('language') === 'en' ? 'Edit Staff Member' : 'Editar Trabajador')
-                    : (t('language') === 'en' ? 'Add Staff Member' : 'Agregar Trabajador')}
-                </h2>
+                <h2 className="text-xl font-bold mb-4">{selectedStaff ? (t('editStaffMember') || 'Edit Staff Member') : (t('addStaffMember') || 'Add Staff Member')}</h2>
 
                 <div className="space-y-4">
                   {/* Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Name' : 'Nombre'} *
+                      {t('name') || 'Name'} *
                     </label>
                     <input
                       type="text"
@@ -649,7 +613,7 @@ export default function StaffPage() {
                   {/* Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Email' : 'Correo'} *
+                      {t('email') || 'Email'} *
                     </label>
                     <input
                       type="email"
@@ -663,7 +627,7 @@ export default function StaffPage() {
                   {/* Phone */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Phone' : 'Teléfono'}
+                      {t('phone') || 'Phone'}
                     </label>
                     <input
                       type="tel"
@@ -676,7 +640,7 @@ export default function StaffPage() {
                   {/* Photo Upload */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Photo' : 'Foto'}
+                      {t('photo') || 'Photo'}
                     </label>
                     
                     {/* Hidden file input */}
@@ -698,15 +662,11 @@ export default function StaffPage() {
                           className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                         >
                           {uploadingPhoto 
-                            ? (t('language') === 'en' ? 'Uploading...' : 'Subiendo...')
-                            : (t('language') === 'en' ? 'Choose Photo' : 'Elegir Foto')
+                            ? (t('uploading') || 'Uploading...')
+                            : (t('choosePhoto') || 'Choose Photo')
                           }
                         </button>
-                        <p className="mt-2 text-xs text-gray-500">
-                          {t('language') === 'en' 
-                            ? 'Any size image - automatically compressed' 
-                            : 'Cualquier tamaño - se comprime automáticamente'}
-                        </p>
+                        <p className="mt-2 text-xs text-gray-500">{t('anySizeImageCompressed') || 'Any size image - automatically compressed'}</p>
                         {uploadProgress && (
                           <div className="mt-2 flex items-center gap-2">
                             {uploadingPhoto && (
@@ -761,7 +721,7 @@ export default function StaffPage() {
                   {/* Bio */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Bio' : 'Biografía'}
+                      {t('bio') || 'Bio'}
                     </label>
                     <textarea
                       value={formData.bio}
@@ -774,7 +734,7 @@ export default function StaffPage() {
                   {/* Specialties */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('language') === 'en' ? 'Specialties' : 'Especialidades'}
+                      {t('specialties') || 'Specialties'}
                     </label>
                     <div className="flex gap-2 mb-2">
                       <input
@@ -783,14 +743,14 @@ export default function StaffPage() {
                         onChange={(e) => setSpecialtyInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpecialty())}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                        placeholder={t('language') === 'en' ? 'Add specialty' : 'Agregar especialidad'}
+                        placeholder={t('addSpecialtyPlaceholder') || 'Add specialty'}
                       />
                       <button
                         type="button"
                         onClick={handleAddSpecialty}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
-                        {t('language') === 'en' ? 'Add' : 'Agregar'}
+                        {t('add') || 'Add'}
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -822,7 +782,7 @@ export default function StaffPage() {
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">
-                        {t('language') === 'en' ? 'Active' : 'Activo'}
+                        {t('active') || 'Active'}
                       </span>
                     </label>
                     <label className="flex items-center gap-2">
@@ -833,7 +793,7 @@ export default function StaffPage() {
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                       />
                       <span className="text-sm font-medium text-gray-700">
-                        {t('language') === 'en' ? 'Can Accept Bookings' : 'Puede Aceptar Reservas'}
+                        {t('canAcceptBookings') || 'Can Accept Bookings'}
                       </span>
                     </label>
                   </div>
@@ -848,16 +808,14 @@ export default function StaffPage() {
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                   >
-                    {t('language') === 'en' ? 'Cancel' : 'Cancelar'}
+                    {t('cancelBtn') || 'Cancel'}
                   </button>
                   <button
                     onClick={handleSaveStaff}
                     disabled={saving || !formData.name || !formData.email}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving 
-                      ? (t('language') === 'en' ? 'Saving...' : 'Guardando...')
-                      : (t('language') === 'en' ? 'Save' : 'Guardar')}
+                    {saving ? (t('saving') || 'Saving...') : (t('saveChanges') || 'Save')}
                   </button>
                 </div>
               </div>
@@ -871,18 +829,18 @@ export default function StaffPage() {
             <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h2 className="text-xl font-bold mb-4">
-                  {t('language') === 'en' ? 'Set Working Hours' : 'Configurar Horario'} - {selectedStaff.name}
+                  {t('setWorkingHours') || 'Set Working Hours'} - {selectedStaff.name}
                 </h2>
 
                 {/* Apply to All Days */}
                 <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                   <h3 className="text-sm font-semibold text-blue-900 mb-3">
-                    {t('language') === 'en' ? 'Quick Setup' : 'Configuración Rápida'}
+                    {t('quickSetup') || 'Quick Setup'}
                   </h3>
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
                       <label className="block text-xs text-gray-600 mb-1">
-                        {t('language') === 'en' ? 'Start' : 'Inicio'}
+                        {t('start') || 'Start'}
                       </label>
                       <input
                         type="time"
@@ -893,7 +851,7 @@ export default function StaffPage() {
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs text-gray-600 mb-1">
-                        {t('language') === 'en' ? 'End' : 'Fin'}
+                        {t('end') || 'End'}
                       </label>
                       <input
                         type="time"
@@ -918,7 +876,7 @@ export default function StaffPage() {
                       }}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                     >
-                      {t('language') === 'en' ? 'Apply to All' : 'Aplicar a Todos'}
+                      {t('applyToAll') || 'Apply to All'}
                     </button>
                   </div>
                 </div>
@@ -926,7 +884,7 @@ export default function StaffPage() {
                 {/* Individual Days */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-gray-700">
-                    {t('language') === 'en' ? 'Individual Days' : 'Días Individuales'}
+                    {t('individualDays') || 'Individual Days'}
                   </h3>
                   {DAYS_OF_WEEK.map(day => (
                     <div key={day.value} className="flex items-center gap-3 p-3 border rounded-lg">
@@ -944,9 +902,7 @@ export default function StaffPage() {
                         }}
                         className="w-4 h-4 text-blue-600"
                       />
-                      <div className="w-24 font-medium text-sm">
-                        {t('language') === 'en' ? day.label : day.labelEs}
-                      </div>
+                      <div className="w-24 font-medium text-sm">{day.label}</div>
                       <input
                         type="time"
                         value={scheduleData[day.value]?.startTime || '09:00'}
@@ -985,15 +941,13 @@ export default function StaffPage() {
                 {/* Current Schedule */}
                 {selectedStaff.workingHours && selectedStaff.workingHours.length > 0 && (
                   <div className="mt-4 pt-4 border-t">
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">
-                      {t('language') === 'en' ? 'Current Schedule' : 'Horario Actual'}
-                    </h3>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">{t('currentSchedule') || 'Current Schedule'}</h3>
                     <div className="space-y-1 text-sm">
                       {selectedStaff.workingHours.map(wh => {
                         const day = DAYS_OF_WEEK.find(d => d.value === wh.dayOfWeek)
                         return (
                           <div key={wh.id} className="flex justify-between">
-                            <span>{t('language') === 'en' ? day?.label : day?.labelEs}</span>
+                            <span>{day?.label}</span>
                             <span>{wh.startTime} - {wh.endTime}</span>
                           </div>
                         )
@@ -1011,16 +965,14 @@ export default function StaffPage() {
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                   >
-                    {t('language') === 'en' ? 'Cancel' : 'Cancelar'}
+                    {t('cancelBtn') || 'Cancel'}
                   </button>
                   <button
                     onClick={handleSaveSchedule}
                     disabled={saving}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving 
-                      ? (t('language') === 'en' ? 'Saving...' : 'Guardando...')
-                      : (t('language') === 'en' ? 'Save' : 'Guardar')}
+                    {saving ? (t('saving') || 'Saving...') : (t('saveChanges') || 'Save')}
                   </button>
                 </div>
               </div>
@@ -1031,3 +983,4 @@ export default function StaffPage() {
     </DashboardLayout>
   )
 }
+

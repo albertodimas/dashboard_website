@@ -28,7 +28,7 @@ interface Service {
 
 export default function AppointmentsPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -410,7 +410,7 @@ export default function AppointmentsPage() {
                     <div className="text-sm text-gray-900">{appointment.service}</div>
                     {appointment.status === 'cancelled' && (
                       <div className="text-xs text-red-600 mt-1">
-                        {appointment.cancellationReason?.trim() || (t('language') === 'en' ? 'Cancelled by customer' : 'Cancelado por el cliente')}
+                        {appointment.cancellationReason?.trim() || (t('cancelledByCustomer'))}
                       </div>
                     )}
                   </td>
@@ -436,7 +436,7 @@ export default function AppointmentsPage() {
                         appointment.status !== 'cancelled' ? 'hover:scale-105 hover:shadow-md cursor-pointer active:scale-95' : 'cursor-not-allowed opacity-75'
                       }`}
                       disabled={appointment.status === 'cancelled'}
-                      title={appointment.status !== 'cancelled' ? (t('language') === 'en' ? 'Click to change status' : 'Clic para cambiar estado') : ''}
+                      title={appointment.status !== 'cancelled' ? (t('clickToChangeStatus')) : ''}
                     >
                       {getStatusText(appointment.status)}
                     </button>
@@ -569,7 +569,7 @@ export default function AppointmentsPage() {
                     disabled={saving}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving ? (t('language') === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                    {saving ? t('saving') : t('saveChanges')}
                   </button>
                 </div>
               </form>
@@ -675,7 +675,7 @@ export default function AppointmentsPage() {
                     disabled={saving}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving ? (t('language') === 'en' ? 'Creating...' : 'Creando...') : t('createAppointment')}
+                    {saving ? t('creating') : t('createAppointment')}
                   </button>
                 </div>
               </form>
@@ -686,3 +686,5 @@ export default function AppointmentsPage() {
     </div>
   )
 }
+
+

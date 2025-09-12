@@ -13,17 +13,19 @@ interface DatePickerProps {
 export default function DatePicker({ value, onChange, placeholder, className = '' }: DatePickerProps) {
   const { language } = useLanguage()
   const inputRef = useRef<HTMLInputElement>(null)
+  const localeMap: Record<string, string> = { en: 'en-US', es: 'es-ES' }
+  const locale = localeMap[language] || 'en-US'
   
   // Set the language attribute when language changes
   useEffect(() => {
     if (inputRef.current) {
       // Force the browser to use the correct locale
-      inputRef.current.setAttribute('lang', language === 'en' ? 'en-US' : 'es-ES')
+      inputRef.current.setAttribute('lang', locale)
       
       // For some browsers, we need to set the locale on the parent element too
       const parent = inputRef.current.parentElement
       if (parent) {
-        parent.setAttribute('lang', language === 'en' ? 'en-US' : 'es-ES')
+        parent.setAttribute('lang', locale)
       }
     }
   }, [language])
@@ -35,9 +37,9 @@ export default function DatePicker({ value, onChange, placeholder, className = '
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={className}
-      lang={language === 'en' ? 'en-US' : 'es-ES'}
+      lang={locale}
       placeholder={placeholder}
-      data-lang={language === 'en' ? 'en-US' : 'es-ES'}
+      data-lang={locale}
     />
   )
 }

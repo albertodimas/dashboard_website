@@ -22,7 +22,6 @@ export default function DashboardNav() {
         const response = await fetch('/api/dashboard/business')
         if (response.ok) {
           const data = await response.json()
-          console.log('Business data received:', data) // Debug log
           if (data.name) {
             setBusinessName(data.name)
           }
@@ -49,22 +48,22 @@ export default function DashboardNav() {
   const navItems = [
     { href: '/dashboard/appointments', label: t('appointments') },
     { href: '/dashboard/services', label: t('services') },
-    ...(isProjectMode ? [{ href: '/dashboard/project-requests', label: (t('language') === 'en' ? '🛠 Project Requests' : '🛠 Solicitudes'), highlight: true }] : []),
+    ...(isProjectMode ? [{ href: '/dashboard/project-requests', label: `🛠 ${t('projectRequestsNav') || 'Project Requests'}`, highlight: true }] : []),
     ...(enablePackagesModule ? [
       {
         href: '/dashboard/packages', 
-        label: t('language') === 'en' ? '📦 Packages' : '📦 Paquetes',
+        label: `📦 ${t('packagesNav') || t('packagesSection') || 'Packages'}`,
         highlight: true 
       },
       {
         href: '/dashboard/package-purchases', 
-        label: t('language') === 'en' ? '💳 Purchases' : '💳 Compras',
+        label: `💳 ${t('purchasesNav') || t('allPurchases') || 'Purchases'}`,
         highlight: true
       }
     ] : []),
     ...(enableStaffModule ? [{ 
       href: '/dashboard/staff', 
-      label: t('language') === 'en' ? '👥 Staff' : '👥 Trabajadores',
+      label: `👥 ${t('staffNav') || 'Staff'}`,
       highlight: true 
     }] : []),
     { href: '/dashboard/gallery', label: t('gallery') },

@@ -243,54 +243,52 @@ export default function CustomersPage() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{t('customers')}</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              {t('language') === 'en' ? 'Manage your customer relationships and history' : 'Gestiona las relaciones e historial de tus clientes'}
-            </p>
+            <p className="mt-2 text-sm text-gray-600">{t('customersSubtitle') || 'Manage your customer relationships and history'}</p>
           </div>
           <button 
             onClick={() => setShowAddModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
-            {t('language') === 'en' ? '+ Add Customer' : '+ Agregar Cliente'}
+            {t('addCustomerBtn')}
           </button>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">{t('language') === 'en' ? 'Total Customers' : 'Total de Clientes'}</div>
+            <div className="text-sm text-gray-500">{t('totalCustomers')}</div>
             <div className="text-2xl font-bold text-gray-900">{customers.length}</div>
             <div className="text-xs text-gray-600">
               {customers.length === 0 
-                ? (t('language') === 'en' ? 'No customers yet' : 'Sin clientes aún')
-                : (t('language') === 'en' ? 'All time total' : 'Total histórico')}
+                ? t('noCustomers')
+                : t('allTimeTotal')}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">{t('language') === 'en' ? 'Active Customers' : 'Clientes Activos'}</div>
+            <div className="text-sm text-gray-500">{t('activeCustomers')}</div>
             <div className="text-2xl font-bold text-gray-900">
               {customers.filter(c => c.status === 'active').length}
             </div>
-            <div className="text-xs text-gray-600">{t('language') === 'en' ? 'Regular visitors' : 'Visitantes regulares'}</div>
+            <div className="text-xs text-gray-600">{t('regularVisitors')}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">{t('language') === 'en' ? 'Average Visits' : 'Visitas Promedio'}</div>
+            <div className="text-sm text-gray-500">{t('averageVisits')}</div>
             <div className="text-2xl font-bold text-gray-900">
               {customers.length > 0 
                 ? (customers.reduce((sum, c) => sum + c.totalVisits, 0) / customers.length).toFixed(1)
                 : '0'}
             </div>
-            <div className="text-xs text-gray-600">{t('language') === 'en' ? 'Per customer' : 'Por cliente'}</div>
+            <div className="text-xs text-gray-600">{t('perCustomer')}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">{t('language') === 'en' ? 'Total Revenue' : 'Ingresos Totales'}</div>
+            <div className="text-sm text-gray-500">{t('totalRevenue')}</div>
             <div className="text-2xl font-bold text-gray-900">
               ${customers.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
             </div>
             <div className="text-xs text-gray-600">
               {customers.length === 0 
-                ? (t('language') === 'en' ? 'No revenue yet' : 'Sin ingresos aún')
-                : (t('language') === 'en' ? 'All time revenue' : 'Ingresos totales')}
+                ? t('noRevenueYet')
+                : t('allTimeRevenue')}
             </div>
           </div>
         </div>
@@ -299,7 +297,7 @@ export default function CustomersPage() {
         <div className="mb-6">
           <input
             type="text"
-            placeholder={t('language') === 'en' ? 'Search customers by name, email, or phone...' : 'Buscar clientes por nombre, email o teléfono...'}
+            placeholder={t('searchCustomers')}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -312,22 +310,22 @@ export default function CustomersPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Customer' : 'Cliente'}
+                  {t('customer')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Contact' : 'Contacto'}
+                  {t('contact')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Visits' : 'Visitas'}
+                  {t('visits')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Total Spent' : 'Total Gastado'}
+                  {t('totalSpent')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Last Visit' : 'Última Visita'}
+                  {t('lastVisit')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('language') === 'en' ? 'Active Sessions' : 'Sesiones Activas'}
+                  {t('activeSessions')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('status')}
@@ -372,7 +370,7 @@ export default function CustomersPage() {
                       onClick={() => handleViewSessions(customer)}
                       className="text-blue-600 hover:text-blue-900 text-sm font-medium"
                     >
-                      {t('language') === 'en' ? 'View Sessions' : 'Ver Sesiones'}
+                      {t('viewSessions')}
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -382,8 +380,8 @@ export default function CustomersPage() {
                         : 'bg-gray-100 text-gray-800'
                     }`}>
                       {customer.status === 'active' 
-                        ? (t('language') === 'en' ? 'Active' : 'Activo')
-                        : (t('language') === 'en' ? 'Inactive' : 'Inactivo')}
+                        ? t('active')
+                        : t('inactive')}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -414,7 +412,7 @@ export default function CustomersPage() {
 
         {filteredCustomers.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg">
-            <p className="text-gray-500">{t('language') === 'en' ? 'No customers found matching your search.' : 'No se encontraron clientes que coincidan con tu búsqueda.'}</p>
+            <p className="text-gray-500">{t('noCustomers')}</p>
           </div>
         )}
 
@@ -529,7 +527,7 @@ export default function CustomersPage() {
                     disabled={saving}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving ? (t('language') === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                    {saving ? t('saving') : t('saveChanges')}
                   </button>
                 </div>
               </form>
@@ -592,7 +590,7 @@ export default function CustomersPage() {
                     disabled={saving}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving ? (t('language') === 'en' ? 'Adding...' : 'Agregando...') : 'Add Customer'}
+                    {saving ? t('adding') : t('addCustomer')}
                   </button>
                 </div>
               </form>
@@ -605,16 +603,12 @@ export default function CustomersPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
               <h2 className="text-xl font-bold mb-4">
-                {t('language') === 'en' ? 'Package Sessions for ' : 'Sesiones de Paquetes para '} 
+                {t('packageSessionsFor')}
                 {selectedCustomer.name}
               </h2>
               
               {selectedCustomerPurchases.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  {t('language') === 'en' 
-                    ? 'No package purchases found for this customer.' 
-                    : 'No se encontraron compras de paquetes para este cliente.'}
-                </div>
+                <div className="text-center py-8 text-gray-500">{t('noPurchasesFound') || 'No purchases found'}</div>
               ) : (
                 <div className="space-y-4">
                   {selectedCustomerPurchases.map((purchase) => (
@@ -623,12 +617,12 @@ export default function CustomersPage() {
                         <div>
                           <h3 className="font-semibold text-lg">{purchase.package.name}</h3>
                           <p className="text-sm text-gray-600">
-                            {t('language') === 'en' ? 'Purchased: ' : 'Comprado: '} 
+                            {t('purchasedLabel')}
                             {new Date(purchase.purchaseDate).toLocaleDateString()}
                           </p>
                           {purchase.expiryDate && (
                             <p className="text-sm text-gray-600">
-                              {t('language') === 'en' ? 'Expires: ' : 'Expira: '} 
+                              {t('expiresLabel')}
                               {new Date(purchase.expiryDate).toLocaleDateString()}
                             </p>
                           )}
@@ -650,7 +644,7 @@ export default function CustomersPage() {
                             {purchase.totalSessions}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {t('language') === 'en' ? 'Total Sessions' : 'Sesiones Totales'}
+                            {t('totalSessions')}
                           </div>
                         </div>
                         <div className="text-center">
@@ -658,7 +652,7 @@ export default function CustomersPage() {
                             {purchase.usedSessions}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {t('language') === 'en' ? 'Used' : 'Usadas'}
+                            {t('used')}
                           </div>
                         </div>
                         <div className="text-center">
@@ -666,7 +660,7 @@ export default function CustomersPage() {
                             {purchase.remainingSessions}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {t('language') === 'en' ? 'Remaining' : 'Restantes'}
+                            {t('remaining')}
                           </div>
                         </div>
                       </div>
@@ -696,7 +690,7 @@ export default function CustomersPage() {
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                 >
-                  {t('language') === 'en' ? 'Close' : 'Cerrar'}
+                  {t('close')}
                 </button>
               </div>
             </div>

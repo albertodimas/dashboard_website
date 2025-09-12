@@ -77,9 +77,7 @@ export default function CategoriesPage() {
         const isUsed = services.some((s: any) => s.category === categoryToDelete.name)
         
         if (isUsed) {
-          alert(t('language') === 'en' 
-            ? 'Cannot delete this category because it has services assigned to it.' 
-            : 'No se puede eliminar esta categoría porque tiene servicios asignados.')
+          alert(t('cannotDeleteCategoryInUse') || 'Cannot delete this category because it has services assigned to it.')
           return
         }
       }
@@ -87,9 +85,7 @@ export default function CategoriesPage() {
       console.error('Error checking services:', error)
     }
 
-    if (confirm(t('language') === 'en' 
-      ? `Are you sure you want to delete the category "${categoryToDelete.name}"?` 
-      : `¿Estás seguro de que quieres eliminar la categoría "${categoryToDelete.name}"?`)) {
+    if (confirm((t('deleteCategoryConfirmPrefix') || 'Are you sure you want to delete the category') + ` "${categoryToDelete.name}"?`)) {
       
       setSaving(true)
       try {
@@ -102,7 +98,7 @@ export default function CategoriesPage() {
         }
       } catch (error) {
         console.error('Error deleting category:', error)
-        alert(t('language') === 'en' ? 'Failed to delete category' : 'Error al eliminar la categoría')
+        alert(t('failedToDeleteCategory') || 'Failed to delete category')
       } finally {
         setSaving(false)
       }
@@ -155,7 +151,7 @@ export default function CategoriesPage() {
       setFormData({ name: '', order: 0 })
     } catch (error) {
       console.error('Error saving category:', error)
-      alert(t('language') === 'en' ? 'Failed to save category' : 'Error al guardar la categoría')
+      alert(t('failedToSaveCategory') || 'Failed to save category')
     } finally {
       setSaving(false)
     }
@@ -218,17 +214,13 @@ export default function CategoriesPage() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{t('categories')}</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              {t('language') === 'en' 
-                ? 'Manage service categories for your business' 
-                : 'Gestiona las categorías de servicios de tu negocio'}
-            </p>
+            <p className="mt-2 text-sm text-gray-600">{t('manageServiceCategories') || 'Manage service categories for your business'}</p>
           </div>
           <button
             onClick={handleAddCategory}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
-            {t('language') === 'en' ? '+ Add Category' : '+ Agregar Categoría'}
+            {t('addCategoryBtn') || '+ Add Category'}
           </button>
         </div>
 
@@ -238,18 +230,16 @@ export default function CategoriesPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('language') === 'en' ? 'No categories yet' : 'No hay categorías aún'}
+              {t('noCategoriesYet') || 'No categories yet'}
             </h3>
             <p className="text-gray-600 mb-4">
-              {t('language') === 'en' 
-                ? 'Create your first category to organize your services' 
-                : 'Crea tu primera categoría para organizar tus servicios'}
+              {t('createFirstCategoryHelp') || 'Create your first category to organize your services'}
             </p>
             <button
               onClick={handleAddCategory}
               className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
             >
-              {t('language') === 'en' ? 'Create First Category' : 'Crear Primera Categoría'}
+              {t('createFirstCategory') || 'Create First Category'}
             </button>
           </div>
         ) : (
@@ -280,7 +270,7 @@ export default function CategoriesPage() {
                         <div>
                           <h3 className="text-lg font-medium text-gray-900">{category.name}</h3>
                           <p className="text-sm text-gray-500">
-                            {t('language') === 'en' ? 'Order' : 'Orden'}: {category.order}
+                            {(t('orderTitle') || 'Order')}: {category.order}
                           </p>
                         </div>
                       </div>
@@ -312,7 +302,7 @@ export default function CategoriesPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
-                {t('language') === 'en' ? 'Add New Category' : 'Agregar Nueva Categoría'}
+                {t('addNewCategory')}
               </h2>
               <form onSubmit={handleSaveCategory}>
                 <div className="mb-4">
@@ -329,7 +319,7 @@ export default function CategoriesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('language') === 'en' ? 'Order' : 'Orden'}
+                    {t('orderTitle') || 'Order'}
                   </label>
                   <input
                     type="number"
@@ -356,7 +346,7 @@ export default function CategoriesPage() {
                     disabled={saving}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving ? (t('language') === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                    {saving ? t('saving') : t('saveChanges')}
                   </button>
                 </div>
               </form>
@@ -369,7 +359,7 @@ export default function CategoriesPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
-                {t('language') === 'en' ? 'Edit Category' : 'Editar Categoría'}
+                {t('editCategory')}
               </h2>
               <form onSubmit={handleSaveCategory}>
                 <div className="mb-4">
@@ -386,7 +376,7 @@ export default function CategoriesPage() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('language') === 'en' ? 'Order' : 'Orden'}
+                    {t('orderTitle') || 'Order'}
                   </label>
                   <input
                     type="number"
@@ -414,7 +404,7 @@ export default function CategoriesPage() {
                     disabled={saving}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {saving ? (t('language') === 'en' ? 'Saving...' : 'Guardando...') : t('saveChanges')}
+                    {saving ? t('saving') : t('saveChanges')}
                   </button>
                 </div>
               </form>

@@ -79,13 +79,9 @@ export default function DirectoryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {t('language') === 'en' ? 'Business Directory' : 'Directorio de Negocios'}
-              </h1>
+              <h1 className="text-3xl font-bold text-gray-900">{t('businessDirectoryTitle') || 'Business Directory'}</h1>
               <p className="mt-1 text-sm text-gray-600">
-                {t('language') === 'en' 
-                  ? 'Find and book appointments with local businesses'
-                  : 'Encuentra y agenda citas con negocios locales'}
+                {t('businessDirectorySubtitle') || 'Find and book appointments with local businesses'}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -94,7 +90,7 @@ export default function DirectoryPage() {
                 href="/login"
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                {t('language') === 'en' ? 'Business Login' : 'Acceso Negocios'}
+                {t('businessLogin') || 'Business Login'}
               </Link>
             </div>
           </div>
@@ -106,9 +102,7 @@ export default function DirectoryPage() {
         <div className="max-w-2xl mx-auto mb-6">
           <input
             type="text"
-            placeholder={t('language') === 'en' 
-              ? 'Search for businesses, services...' 
-              : 'Buscar negocios, servicios...'}
+            placeholder={t('searchBusinessesPlaceholder') || 'Search for businesses, services...'}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -127,9 +121,7 @@ export default function DirectoryPage() {
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
             >
-              {category === 'all' 
-                ? (t('language') === 'en' ? 'All' : 'Todos')
-                : category}
+              {category === 'all' ? t('all') : category}
             </button>
           ))}
         </div>
@@ -181,7 +173,7 @@ export default function DirectoryPage() {
                       {'⭐'.repeat(Math.floor(business.rating))}
                     </div>
                     <span className="ml-2 text-sm text-gray-600">
-                      {business.rating} ({business.reviews} {t('language') === 'en' ? 'reviews' : 'reseñas'})
+                      {business.rating} ({business.reviews} {t('reviewsLower')})
                     </span>
                   </div>
                   <span className="text-gray-700 font-semibold">{business.priceRange}</span>
@@ -195,13 +187,13 @@ export default function DirectoryPage() {
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    {t('language') === 'en' ? 'Gallery' : 'Galería'}
+                    {t('gallery')}
                   </Link>
                   <Link
                     href={`/book/${business.slug}`}
                     className="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   >
-                    {t('language') === 'en' ? 'Book Appointment' : 'Reservar Cita'}
+                    {t('bookAppointmentCTA')}
                   </Link>
                 </div>
               </div>
@@ -211,11 +203,7 @@ export default function DirectoryPage() {
 
         {filteredBusinesses.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">
-              {t('language') === 'en' 
-                ? 'No businesses found matching your search.'
-                : 'No se encontraron negocios que coincidan con tu búsqueda.'}
-            </p>
+            <p className="text-gray-500">{t('noBusinessesFound') || 'No businesses found matching your search.'}</p>
           </div>
         )}
       </div>
@@ -224,20 +212,16 @@ export default function DirectoryPage() {
       <div className="bg-blue-600 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">
-            {t('language') === 'en' 
-              ? 'Are you a business owner?' 
-              : '¿Eres dueño de un negocio?'}
+            {t('areYouBusinessOwner') || 'Are you a business owner?'}
           </h2>
           <p className="text-blue-100 mb-6">
-            {t('language') === 'en'
-              ? 'Join our platform and start managing your appointments online'
-              : 'Únete a nuestra plataforma y comienza a gestionar tus citas en línea'}
+            {t('joinOurPlatform') || 'Join our platform and start managing your appointments online'}
           </p>
           <Link
             href="/register"
             className="inline-block px-6 py-3 bg-white text-blue-600 font-medium rounded-md hover:bg-gray-100"
           >
-            {t('language') === 'en' ? 'Get Started Free' : 'Comienza Gratis'}
+            {t('getStartedFree') || 'Get Started Free'}
           </Link>
         </div>
       </div>
