@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn } from 'lucide-react'
+import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail, Instagram, Facebook, Twitter, ArrowRight } from 'lucide-react'
+import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 import { getImageSrcSet, getImageUrl } from '@/lib/upload-utils-client'
 import { formatCurrency } from '@/lib/format-utils'
 
@@ -353,31 +354,142 @@ export default function ProjectLanding({ business }: Props) {
         </div>
       )}
 
-      {/* Footer with weekly schedule */}
-      <footer className="bg-gray-900 text-white mt-10">
-        <div className="container mx-auto px-4 sm:px-6 py-8 grid md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="font-semibold mb-2">{business.name}</h3>
-            <p className="text-sm text-gray-300">{business.address}{business.city && `, ${business.city}`}</p>
-            <p className="text-sm text-gray-300">{business.phone}</p>
-          </div>
-          <div className="md:text-right">
-            <h4 className="font-semibold mb-2">Horario de Atención</h4>
-            <div className="space-y-1 text-sm">
-              {[1,2,3,4,5,6,0].map((day) => {
-                const h = (workingHours || []).find((wh: any) => wh.dayOfWeek === day)
-                const isToday = new Date().getDay() === day
-                return (
-                  <div key={day} className={`flex justify-between ${isToday ? 'text-white' : 'text-gray-300'}`}>
-                    <span>{daysOfWeek[day]}</span>
-                    <span>{h && h.isActive ? `${h.startTime} - ${h.endTime}` : 'Cerrado'}</span>
+      {/* Contact Section mejorada (igual a reservas) */}
+      <section id="contact" className="py-2 bg-gray-900 text-white">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-2 gap-2">
+            {/* Info */}
+            <div>
+              <h2 className="text-base font-bold mb-1">Información de Contacto</h2>
+
+              <div className="space-y-1 mb-2">
+                {business.address && (
+                  <a
+                    href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 hover:bg-white/5 p-2 -ml-2 rounded-lg transition-colors group"
+                    title="Ver ruta en Google Maps"
+                  >
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm flex items-center gap-1">
+                        Dirección
+                        <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          (Click para ver ruta)
+                        </span>
+                      </p>
+                      <p className="text-gray-300 text-sm group-hover:text-white transition-colors">
+                        {business.address}{business.city ? `, ${business.city}` : ''}{business.state ? `, ${business.state}` : ''}
+                      </p>
+                    </div>
+                  </a>
+                )}
+
+                {business.phone && (
+                  <div className="flex items-start gap-2">
+                    <Phone className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
+                    <div>
+                      <p className="font-semibold text-sm">Teléfono</p>
+                      <p className="text-gray-300 text-sm">{business.phone}</p>
+                    </div>
                   </div>
-                )
-              })}
+                )}
+
+                {business.email && (
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
+                    <div>
+                      <p className="font-semibold text-sm">Email</p>
+                      <p className="text-gray-300 text-sm">{business.email}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Social media */}
+              <div>
+                <p className="font-semibold mb-1 text-xs">Síguenos</p>
+                <div className="flex gap-2">
+                  <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                    <Facebook className="w-4 h-4" />
+                  </a>
+                  <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                  <a href="#" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                    <Twitter className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Horarios */}
+            <div className="flex flex-col items-end">
+              <h2 className="text-base font-bold mb-1 w-full text-right">Horario de Atención</h2>
+
+              <div className="space-y-0.5 w-auto">
+                {[1, 2, 3, 4, 5, 6, 0].map(day => {  // Lunes primero, Domingo último
+                  const dayHours = (workingHours || []).find((wh: any) => wh.dayOfWeek === day)
+                  const isToday = new Date().getDay() === day
+
+                  return (
+                    <div
+                      key={day}
+                      className={`flex items-center py-0.5 px-2 rounded text-xs ${
+                        isToday ? 'bg-white/10' : ''
+                      }`}
+                    >
+                      <span className={`font-medium text-right w-20 ${isToday ? 'text-white' : 'text-gray-400'}`}>
+                        {daysOfWeek[day]}
+                      </span>
+                      <span className={`ml-4 text-right min-w-[110px] ${isToday ? (dayHours?.isActive ? 'text-green-300' : 'text-red-300') : (dayHours?.isActive ? 'text-gray-300' : 'text-gray-500 line-through')}`}>
+                        {dayHours && dayHours.isActive
+                          ? `${dayHours.startTime} - ${dayHours.endTime}`
+                          : 'Cerrado'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={() => setShowRequestModal(true)}
+                className="mt-1 px-4 py-1 rounded font-semibold text-xs text-gray-900 bg-white hover:bg-gray-100 transition-all duration-300"
+              >
+                Solicitar Presupuesto
+              </button>
             </div>
           </div>
         </div>
-        <div className="border-t border-white/10 py-3 text-center text-xs text-gray-400">© {new Date().getFullYear()} {business.name}. Todos los derechos reservados.</div>
+      </section>
+
+      {/* Floating Map Button */}
+      {business.address && (
+        <div className="fixed bottom-20 right-4 z-40">
+          <a
+            href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 group"
+            title="Ver ruta en Google Maps"
+          >
+            <div className="relative">
+              <MapPin className="w-5 h-5" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping" />
+            </div>
+            <span className="font-medium text-sm hidden sm:inline">Cómo llegar</span>
+            <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+          </a>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="py-3 text-center text-white" style={{ background: colors.gradient }}>
+        <p className="text-xs">&copy; {new Date().getFullYear()} {business.name}. Todos los derechos reservados.</p>
       </footer>
     </div>
   )

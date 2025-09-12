@@ -78,10 +78,39 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Acknowledge customer via email (best-effort)
+    try {
+      const whenClient = new Date().toLocaleString()
+      const htmlClient = `
+        <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; padding:16px;">
+          <h2 style="margin:0 0 8px 0">¡Hemos recibido tu solicitud!</h2>
+          <p>Hola ${customerName},</p>
+          <p>Tu solicitud de <strong>${serviceType}</strong> para <strong>${business.name}</strong> fue registrada correctamente el <strong>${whenClient}</strong>.</p>
+          <p>En breve nos pondremos en contacto por <strong>${preferredContact || 'WHATSAPP'}</strong> para coordinar los siguientes pasos.</p>
+          <hr/>
+          <p><strong>Resumen:</strong></p>
+          <ul>
+            <li><strong>Servicio:</strong> ${serviceType}</li>
+            <li><strong>Dirección:</strong> ${address || 'No indicada'}</li>
+          </ul>
+          <p><strong>Descripción:</strong></p>
+          <p style="white-space:pre-wrap;">${description}</p>
+          <p style="color:#666">Este es un mensaje automático.</p>
+        </div>
+      `
+      await sendEmail({
+        to: customerEmail,
+        subject: `Solicitud recibida - ${business.name}`,
+        html: htmlClient,
+        text: `Hemos recibido tu solicitud en ${business.name}. Servicio: ${serviceType}. Nos contactaremos por ${preferredContact || 'WHATSAPP'} pronto.`
+      })
+    } catch (e) {
+      console.warn('No se pudo enviar confirmación al cliente:', (e as any)?.message || e)
+    }
+
     return NextResponse.json({ success: true, request: { id: created.id } })
   } catch (e) {
     console.error('Error creating project request:', e)
     return NextResponse.json({ error: 'Error creando solicitud' }, { status: 500 })
   }
 }
-
