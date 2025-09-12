@@ -221,7 +221,7 @@ export const translations = {
     dateLabel: 'Date:',
     timeLabel: 'Time:',
     professionalLabel: 'Professional:',
-    close: 'Close'
+    close: 'Close',
     operationModeDesc: 'Choose how your business receives requests: reservations with a calendar, or project requests to coordinate later.',
     modeReservationTitle: 'Reservation',
     modeReservationDesc: 'Clients pick a date and time on your calendar.',
