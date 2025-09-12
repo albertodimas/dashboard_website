@@ -67,3 +67,4 @@ logs/
 *.log
 # Temp files
 tmp_*.txt
+.tools/

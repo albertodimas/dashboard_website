@@ -165,3 +165,11 @@ Punto de reanudación sugerido:
 3. Implementar sistema de recuperación de contraseña
 4. Añadir analytics de uso del portal del cliente
 5. Crear dashboard metrics para el cliente (gastos, visitas, etc.)
+
+
+## 2025-09-12 – i18n cleanup + next steps
+- Eliminado anti patron language === 'en' y migrado a t(..).
+- Claves nuevas agregadas en translations en y es.
+- Fix LanguageSelector y copys de Settings/Packages/Purchases.
+
+Para retomar: retoma desde 5a7c349
