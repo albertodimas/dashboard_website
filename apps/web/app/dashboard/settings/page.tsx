@@ -54,6 +54,7 @@ export default function SettingsPage() {
     endTime: '',
     workingDays: []
   })
+  const [operationMode, setOperationMode] = useState<'RESERVA'|'PROYECTO'>('RESERVA')
   const [businessData, setBusinessData] = useState<any>(null)
   const [availableStates, setAvailableStates] = useState<any[]>([])
   const [availableCities, setAvailableCities] = useState<string[]>([])
@@ -148,6 +149,9 @@ export default function SettingsPage() {
             if (settings.scheduleSettings) {
               setScheduleSettings(settings.scheduleSettings)
             }
+            if (settings.operationMode) {
+              setOperationMode(settings.operationMode === 'PROYECTO' ? 'PROYECTO' : 'RESERVA')
+            }
           }
         } catch (error) {
           console.error('Error loading business info:', error)
@@ -201,6 +205,30 @@ export default function SettingsPage() {
       console.error('Error uploading logo:', error)
       alert(language === 'en' ? 'Failed to upload image' : 'Error al subir la imagen')
       setUploadingLogo(false)
+    }
+  }
+
+  const handleSaveOperationMode = async () => {
+    setSaving(true)
+    try {
+      const businessResponse = await fetch('/api/dashboard/business')
+      const businessData = await businessResponse.json()
+      const updatedSettings = {
+        ...(businessData.settings || {}),
+        operationMode
+      }
+      const response = await fetch('/api/dashboard/business', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: updatedSettings }),
+      })
+      if (!response.ok) throw new Error('Failed to save mode')
+      alert(language === 'en' ? 'Operation mode saved!' : '¡Modo de operación guardado!')
+    } catch (e) {
+      console.error('Error saving operation mode:', e)
+      alert(language === 'en' ? 'Failed to save operation mode' : 'Error al guardar el modo de operación')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -440,6 +468,36 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Operation Mode */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              {language === 'en' ? 'Operation Mode' : 'Modo de Operación'}
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              {language === 'en' 
+                ? 'Choose how your business receives requests: reservations with calendar, or project requests to coordinate later.'
+                : 'Elige cómo recibes solicitudes: reservas con calendario, o solicitudes de proyecto para coordinar luego.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setOperationMode('RESERVA')}
+                className={`px-4 py-2 rounded-md border ${operationMode==='RESERVA' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}
+              >
+                Reserva
+              </button>
+              <button
+                type="button"
+                onClick={() => setOperationMode('PROYECTO')}
+                className={`px-4 py-2 rounded-md border ${operationMode==='PROYECTO' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}
+              >
+                Proyecto
+              </button>
+            </div>
+            <button onClick={handleSaveOperationMode} disabled={saving} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50">
+              {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : (language === 'en' ? 'Save' : 'Guardar')}
+            </button>
+          </div>
           {/* Language Settings */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">

@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
+import ProjectLanding from '@/components/project/ProjectLanding'
+import { getOperationMode } from '@/lib/operation-mode'
 import { getBusinessDataBySlug } from '@/lib/business-data'
 
 interface BusinessPageProps {
@@ -22,7 +24,10 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
     packages: business.packages?.map((p: any) => ({ name: p.name, isActive: p.isActive }))
   })
 
-  return <BusinessLandingEnhanced business={business} />
+  const mode = getOperationMode((business as any).settings)
+  return mode === 'PROYECTO' 
+    ? <ProjectLanding business={business} />
+    : <BusinessLandingEnhanced business={business} />
 }
 
 export async function generateMetadata({ params }: BusinessPageProps) {

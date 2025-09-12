@@ -716,6 +716,30 @@ model BusinessCustomer {
   @@map("business_customers")
 }
 
+model ProjectRequest {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @db.Uuid
+  businessId       String    @db.Uuid
+  customerId       String?   @db.Uuid
+  customerName     String
+  customerEmail    String
+  customerPhone    String?
+  serviceType      String
+  description      String
+  address          String?
+  preferredContact String     @default("WHATSAPP")
+  status           String     @default("NEW")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  business         Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer         Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([customerId])
+  @@map("project_requests")
+}
+
 model LoginAttempt {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email       String       @db.Citext

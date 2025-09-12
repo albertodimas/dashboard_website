@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
+import ProjectLanding from '@/components/project/ProjectLanding'
+import { getOperationMode } from '@/lib/operation-mode'
 import { getBusinessDataByCustomSlug } from '@/lib/business-data'
 
 interface CustomPageProps {
@@ -46,7 +48,10 @@ export default async function CustomBusinessPage({ params }: CustomPageProps) {
     notFound()
   }
 
-  return <BusinessLandingEnhanced business={business} />
+  const mode = getOperationMode((business as any).settings)
+  return mode === 'PROYECTO' 
+    ? <ProjectLanding business={business} />
+    : <BusinessLandingEnhanced business={business} />
 }
 
 export async function generateMetadata({ params }: CustomPageProps) {

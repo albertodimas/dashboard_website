@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
+import ProjectLanding from '@/components/project/ProjectLanding'
+import { getOperationMode } from '@/lib/operation-mode'
 import { prisma } from '@dashboard/db'
 
 interface CatchAllPageProps {
@@ -140,7 +142,10 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
     notFound()
   }
 
-  return <BusinessLandingEnhanced business={business} />
+  const mode = getOperationMode((business as any).settings)
+  return mode === 'PROYECTO' 
+    ? <ProjectLanding business={business} />
+    : <BusinessLandingEnhanced business={business} />
 }
 
 export async function generateMetadata({ params }: CatchAllPageProps) {
