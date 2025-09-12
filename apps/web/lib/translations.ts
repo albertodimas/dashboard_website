@@ -178,7 +178,24 @@ export const translations = {
     active: 'active',
     inactive: 'inactive',
     other: 'Other',
-    cancelBtn: 'Cancel'
+    cancelBtn: 'Cancel',
+
+    // Public Landing – Common (UI on public business pages)
+    contactInformation: 'Contact Information',
+    schedule: 'Business Hours',
+    address: 'Address',
+    phone: 'Phone',
+    email: 'Email',
+    followUs: 'Follow us',
+    seeRoute: 'See route',
+    howToGetThere: 'How to get there',
+    bookAppointmentCTA: 'Book Appointment',
+    requestQuote: 'Request Quote',
+    whatWeOffer: 'What We Offer',
+    verifiedBusiness: 'Verified Business',
+    projectMode: 'Project',
+    todayClosed: 'Closed',
+    professionalServices: 'Professional Services'
   },
   es: {
     // Navigation
@@ -359,30 +376,9 @@ export const translations = {
     active: 'activo',
     inactive: 'inactivo',
     other: 'Otro',
-    cancelBtn: 'Cancelar'
-  }
-}
+    cancelBtn: 'Cancelar',
 
-export type Language = keyof typeof translations
-// Loosen translation key typing to avoid over-restrictive unions during UI refactors
-export type TranslationKey = string
-    // Public Landing – Common
-    contactInformation: 'Contact Information',
-    schedule: 'Business Hours',
-    address: 'Address',
-    phone: 'Phone',
-    email: 'Email',
-    followUs: 'Follow us',
-    seeRoute: 'See route',
-    howToGetThere: 'How to get there',
-    bookAppointmentCTA: 'Book Appointment',
-    requestQuote: 'Request Quote',
-    services: 'Services',
-    whatWeOffer: 'What We Offer',
-    verifiedBusiness: 'Verified Business',
-    projectMode: 'Project',
-    todayClosed: 'Closed',
-    // Public Landing – Common
+    // Public Landing – Common (UI en páginas públicas de negocio)
     contactInformation: 'Información de Contacto',
     schedule: 'Horario de Atención',
     address: 'Dirección',
@@ -393,8 +389,14 @@ export type TranslationKey = string
     howToGetThere: 'Cómo llegar',
     bookAppointmentCTA: 'Reservar Cita',
     requestQuote: 'Solicitar Presupuesto',
-    services: 'Servicios',
     whatWeOffer: 'Lo Que Ofrecemos',
     verifiedBusiness: 'Negocio Verificado',
     projectMode: 'Proyecto',
     todayClosed: 'Cerrado',
+    professionalServices: 'Servicios Profesionales'
+  }
+}
+
+export type Language = keyof typeof translations
+// Loosen translation key typing to avoid over-restrictive unions during UI refactors
+export type TranslationKey = string

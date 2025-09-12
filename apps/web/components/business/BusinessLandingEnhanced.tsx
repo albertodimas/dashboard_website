@@ -649,7 +649,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <h1 className="text-xl sm:text-2xl font-bold" style={{ color: colors.primary }}>
                   {business.name}
                 </h1>
-                <p className="text-xs text-gray-500 hidden sm:block">{business.category || 'Servicios Profesionales'}</p>
+                <p className="text-xs text-gray-500 hidden sm:block">{business.category || t('professionalServices')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
