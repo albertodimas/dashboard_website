@@ -484,34 +484,7 @@ export default function SettingsPage() {
               {saving ? (language === 'en' ? 'Saving...' : 'Guardando...') : (language === 'en' ? 'Save' : 'Guardar')}
             </button>
           </div>
-          {/* Language Settings */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'en' ? 'Language Preference' : 'Preferencia de Idioma'}
-            </h2>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-4 py-2 rounded-md ${
-                  language === 'en' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => setLanguage('es')}
-                className={`px-4 py-2 rounded-md ${
-                  language === 'es' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Español
-              </button>
-            </div>
-          </div>
+          {/* Language preference managed from top-right selector. Block removed to avoid duplication. */}
 
           {/* User Profile */}
           <div className="bg-white shadow rounded-lg p-6">
