@@ -1,29 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { fail } from '@/lib/api-utils'
 
 // GET all services for the business
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const business = await getCurrentBusiness()
 
-    if (!business) {
-      return NextResponse.json({ services: [] })
+    if (!business) return NextResponse.json([])
+
+    const { searchParams } = new URL(request.url)
+    const pageParam = searchParams.get('page')
+    const limitParam = searchParams.get('limit')
+    const q = (searchParams.get('q') || '').trim()
+
+    const page = pageParam ? parseInt(pageParam, 10) : NaN
+    const pageSize = limitParam ? parseInt(limitParam, 10) : NaN
+
+    const where: any = { businessId: business.id }
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { category: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } }
+      ]
     }
 
-    const services = await prisma.service.findMany({
-      where: {
-        businessId: business.id
-      },
-      include: {
-        serviceStaff: {
-          select: {
-            staffId: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const include = {
+      serviceStaff: { select: { staffId: true } }
+    }
+
+    // If pagination requested, return paged shape
+    if (Number.isFinite(page) && Number.isFinite(pageSize) && page > 0 && pageSize > 0) {
+      const total = await prisma.service.count({ where })
+      const items = await prisma.service.findMany({
+        where,
+        include,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize
+      })
+      const formatted = items.map(s => ({ ...s, assignedStaff: s.serviceStaff.map(ss => ss.staffId) }))
+      return NextResponse.json({ items: formatted, page, pageSize, total, totalPages: Math.ceil(total / pageSize) })
+    }
+
+    const services = await prisma.service.findMany({ where, include, orderBy: { createdAt: 'desc' } })
     
     // Format the response to include assignedStaff as an array of IDs
     const formattedServices = services.map(service => ({
@@ -49,14 +71,23 @@ export async function POST(request: NextRequest) {
       return createAuthResponse('Business not found', 404)
     }
 
+    // Basic validation
+    const name = (body.name || '').toString().trim()
+    if (!name) return fail('Service name is required', 400)
+    const duration = parseInt(body.duration)
+    if (!Number.isFinite(duration) || duration <= 0) return fail('Duration must be a positive integer', 400)
+    const price = parseFloat(body.price)
+    if (!Number.isFinite(price) || price < 0) return fail('Price must be a non-negative number', 400)
+    const category = body.category ? (body.category as string).toString().trim() : null
+
     // Create the service
     const service = await prisma.service.create({
       data: {
-        name: body.name,
+        name,
         description: body.description,
-        duration: body.duration,
-        price: body.price,
-        category: body.category,
+        duration,
+        price,
+        category,
         businessId: business.id,
         tenantId: business.tenantId,
         isActive: body.isActive !== undefined ? body.isActive : true,
@@ -78,7 +109,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(service)
   } catch (error) {
     console.error('Error creating service:', error)
-    return createAuthResponse('Failed to create service', 500)
+    return fail('Failed to create service', 500)
   }
 }
 
@@ -88,15 +119,11 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, assignedStaff, ...updateData } = body
 
-    if (!id) {
-      return createAuthResponse('Service ID is required', 400)
-    }
+    if (!id) return fail('Service ID is required', 400)
 
     const business = await getCurrentBusiness()
 
-    if (!business) {
-      return createAuthResponse('Business not found', 404)
-    }
+    if (!business) return createAuthResponse('Business not found', 404)
 
     // Verify the service belongs to this business
     const existingService = await prisma.service.findFirst({
@@ -106,14 +133,32 @@ export async function PUT(request: NextRequest) {
       }
     })
 
-    if (!existingService) {
-      return createAuthResponse('Service not found', 404)
-    }
+    if (!existingService) return fail('Service not found', 404)
 
     // Update the service
+    // Validate incoming core fields if present
+    const data: any = { ...updateData }
+    if (data.name !== undefined) {
+      data.name = (data.name || '').toString().trim()
+      if (!data.name) return fail('Service name is required', 400)
+    }
+    if (data.duration !== undefined) {
+      const d = parseInt(data.duration)
+      if (!Number.isFinite(d) || d <= 0) return fail('Duration must be a positive integer', 400)
+      data.duration = d
+    }
+    if (data.price !== undefined) {
+      const p = parseFloat(data.price)
+      if (!Number.isFinite(p) || p < 0) return fail('Price must be a non-negative number', 400)
+      data.price = p
+    }
+    if (data.category !== undefined) {
+      data.category = data.category ? (data.category as string).toString().trim() : null
+    }
+
     const service = await prisma.service.update({
       where: { id },
-      data: updateData
+      data
     })
     
     // Update staff assignments if provided
@@ -137,7 +182,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(service)
   } catch (error) {
     console.error('Error updating service:', error)
-    return createAuthResponse('Failed to update service', 500)
+    return fail('Failed to update service', 500)
   }
 }
 
@@ -147,15 +192,11 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
-    if (!id) {
-      return createAuthResponse('Service ID is required', 400)
-    }
+    if (!id) return fail('Service ID is required', 400)
 
     const business = await getCurrentBusiness()
 
-    if (!business) {
-      return createAuthResponse('Business not found', 404)
-    }
+    if (!business) return createAuthResponse('Business not found', 404)
 
     // Verify the service belongs to this business
     const existingService = await prisma.service.findFirst({
@@ -165,9 +206,7 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
-    if (!existingService) {
-      return createAuthResponse('Service not found', 404)
-    }
+    if (!existingService) return fail('Service not found', 404)
 
     // Delete related ServiceStaff records first
     await prisma.serviceStaff.deleteMany({
@@ -182,6 +221,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting service:', error)
-    return createAuthResponse('Failed to delete service', 500)
+    return fail('Failed to delete service', 500)
   }
 }

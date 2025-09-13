@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { fail, ok } from '@/lib/api-utils'
 
-// GET all gallery items for the business
+// GET all gallery items for the business (from gallery_items table)
 export async function GET() {
   try {
-    // Get current business
     const business = await getCurrentBusiness()
+    if (!business) return createAuthResponse('Business not found', 404)
 
-    if (!business) {
-      return createAuthResponse('Business not found', 404)
-    }
-
-    // Get gallery from business features
-    const features = business.features as any || {}
-    const gallery = features.gallery || []
-
-    return NextResponse.json(gallery)
+    const items = await prisma.galleryItem.findMany({
+      where: { businessId: business.id },
+      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }]
+    })
+    return NextResponse.json(items)
   } catch (error) {
     console.error('Error fetching gallery:', error)
     return NextResponse.json([], { status: 200 })
@@ -27,49 +24,70 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
-    // Get current business
     const business = await getCurrentBusiness()
+    if (!business) return createAuthResponse('Business not found', 404)
 
-    if (!business) {
-      return createAuthResponse('Business not found', 404)
-    }
-
-    // Get current features
-    const features = business.features as any || {}
-    const gallery = features.gallery || []
-    
-    // Add new gallery item
-    const newItem = {
-      id: Date.now().toString(),
-      type: body.type || 'image',
-      url: body.url,
-      title: body.title,
-      description: body.description || '',
-      category: body.category || '',
-      createdAt: new Date().toISOString()
-    }
-    
-    gallery.push(newItem)
-    
-    // Update business features
-    await prisma.business.update({
-      where: { id: business.id },
-      data: {
-        features: {
-          ...features,
-          gallery
-        }
-      }
+    // Compute next order
+    const maxOrder = await prisma.galleryItem.findFirst({
+      where: { businessId: business.id },
+      orderBy: { order: 'desc' },
+      select: { order: true }
     })
 
-    return NextResponse.json(newItem)
+    // Basic validation
+    const type = (body.type || 'image') as string
+    if (!['image','video'].includes(type)) return fail('Invalid media type', 400)
+    if (!body.url || !body.title) return fail('Title and URL are required', 400)
+
+    const item = await prisma.galleryItem.create({
+      data: {
+        businessId: business.id,
+        type,
+        url: body.url,
+        title: body.title,
+        description: body.description || null,
+        category: body.category || null,
+        order: (maxOrder?.order || 0) + 1,
+        isActive: true
+      }
+    })
+    return ok(item)
   } catch (error) {
     console.error('Error creating gallery item:', error)
-    return NextResponse.json(
-      { error: 'Failed to create gallery item' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to create gallery item' }, { status: 500 })
+  }
+}
+
+// PUT update an existing gallery item
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, ...update } = body
+    if (!id) return fail('Item ID is required', 400)
+
+    const business = await getCurrentBusiness()
+    if (!business) return createAuthResponse('Business not found', 404)
+
+    // Ensure the item belongs to the current business
+    const existing = await prisma.galleryItem.findFirst({ where: { id, businessId: business.id } })
+    if (!existing) return fail('Item not found', 404)
+
+    const item = await prisma.galleryItem.update({
+      where: { id },
+      data: {
+        type: update.type ?? existing.type,
+        url: update.url ?? existing.url,
+        title: update.title ?? existing.title,
+        description: update.description ?? existing.description,
+        category: update.category ?? existing.category,
+        order: update.order ?? existing.order,
+        isActive: update.isActive ?? existing.isActive
+      }
+    })
+    return ok(item)
+  } catch (error) {
+    console.error('Error updating gallery item:', error)
+    return NextResponse.json({ error: 'Failed to update gallery item' }, { status: 500 })
   }
 }
 
@@ -77,46 +95,20 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url)
-    const itemId = url.searchParams.get('id')
-    
-    if (!itemId) {
-      return NextResponse.json(
-        { error: 'Item ID required' },
-        { status: 400 }
-      )
-    }
-    
-    // Get current business
+    const id = url.searchParams.get('id')
+    if (!id) return fail('Item ID required', 400)
+
     const business = await getCurrentBusiness()
+    if (!business) return createAuthResponse('Business not found', 404)
 
-    if (!business) {
-      return createAuthResponse('Business not found', 404)
-    }
+    // Ensure the item belongs to the current business
+    const existing = await prisma.galleryItem.findFirst({ where: { id, businessId: business.id } })
+    if (!existing) return fail('Item not found', 404)
 
-    // Get current features
-    const features = business.features as any || {}
-    let gallery = features.gallery || []
-    
-    // Remove gallery item
-    gallery = gallery.filter((item: any) => item.id !== itemId)
-    
-    // Update business features
-    await prisma.business.update({
-      where: { id: business.id },
-      data: {
-        features: {
-          ...features,
-          gallery
-        }
-      }
-    })
-
-    return NextResponse.json({ success: true })
+    await prisma.galleryItem.delete({ where: { id } })
+    return ok()
   } catch (error) {
     console.error('Error deleting gallery item:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete gallery item' },
-      { status: 500 }
-    )
+    return fail('Failed to delete gallery item', 500)
   }
 }

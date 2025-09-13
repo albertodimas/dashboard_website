@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 import { 
   Settings, 
   MoreVertical, 
@@ -63,6 +65,8 @@ export default function AdminDashboardPage() {
   const [blockReason, setBlockReason] = useState('payment')
   const [categories, setCategories] = useState<Category[]>([])
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const confirm = useConfirm()
+  const toast = useToast()
 
   useEffect(() => {
     // Verify admin session via cookie
@@ -146,16 +150,21 @@ export default function AdminDashboardPage() {
       await loadBusinesses()
     } catch (error) {
       console.error('Error blocking business:', error)
-      alert(t('failedToBlockBusiness') || 'Failed to block business')
+      toast(t('failedToBlockBusiness') || 'Failed to block business', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const handleUnblockBusiness = async (business: Business) => {
-    if (confirm(language.trim() === 'en' 
-      ? `Unblock "${business.name}" and restore access?` 
-      : `¿Desbloquear "${business.name}" y restaurar acceso?`)) {
+    const ok = await confirm({
+      title: language.trim() === 'en' ? 'Unblock Business' : 'Desbloquear Negocio',
+      message: language.trim() === 'en' 
+        ? `Unblock "${business.name}" and restore access?` 
+        : `¿Desbloquear "${business.name}" y restaurar acceso?`,
+      confirmText: language.trim() === 'en' ? 'Unblock' : 'Desbloquear'
+    })
+    if (ok) {
       try {
         setSaving(true)
         const response = await fetch('/api/admin/businesses', {
@@ -174,9 +183,10 @@ export default function AdminDashboardPage() {
           throw new Error('Failed to unblock business')
         }
         await loadBusinesses()
+        toast(language.trim() === 'en' ? 'Business unblocked' : 'Negocio desbloqueado', 'success')
       } catch (error) {
         console.error('Error unblocking business:', error)
-        alert(t('failedToUnblockBusiness') || 'Failed to unblock business')
+        toast(t('failedToUnblockBusiness') || 'Failed to unblock business', 'error')
       } finally {
         setSaving(false)
       }
@@ -188,7 +198,13 @@ export default function AdminDashboardPage() {
       ? `Permanently delete "${business.name}"? This action cannot be undone.`
       : `¿Eliminar permanentemente "${business.name}"? Esta acción no se puede deshacer.`
     
-    if (confirm(confirmMsg)) {
+    const ok = await confirm({
+      title: language.trim() === 'en' ? 'Delete Business' : 'Eliminar Negocio',
+      message: confirmMsg,
+      confirmText: language.trim() === 'en' ? 'Delete' : 'Eliminar',
+      variant: 'danger'
+    })
+    if (ok) {
       try {
         setSaving(true)
         const response = await fetch(`/api/admin/businesses?id=${business.id}`, {
@@ -198,9 +214,10 @@ export default function AdminDashboardPage() {
           throw new Error('Failed to delete business')
         }
         await loadBusinesses()
+        toast(language.trim() === 'en' ? 'Business deleted' : 'Negocio eliminado', 'success')
       } catch (error) {
         console.error('Error deleting business:', error)
-        alert(t('failedToDeleteBusiness') || 'Failed to delete business')
+        toast(t('failedToDeleteBusiness') || 'Failed to delete business', 'error')
       } finally {
         setSaving(false)
       }
@@ -225,9 +242,9 @@ export default function AdminDashboardPage() {
       await loadBusinesses()
     } catch (error) {
       console.error('Error updating category:', error)
-      alert(language.trim() === 'en' 
+      toast(language.trim() === 'en' 
         ? 'Failed to update category' 
-        : 'Error al actualizar la categoría')
+        : 'Error al actualizar la categoría', 'error')
     }
   }
 
@@ -502,13 +519,13 @@ export default function AdminDashboardPage() {
                                   if (!response.ok) throw new Error('Failed to toggle staff module')
                                   await loadBusinesses()
                                   setOpenMenuId(null)
-                                  alert(newValue 
+                                  toast(newValue 
                                     ? (t('staffModuleEnabledSuccess') || 'Staff module enabled successfully')
-                                    : (t('staffModuleDisabledSuccess') || 'Staff module disabled successfully')
+                                    : (t('staffModuleDisabledSuccess') || 'Staff module disabled successfully'), 'success'
                                   )
                                 } catch (error) {
                                   console.error('Error toggling staff module:', error)
-                                  alert(t('failedToggleStaffModule') || 'Failed to toggle staff module')
+                                  toast(t('failedToggleStaffModule') || 'Failed to toggle staff module', 'error')
                                 } finally {
                                   setSaving(false)
                                 }
@@ -541,13 +558,13 @@ export default function AdminDashboardPage() {
                                   if (!response.ok) throw new Error('Failed to toggle packages module')
                                   await loadBusinesses()
                                   setOpenMenuId(null)
-                                  alert(newValue 
+                                  toast(newValue 
                                     ? (t('packagesModuleEnabledSuccess') || 'Packages module enabled successfully')
-                                    : (t('packagesModuleDisabledSuccess') || 'Packages module disabled successfully')
+                                    : (t('packagesModuleDisabledSuccess') || 'Packages module disabled successfully'), 'success'
                                   )
                                 } catch (error) {
                                   console.error('Error toggling packages module:', error)
-                                  alert(t('failedTogglePackagesModule') || 'Failed to toggle packages module')
+                                  toast(t('failedTogglePackagesModule') || 'Failed to toggle packages module', 'error')
                                 } finally {
                                   setSaving(false)
                                 }

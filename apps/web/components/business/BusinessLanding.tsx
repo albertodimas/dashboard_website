@@ -23,6 +23,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface BusinessLandingProps {
   business: any
@@ -98,6 +99,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
+  const toast = useToast()
   const [selectedImageModal, setSelectedImageModal] = useState<any>(null)
   const [activeGalleryTab, setActiveGalleryTab] = useState('All')
   const [reviews, setReviews] = useState<any[]>(business.reviews || [])
@@ -239,11 +241,11 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         }
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to create booking')
+        toast(error.error || 'Failed to create booking', 'error')
       }
     } catch (error) {
       console.error('Booking error:', error)
-      alert('An error occurred. Please try again.')
+      toast('An error occurred. Please try again.', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -269,7 +271,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
 
       if (response.ok) {
         const result = await response.json()
-        alert(`Package reserved successfully! ${result.purchase.paymentInstructions?.message || 'Please complete payment to activate.'}`)
+        toast(`Package reserved successfully! ${result.purchase.paymentInstructions?.message || 'Please complete payment to activate.'}`, 'success')
         setReservationData({
           name: '',
           email: '',
@@ -280,11 +282,11 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         setShowPackageReserveModal(false)
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to reserve package')
+        toast(error.error || 'Failed to reserve package', 'error')
       }
     } catch (error) {
       console.error('Reservation error:', error)
-      alert('An error occurred. Please try again.')
+      toast('An error occurred. Please try again.', 'error')
     } finally {
       setIsSubmitting(false)
     }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, ArrowRight, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastProvider'
 
 export default function VerifyEmailPage() {
   const router = useRouter()
@@ -12,6 +13,7 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [customerEmail, setCustomerEmail] = useState<string>('')
+  const toast = useToast()
   const [resendCooldown, setResendCooldown] = useState(0)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
@@ -152,7 +154,7 @@ export default function VerifyEmailPage() {
 
       setResendCooldown(60) // 60 segundos de cooldown
       setError('') // Limpiar errores
-      alert('Código reenviado. Revisa tu email.')
+      toast('Código reenviado. Revisa tu email.', 'success')
     } catch (err: any) {
       setError(err.message)
     } finally {

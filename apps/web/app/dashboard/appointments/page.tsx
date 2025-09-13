@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 import DashboardNav from '@/components/DashboardNav'
 
 interface Appointment {
@@ -39,6 +41,8 @@ export default function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
+  const confirm = useConfirm()
+  const toast = useToast()
   const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
   const [formData, setFormData] = useState({
     customerName: '',
@@ -116,7 +120,13 @@ export default function AppointmentsPage() {
       
       // Si ya está cancelada, preguntar si quiere eliminarla
       if (appointment.status === 'cancelled') {
-        if (confirm(t('delete') + '?')) {
+        const ok = await confirm({
+          title: t('delete') || 'Delete',
+          message: t('delete') + '?',
+          confirmText: t('delete') || 'Delete',
+          variant: 'danger'
+        })
+        if (ok) {
           const response = await fetch(`/api/dashboard/appointments?id=${appointmentId}`, {
             method: 'DELETE',
           })
@@ -124,10 +134,17 @@ export default function AppointmentsPage() {
             throw new Error('Failed to delete appointment')
           }
           await loadAppointments() // Reload appointments after deletion
+          toast(t('deleted') || 'Deleted', 'success')
         }
       } else {
         // Si no está cancelada, cambiar el estado a cancelada
-        if (confirm(t('cancel') + '?')) {
+        const ok = await confirm({
+          title: t('cancel') || 'Cancel',
+          message: t('cancel') + '?',
+          confirmText: t('cancel') || 'Cancel',
+          variant: 'danger'
+        })
+        if (ok) {
           const response = await fetch('/api/dashboard/appointments', {
             method: 'PUT',
             headers: {
@@ -139,6 +156,7 @@ export default function AppointmentsPage() {
             throw new Error('Failed to cancel appointment')
           }
           await loadAppointments() // Reload appointments after update
+          toast(t('changesSaved') || 'Changes saved', 'success')
         }
       }
     } catch (err) {

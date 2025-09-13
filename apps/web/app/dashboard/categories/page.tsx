@@ -1,9 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
+import { useAutoFocusFirstInput } from '@/hooks/useAutoFocusFirstInput'
 
 interface Category {
   id: string
@@ -21,6 +24,12 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [formData, setFormData] = useState({ name: '', order: 0 })
   const [saving, setSaving] = useState(false)
+  const confirm = useConfirm()
+  const toast = useToast()
+  const addModalRef = useRef<HTMLDivElement>(null)
+  const editModalRef = useRef<HTMLDivElement>(null)
+  useAutoFocusFirstInput(showAddModal, addModalRef)
+  useAutoFocusFirstInput(showEditModal, editModalRef)
 
   useEffect(() => {
     // Check if user is logged in
@@ -77,7 +86,7 @@ export default function CategoriesPage() {
         const isUsed = services.some((s: any) => s.category === categoryToDelete.name)
         
         if (isUsed) {
-          alert(t('cannotDeleteCategoryInUse') || 'Cannot delete this category because it has services assigned to it.')
+          toast(t('cannotDeleteCategoryInUse') || 'Cannot delete this category because it has services assigned to it.', 'info')
           return
         }
       }
@@ -85,7 +94,13 @@ export default function CategoriesPage() {
       console.error('Error checking services:', error)
     }
 
-    if (confirm((t('deleteCategoryConfirmPrefix') || 'Are you sure you want to delete the category') + ` "${categoryToDelete.name}"?`)) {
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: `${t('deleteCategoryConfirmPrefix') || 'Are you sure you want to delete the category'} "${categoryToDelete.name}"?`,
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (ok) {
       
       setSaving(true)
       try {
@@ -95,10 +110,11 @@ export default function CategoriesPage() {
         
         if (response.ok) {
           await loadCategories()
+          toast(t('deleted') || 'Deleted', 'success')
         }
       } catch (error) {
         console.error('Error deleting category:', error)
-        alert(t('failedToDeleteCategory') || 'Failed to delete category')
+        toast(t('failedToDeleteCategory') || 'Failed to delete category', 'error')
       } finally {
         setSaving(false)
       }
@@ -128,6 +144,9 @@ export default function CategoriesPage() {
           setShowEditModal(false)
           setEditingCategory(null)
           await loadCategories()
+        } else {
+          const data = await response.json().catch(() => ({}))
+          toast((data && data.error) || (t('failedToSaveCategory') || 'Failed to save category'), 'error')
         }
       } else {
         // Add new category
@@ -145,13 +164,16 @@ export default function CategoriesPage() {
         if (response.ok) {
           setShowAddModal(false)
           await loadCategories()
+        } else {
+          const data = await response.json().catch(() => ({}))
+          toast((data && data.error) || (t('failedToSaveCategory') || 'Failed to save category'), 'error')
         }
       }
       
       setFormData({ name: '', order: 0 })
     } catch (error) {
       console.error('Error saving category:', error)
-      alert(t('failedToSaveCategory') || 'Failed to save category')
+      toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
     } finally {
       setSaving(false)
     }
@@ -213,7 +235,7 @@ export default function CategoriesPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t('categories')}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{`${t('services') || 'Services'} ${t('categories') || 'Categories'}`}</h1>
             <p className="mt-2 text-sm text-gray-600">{t('manageServiceCategories') || 'Manage service categories for your business'}</p>
           </div>
           <button
@@ -300,7 +322,7 @@ export default function CategoriesPage() {
         {/* Add Category Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div ref={addModalRef} className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
                 {t('addNewCategory')}
               </h2>
@@ -357,7 +379,7 @@ export default function CategoriesPage() {
         {/* Edit Category Modal */}
         {showEditModal && editingCategory && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div ref={editModalRef} className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">
                 {t('editCategory')}
               </h2>

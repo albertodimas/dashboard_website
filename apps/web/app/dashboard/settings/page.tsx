@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 import DashboardNav from '@/components/DashboardNav'
 import OperationModeSelector from '@/components/OperationModeSelector'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
@@ -17,6 +19,8 @@ export default function SettingsPage() {
   const { t, language, setLanguage } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const confirm = useConfirm()
+  const toast = useToast()
   const [userProfile, setUserProfile] = useState({
     name: '',
     lastName: '',
@@ -170,7 +174,7 @@ export default function SettingsPage() {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(t('pleaseSelectImageFile') || 'Please select an image file')
+      toast(t('pleaseSelectImageFile') || 'Please select an image file', 'info')
       return
     }
     
@@ -204,7 +208,7 @@ export default function SettingsPage() {
       reader.readAsDataURL(compressedFile)
     } catch (error) {
       console.error('Error uploading logo:', error)
-      alert(t('failedToUploadImage') || 'Failed to upload image')
+      toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
       setUploadingLogo(false)
     }
   }
@@ -224,10 +228,10 @@ export default function SettingsPage() {
         body: JSON.stringify({ settings: updatedSettings }),
       })
       if (!response.ok) throw new Error('Failed to save mode')
-      alert(t('operationModeSaved') || 'Operation mode saved!')
+      toast(t('operationModeSaved') || 'Operation mode saved!', 'success')
     } catch (e) {
       console.error('Error saving operation mode:', e)
-      alert(t('failedToSaveOperationMode') || 'Failed to save operation mode')
+      toast(t('failedToSaveOperationMode') || 'Failed to save operation mode', 'error')
     } finally {
       setSaving(false)
     }
@@ -239,7 +243,7 @@ export default function SettingsPage() {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(t('pleaseSelectImageFile') || 'Please select an image file')
+      toast(t('pleaseSelectImageFile') || 'Please select an image file', 'info')
       return
     }
     
@@ -273,7 +277,7 @@ export default function SettingsPage() {
       reader.readAsDataURL(compressedFile)
     } catch (error) {
       console.error('Error uploading avatar:', error)
-      alert(t('failedToUploadImage') || 'Failed to upload image')
+      toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
       setUploadingAvatar(false)
     }
   }
@@ -294,10 +298,10 @@ export default function SettingsPage() {
         throw new Error('Failed to save profile')
       }
 
-      alert(t('profileSavedSuccessfully') || 'Profile saved successfully!')
+      toast(t('profileSavedSuccessfully') || 'Profile saved successfully!', 'success')
     } catch (error) {
       console.error('Error saving profile:', error)
-      alert(t('failedToSaveProfile') || 'Failed to save profile')
+      toast(t('failedToSaveProfile') || 'Failed to save profile', 'error')
     } finally {
       setSaving(false)
     }
@@ -332,14 +336,14 @@ export default function SettingsPage() {
         // Show success message with new URL if name changed
         if (result.business.customSlug) {
           const publicUrl = `${window.location.origin}/${result.business.customSlug}`
-          alert((t('businessInfoSavedWithUrl') || 'Business information saved!\nYour public page: {url}').replace('{url}', publicUrl))
+          toast((t('businessInfoSavedWithUrl') || 'Business information saved! Your public page: {url}').replace('{url}', publicUrl), 'success')
         } else {
-          alert(t('businessInfoSaved') || 'Business information saved!')
+          toast(t('businessInfoSaved') || 'Business information saved!', 'success')
         }
       }
     } catch (error) {
       console.error('Error saving business info:', error)
-      alert(t('failedToSaveBusinessInfo') || 'Failed to save business information')
+      toast(t('failedToSaveBusinessInfo') || 'Failed to save business information', 'error')
     } finally {
       setSaving(false)
     }
@@ -373,10 +377,10 @@ export default function SettingsPage() {
         throw new Error('Failed to save notifications')
       }
       
-      alert(t('notificationSettingsSaved') || 'Notification settings saved!')
+      toast(t('notificationSettingsSaved') || 'Notification settings saved!', 'success')
     } catch (error) {
       console.error('Error saving notifications:', error)
-      alert(t('failedToSaveNotificationSettings') || 'Failed to save notification settings')
+      toast(t('failedToSaveNotificationSettings') || 'Failed to save notification settings', 'error')
     } finally {
       setSaving(false)
     }
@@ -410,10 +414,10 @@ export default function SettingsPage() {
         throw new Error('Failed to save schedule')
       }
       
-      alert(t('scheduleSettingsSaved') || 'Schedule settings saved!')
+      toast(t('scheduleSettingsSaved') || 'Schedule settings saved!', 'success')
     } catch (error) {
       console.error('Error saving schedule:', error)
-      alert(t('failedToSaveScheduleSettings') || 'Failed to save schedule settings')
+      toast(t('failedToSaveScheduleSettings') || 'Failed to save schedule settings', 'error')
     } finally {
       setSaving(false)
     }
@@ -427,16 +431,20 @@ export default function SettingsPage() {
   }
 
   const handleClearData = async () => {
-    if (confirm(t('clearAllDataConfirmDetailed') || 'Are you sure? This will delete all your data (appointments, customers, services).')) {
-      try {
-        // Clear data from database
-        await fetch('/api/dashboard/clear-data', { method: 'POST' })
-        alert(t('dataCleared') || 'All data has been cleared.')
-        router.push('/dashboard')
-      } catch (error) {
-        console.error('Error clearing data:', error)
-        alert(t('failedToClearData') || 'Failed to clear data')
-      }
+    const ok = await confirm({
+      title: t('clearAllData') || 'Clear All Data',
+      message: t('clearAllDataConfirmDetailed') || 'Are you sure? This will delete all your data (appointments, customers, services).',
+      confirmText: t('clear') || 'Clear',
+      variant: 'danger'
+    })
+    if (!ok) return
+    try {
+      await fetch('/api/dashboard/clear-data', { method: 'POST' })
+      toast(t('dataCleared') || 'All data has been cleared.', 'success')
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error clearing data:', error)
+      toast(t('failedToClearData') || 'Failed to clear data', 'error')
     }
   }
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Clock, MapPin, User, ArrowLeft, X, Check } from 'lucide-react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Appointment {
   id: string
@@ -33,6 +35,8 @@ interface Appointment {
 
 export default function ClientAppointmentsPage() {
   const router = useRouter()
+  const confirm = useConfirm()
+  const toast = useToast()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming')
@@ -69,7 +73,13 @@ export default function ClientAppointmentsPage() {
   }
 
   const handleCancelAppointment = async (appointmentId: string) => {
-    if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
+    const ok = await confirm({
+      title: 'Cancelar cita',
+      message: '¿Estás seguro de que deseas cancelar esta cita?',
+      confirmText: 'Cancelar',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     const token = localStorage.getItem('clientToken')
     if (!token) return
@@ -85,6 +95,9 @@ export default function ClientAppointmentsPage() {
       if (response.ok) {
         fetchAppointments(token)
         setSelectedAppointment(null)
+        toast('Cita cancelada', 'success')
+      } else {
+        toast('No se pudo cancelar la cita', 'error')
       }
     } catch (error) {
       console.error('Error canceling appointment:', error)

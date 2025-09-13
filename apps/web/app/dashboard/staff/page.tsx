@@ -6,6 +6,8 @@ import DashboardLayout from '@/components/DashboardLayout'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
 import { compressImage, formatFileSize } from '@/lib/image-resize-client'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Staff {
   id: string
@@ -77,6 +79,8 @@ export default function StaffPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const confirm = useConfirm()
+  const toast = useToast()
   
   const [specialtyInput, setSpecialtyInput] = useState('')
   const [scheduleData, setScheduleData] = useState<any>(() => {
@@ -159,7 +163,7 @@ export default function StaffPage() {
 
     // Validar tipo de archivo
     if (!originalFile.type.startsWith('image/')) {
-      alert(t('pleaseSelectImageFile') || 'Please select an image file')
+      toast(t('pleaseSelectImageFile') || 'Please select an image file', 'info')
       return
     }
 
@@ -224,7 +228,7 @@ export default function StaffPage() {
       setTimeout(() => setUploadProgress(''), 3000)
     } catch (error) {
       console.error('Error uploading photo:', error)
-      alert(t('failedToUploadImage') || 'Failed to upload image')
+      toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
       setUploadProgress('')
     } finally {
       setUploadingPhoto(false)
@@ -271,16 +275,20 @@ export default function StaffPage() {
       setUploadProgress('')
     } catch (error) {
       console.error('Error saving staff:', error)
-      alert(t('failedToSaveStaffMember') || 'Failed to save staff member')
+      toast(t('failedToSaveStaffMember') || 'Failed to save staff member', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const handleDeleteStaff = async (staffId: string) => {
-    if (!confirm(t('deleteStaffConfirm') || 'Are you sure you want to delete this staff member?')) {
-      return
-    }
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: t('deleteStaffConfirm') || 'Are you sure you want to delete this staff member?',
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/dashboard/staff?id=${staffId}`, {
@@ -293,8 +301,9 @@ export default function StaffPage() {
       }
 
       await loadStaff()
+      toast(t('deleted') || 'Deleted', 'success')
     } catch (error: any) {
-      alert(error.message)
+      toast(error.message || (t('failedToDelete') || 'Failed to delete'), 'error')
     }
   }
 
@@ -319,13 +328,13 @@ export default function StaffPage() {
       }
 
       await loadStaff()
-      alert(t('scheduleSaved') || 'Schedule saved successfully')
+      toast(t('scheduleSaved') || 'Schedule saved successfully', 'success')
       // Cerrar el modal después de guardar exitosamente
       setShowScheduleModal(false)
       setSelectedStaff(null)
     } catch (error) {
       console.error('Error saving schedule:', error)
-      alert(t('failedToSaveSchedule') || 'Failed to save schedule')
+      toast(t('failedToSaveSchedule') || 'Failed to save schedule', 'error')
     } finally {
       setSaving(false)
     }

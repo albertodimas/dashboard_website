@@ -1,9 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
+import { useAutoFocusFirstInput } from '@/hooks/useAutoFocusFirstInput'
 
 interface GalleryItem {
   id: string
@@ -33,6 +36,10 @@ export default function GalleryManagementPage() {
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [saving, setSaving] = useState(false)
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const modalRef = useRef<HTMLDivElement>(null)
+  useAutoFocusFirstInput(showAddModal, modalRef)
+  const confirm = useConfirm()
+  const toast = useToast()
 
   useEffect(() => {
     // Check authentication
@@ -68,21 +75,18 @@ export default function GalleryManagementPage() {
 
   const loadCategories = async () => {
     try {
-      // Get categories from services
-      const servicesRes = await fetch('/api/dashboard/services')
-      if (servicesRes.ok) {
-        const services = await servicesRes.json()
-        const serviceCategories = [...new Set(services.map((s: any) => s.category).filter(Boolean))]
-        
-        // Get categories from existing gallery items
-        const galleryCategories = [...new Set(galleryItems.map(item => item.category).filter(Boolean))]
-        
-        // Combine and deduplicate
-        const allCategories = [...new Set([...serviceCategories, ...galleryCategories])]
-        setAvailableCategories(allCategories.sort())
+      const categoriesRes = await fetch('/api/dashboard/gallery-categories')
+      if (categoriesRes.ok) {
+        const categories = await categoriesRes.json()
+        if (Array.isArray(categories) && categories.length > 0) {
+          setAvailableCategories(categories.sort((a: any, b: any) => a.order - b.order).map((c: any) => c.name))
+        } else {
+          setAvailableCategories([])
+        }
       }
     } catch (error) {
       console.error('Error loading categories:', error)
+      setAvailableCategories([])
     }
   }
 
@@ -91,21 +95,22 @@ export default function GalleryManagementPage() {
     setSaving(true)
     
     try {
+      let response: Response
       if (editingItem) {
-        // For now, we'll delete and re-add since we don't have a PUT endpoint
-        await fetch(`/api/dashboard/gallery?id=${editingItem.id}`, {
-          method: 'DELETE'
+        // Update existing item using PUT
+        response = await fetch('/api/dashboard/gallery', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingItem.id, ...formData })
+        })
+      } else {
+        // Add new item
+        response = await fetch('/api/dashboard/gallery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
         })
       }
-      
-      // Add new item (or replacement for edited item)
-      const response = await fetch('/api/dashboard/gallery', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
       
       if (response.ok) {
         await loadGalleryItems()
@@ -124,7 +129,7 @@ export default function GalleryManagementPage() {
       }
     } catch (error) {
       console.error('Error saving gallery item:', error)
-      alert(t('failedToSaveGalleryItem') || 'Failed to save gallery item')
+      toast(t('failedToSaveGalleryItem') || 'Failed to save gallery item', 'error')
     } finally {
       setSaving(false)
     }
@@ -143,7 +148,13 @@ export default function GalleryManagementPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm(t('deleteGalleryItemConfirm') || 'Are you sure you want to delete this item?')) {
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: t('deleteGalleryItemConfirm') || 'Are you sure you want to delete this item?',
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (ok) {
       setSaving(true)
       try {
         const response = await fetch(`/api/dashboard/gallery?id=${id}`, {
@@ -152,10 +163,11 @@ export default function GalleryManagementPage() {
         
         if (response.ok) {
           await loadGalleryItems()
+          toast(t('deleted') || 'Deleted', 'success')
         }
       } catch (error) {
         console.error('Error deleting gallery item:', error)
-        alert(t('failedToDeleteGalleryItem') || 'Failed to delete gallery item')
+        toast(t('failedToDeleteGalleryItem') || 'Failed to delete gallery item', 'error')
       } finally {
         setSaving(false)
       }
@@ -271,7 +283,7 @@ export default function GalleryManagementPage() {
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
               <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowAddModal(false)} />
               
-              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <div ref={modalRef} className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                 <form onSubmit={handleSubmit}>
                   <div>
                     <h3 className="text-lg font-semibold leading-6 text-gray-900">
@@ -346,6 +358,12 @@ export default function GalleryManagementPage() {
                             >
                               {t('newLabel') || 'New'}
                             </button>
+                            <a
+                              href="/dashboard/gallery-categories"
+                              className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                            >
+                              {t('manageCategories') || 'Manage Categories'}
+                            </a>
                           </div>
                         ) : (
                           <div className="mt-1 flex gap-2">
@@ -358,13 +376,30 @@ export default function GalleryManagementPage() {
                             />
                             <button
                               type="button"
-                              onClick={() => {
-                                if (newCategory) {
-                                  setFormData({...formData, category: newCategory})
-                                  setAvailableCategories([...availableCategories, newCategory].sort())
-                                  setNewCategory('')
+                              onClick={async () => {
+                                try {
+                                  if (newCategory) {
+                                    const order = (availableCategories?.length || 0) + 1
+                                    const res = await fetch('/api/dashboard/gallery-categories', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ name: newCategory, order })
+                                    })
+                                    if (res.ok) {
+                                      setFormData({ ...formData, category: newCategory })
+                                      await loadCategories()
+                                    } else {
+                                      const data = await res.json().catch(() => ({}))
+                                      toast(data.error || (t('failedToSaveCategory') || 'Failed to save category'), 'error')
+                                    }
+                                    setNewCategory('')
+                                  }
+                                } catch (err) {
+                                  console.error('Error creating category:', err)
+                                  toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
+                                } finally {
+                                  setShowNewCategory(false)
                                 }
-                                setShowNewCategory(false)
                               }}
                               className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
                             >

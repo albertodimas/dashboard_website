@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { useToast } from '@/components/ui/ToastProvider'
 import GroupedPurchasesView from '@/components/GroupedPurchasesView'
 
 export default function PackagePurchasesPage() {
   const { t, language } = useLanguage()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'all'>('pending')
   const [viewMode, setViewMode] = useState<'detailed' | 'grouped'>('grouped')
@@ -84,20 +86,20 @@ export default function PackagePurchasesPage() {
         setShowAddModal(false)
         setFormData({ customerId: '', packageId: '', paymentMethod: 'CASH', paymentReceived: false })
         await loadData()
-        alert(t('packagePurchaseRegistered') || 'Package purchase registered successfully!')
+        toast(t('packagePurchaseRegistered') || 'Package purchase registered successfully!', 'success')
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to register purchase')
+        toast(error.error || 'Failed to register purchase', 'error')
       }
     } catch (error) {
-      alert('Error registering purchase')
+      toast('Error registering purchase', 'error')
     }
     setLoading(false)
   }
 
   const handleActivatePurchase = async () => {
     if (!selectedPurchase || !activationData.paymentConfirmed) {
-      alert(t('pleaseConfirmPayment') || 'Please confirm payment receipt')
+      toast(t('pleaseConfirmPayment') || 'Please confirm payment receipt', 'info')
       return
     }
 
@@ -117,13 +119,13 @@ export default function PackagePurchasesPage() {
         setSelectedPurchase(null)
         setActivationData({ paymentConfirmed: false, notes: '' })
         await loadData()
-        alert(t('packageActivatedSuccessfully') || 'Package activated successfully!')
+        toast(t('packageActivatedSuccessfully') || 'Package activated successfully!', 'success')
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to activate package')
+        toast(error.error || 'Failed to activate package', 'error')
       }
     } catch (error) {
-      alert('Error activating package')
+      toast('Error activating package', 'error')
     }
     setLoading(false)
   }
@@ -142,13 +144,13 @@ export default function PackagePurchasesPage() {
         setShowDeleteModal(false)
         setSelectedPurchase(null)
         await loadData()
-        alert(t('pendingPackageDeleted') || 'Pending package deleted successfully!')
+        toast(t('pendingPackageDeleted') || 'Pending package deleted successfully!', 'success')
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to delete package')
+        toast(error.error || 'Failed to delete package', 'error')
       }
     } catch (error) {
-      alert('Error deleting package')
+      toast('Error deleting package', 'error')
     }
     setLoading(false)
   }

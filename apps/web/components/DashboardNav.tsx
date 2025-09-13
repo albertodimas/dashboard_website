@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -14,6 +14,21 @@ export default function DashboardNav() {
   const [enableStaffModule, setEnableStaffModule] = useState(false)
   const [enablePackagesModule, setEnablePackagesModule] = useState(false)
   const [isProjectMode, setIsProjectMode] = useState(false)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const openCategories = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+    setCategoriesOpen(true)
+  }
+
+  const scheduleCloseCategories = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => setCategoriesOpen(false), 250)
+  }
   
   useEffect(() => {
     // Load business name from database
@@ -68,10 +83,12 @@ export default function DashboardNav() {
     }] : []),
     { href: '/dashboard/gallery', label: t('gallery') },
     { href: '/dashboard/customers', label: t('customers') },
-    { href: '/dashboard/categories', label: t('categories') },
+    // Categories moved to dropdown below
     { href: '/dashboard/reports', label: t('reports') },
     { href: '/dashboard/settings', label: t('settings') },
   ]
+  
+  const isCategoriesActive = pathname?.startsWith('/dashboard/categories') || pathname?.startsWith('/dashboard/gallery-categories')
   
   return (
     <nav className="bg-white shadow">
@@ -113,6 +130,46 @@ export default function DashboardNav() {
                   </Link>
                 )
               })}
+              {/* Categories dropdown */}
+              <div 
+                className="relative inline-flex items-center"
+                onMouseEnter={openCategories}
+                onMouseLeave={scheduleCloseCategories}
+              >
+                <button
+                  onClick={() => setCategoriesOpen(v => !v)}
+                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
+                    isCategoriesActive ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  }`}
+                >
+                  {t('categories')}
+                  <svg className="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {categoriesOpen && (
+                  <div
+                    className="absolute top-full left-0 z-10 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                    onMouseEnter={openCategories}
+                    onMouseLeave={scheduleCloseCategories}
+                  >
+                    <div className="py-1">
+                      <Link
+                        href="/dashboard/categories"
+                        className={`block px-4 py-2 text-sm ${pathname === '/dashboard/categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                      >
+                        {t('services')}
+                      </Link>
+                      <Link
+                        href="/dashboard/gallery-categories"
+                        className={`block px-4 py-2 text-sm ${pathname === '/dashboard/gallery-categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                      >
+                        {t('gallery')}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">

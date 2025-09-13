@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X } from 'lucide-react'
 import Link from 'next/link'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Category {
   id: string
@@ -21,6 +23,8 @@ interface Category {
 
 export default function CategoriesPage() {
   const { t } = useLanguage()
+  const confirm = useConfirm()
+  const toast = useToast()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -106,7 +110,13 @@ export default function CategoriesPage() {
   }
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`${t('deleteCategoryConfirmPrefix') || 'Are you sure you want to delete the category'} "${name}"?`)) return
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: `${t('deleteCategoryConfirmPrefix') || 'Are you sure you want to delete the category'} "${name}"?`,
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/admin/categories?id=${id}`, {
@@ -120,9 +130,11 @@ export default function CategoriesPage() {
 
       await fetchCategories()
       setError('')
+      toast(t('deleted') || 'Deleted', 'success')
     } catch (error) {
       console.error('Error deleting category:', error)
       setError(error instanceof Error ? error.message : (t('failedToDeleteCategory') || 'Failed to delete category'))
+      toast(t('failedToDeleteCategory') || 'Failed to delete category', 'error')
     }
   }
 
@@ -235,6 +247,7 @@ export default function CategoriesPage() {
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder={t('categoryNamePlaceholder') || 'e.g. Hair Salon'}
+                  autoFocus
                 />
               </div>
               <div>

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 
 interface Service {
@@ -55,6 +57,8 @@ export default function PackagesPage() {
     services: [] as PackageService[]
   })
   const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
+  const confirm = useConfirm()
+  const toast = useToast()
 
   useEffect(() => {
     fetchPackages()
@@ -127,13 +131,17 @@ export default function PackagesPage() {
   const handleDelete = async (packageId: string) => {
     // Check if currently editing
     if (editingPackage) {
-      alert(t('finishCurrentBeforeOtherActions'))
+      toast(t('finishCurrentBeforeOtherActions'), 'info')
       return
     }
     
-    if (!confirm(t('deleteConfirm'))){
-      return
-    }
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: t('deleteConfirm') || 'Are you sure?',
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/dashboard/packages?id=${packageId}`, {
@@ -142,16 +150,18 @@ export default function PackagesPage() {
 
       if (response.ok) {
         fetchPackages()
+        toast(t('deleted') || 'Deleted', 'success')
       }
     } catch (error) {
       console.error('Error deleting package:', error)
+      toast(t('failedToDelete') || 'Failed to delete', 'error')
     }
   }
 
   const handleEdit = (pkg: Package) => {
     // Check if currently editing another package
     if (editingPackage && editingPackage.id !== pkg.id) {
-      alert(t('finishCurrentBeforeEditingAnother'))
+      toast(t('finishCurrentBeforeEditingAnother'), 'info')
       return
     }
     

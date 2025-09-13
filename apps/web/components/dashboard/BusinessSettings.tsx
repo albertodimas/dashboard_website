@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 import { Globe, Save, ExternalLink, Copy, Check, AlertCircle } from 'lucide-react'
 
 interface BusinessSettingsProps {
@@ -9,6 +10,7 @@ interface BusinessSettingsProps {
 }
 
 export default function BusinessSettings({ business, onUpdate }: BusinessSettingsProps) {
+  const toast = useToast()
   const [websiteUrl, setWebsiteUrl] = useState(business.websiteUrl || '')
   const [customSlug, setCustomSlug] = useState(business.customSlug || '')
   const [customDomain, setCustomDomain] = useState(business.customDomain || '')
@@ -156,20 +158,20 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           }
         })
         setCustomSlug(data.customSlug || '')
-        alert('✅ Settings saved successfully!')
+        toast('✅ Settings saved successfully!', 'success')
       } else {
         console.error('Server error:', data)
         if (data.message?.includes('Unique constraint') || data.error?.includes('already taken')) {
           setSlugError('This URL is already taken by another business')
         } else {
           setSlugError(data.error || data.message || 'Failed to save settings')
-          alert(`❌ Error: ${data.error || data.message || 'Failed to save settings'}`)
+          toast(`❌ Error: ${data.error || data.message || 'Failed to save settings'}`, 'error')
         }
       }
     } catch (error) {
       console.error('Network error saving settings:', error)
       setSlugError('Network error occurred')
-      alert('❌ Network error occurred')
+      toast('❌ Network error occurred', 'error')
     } finally {
       setIsSaving(false)
     }

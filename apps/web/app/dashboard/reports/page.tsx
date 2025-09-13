@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
@@ -66,6 +67,7 @@ interface StaffReport {
 }
 
 export default function ReportsPage() {
+  const toast = useToast()
   const router = useRouter()
   const { t, language } = useLanguage()
   const [loading, setLoading] = useState(true)
@@ -666,7 +668,7 @@ export default function ReportsPage() {
                   window.URL.revokeObjectURL(downloadUrl)
                 } catch (error) {
                   console.error('Export error:', error)
-                  alert(t('failedToExportReport') || 'Failed to export report')
+                  toast(t('failedToExportReport') || 'Failed to export report', 'error')
                 }
               }}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
@@ -698,7 +700,7 @@ export default function ReportsPage() {
                   window.URL.revokeObjectURL(downloadUrl)
                 } catch (error) {
                   console.error('Export error:', error)
-                  alert(t('failedToExportReport') || 'Failed to export report')
+                  toast(t('failedToExportReport') || 'Failed to export report', 'error')
                 }
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"

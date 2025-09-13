@@ -167,6 +167,7 @@ export const translations = {
     deleteStaffConfirm: 'Are you sure you want to delete this staff member?',
     scheduleSaved: 'Schedule saved successfully',
     failedToSaveSchedule: 'Failed to save schedule',
+    changesSaved: 'Changes Saved',
     staffModuleNotEnabled: 'Staff Module Not Enabled',
     staffModuleNotEnabledDesc: 'The staff management module is not enabled for your business. Please contact the administrator to enable this feature.',
     staffManagement: 'Staff Management',
@@ -337,6 +338,15 @@ export const translations = {
     exportAsExcel: 'Export as Excel',
     exportAsCSV: 'Export as CSV',
     perAppointment: 'per appointment',
+    // Categories & Gallery common
+    deleted: 'Deleted',
+    failedToSaveCategory: 'Failed to save category',
+    failedToDeleteCategory: 'Failed to delete category',
+    cannotDeleteCategoryInUse: 'Cannot delete this category because it has items assigned to it.',
+    deleteCategoryConfirmPrefix: 'Are you sure you want to delete the category',
+    apply: 'Apply',
+    from: 'From',
+    to: 'To',
 
     // Public Landing – Common (UI on public business pages)
     contactInformation: 'Contact Information',
@@ -805,6 +815,7 @@ export const translations = {
     deleteStaffConfirm: '¿Estás seguro de que quieres eliminar este trabajador?',
     scheduleSaved: 'Horario guardado exitosamente',
     failedToSaveSchedule: 'Error al guardar el horario',
+    changesSaved: 'Cambios guardados',
     staffModuleNotEnabled: 'Módulo de Trabajadores No Habilitado',
     staffModuleNotEnabledDesc: 'El módulo de gestión de trabajadores no está habilitado para tu negocio. Por favor contacta al administrador para habilitar esta función.',
     staffManagement: 'Gestión de Trabajadores',
@@ -975,6 +986,15 @@ export const translations = {
     exportAsExcel: 'Exportar como Excel',
     exportAsCSV: 'Exportar como CSV',
     perAppointment: 'por cita',
+    // Categorías y Galería
+    deleted: 'Eliminado',
+    failedToSaveCategory: 'Error al guardar la categoría',
+    failedToDeleteCategory: 'Error al eliminar la categoría',
+    cannotDeleteCategoryInUse: 'No se puede eliminar esta categoría porque tiene elementos asignados.',
+    deleteCategoryConfirmPrefix: '¿Estás seguro de que quieres eliminar la categoría',
+    apply: 'Aplicar',
+    from: 'De',
+    to: 'A',
 
     // Public Landing – Common (UI en páginas públicas de negocio)
     contactInformation: 'Información de Contacto',

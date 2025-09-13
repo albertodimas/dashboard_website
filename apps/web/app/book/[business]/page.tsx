@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Service {
   id: string
@@ -54,6 +55,7 @@ export default function BookingPage() {
   const params = useParams()
   const router = useRouter()
   const { t, language } = useLanguage()
+  const toast = useToast()
   const businessId = params.business as string
   
   // Get serviceId from URL params if present
@@ -124,7 +126,7 @@ export default function BookingPage() {
           }
         } else {
           // Business not found or blocked
-          alert(t('businessNotFound'))
+          toast(t('businessNotFound'), 'error')
           router.push('/')
         }
       } catch (error) {
@@ -336,7 +338,7 @@ export default function BookingPage() {
         ? `${selectedStaff?.name} ${t('doesNotWorkOn') || 'does not work on'} ${dayName}`
         : `${dayName} ${t('isNotWorkingDay')}`
       
-      alert(message)
+      toast(message, 'error')
       
       // Find next working day
       let nextDate = new Date(newDate)
@@ -446,7 +448,7 @@ export default function BookingPage() {
       router.push(`/confirm?data=${encodeURIComponent(JSON.stringify(confirmationData))}`)
     } catch (error) {
       console.error('Error creating appointment:', error)
-      alert(t('failedToBookAppointment'))
+      toast(t('failedToBookAppointment'), 'error')
     }
   }
 

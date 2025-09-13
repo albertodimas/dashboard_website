@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 import Link from 'next/link'
 import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail, Instagram, Facebook, Twitter, ArrowRight } from 'lucide-react'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
@@ -11,6 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 interface Props { business: any }
 
 export default function ProjectLanding({ business }: Props) {
+  const toast = useToast()
   const { t, language } = useLanguage()
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [form, setForm] = useState({
@@ -39,7 +41,7 @@ export default function ProjectLanding({ business }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.serviceType || !form.description || !form.name || !form.email) {
-      alert('Completa los campos obligatorios')
+      toast('Completa los campos obligatorios', 'info')
       return
     }
     setSubmitting(true)
@@ -64,7 +66,7 @@ export default function ProjectLanding({ business }: Props) {
       }
       setSuccess(true)
     } catch (err: any) {
-      alert(err?.message || 'Error al enviar solicitud')
+      toast(err?.message || 'Error al enviar solicitud', 'error')
     } finally {
       setSubmitting(false)
     }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 import DashboardNav from '@/components/DashboardNav'
 
 interface RequestItem {
@@ -17,6 +18,7 @@ interface RequestItem {
 }
 
 export default function ProjectRequestsPage() {
+  const toast = useToast()
   const [requests, setRequests] = useState<RequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
@@ -51,7 +53,7 @@ export default function ProjectRequestsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to update')
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r))
     } catch (e: any) {
-      alert(e?.message || 'Error updating status')
+      toast(e?.message || 'Error updating status', 'error')
     }
   }
 
@@ -149,4 +151,3 @@ export default function ProjectRequestsPage() {
     </div>
   )
 }
-

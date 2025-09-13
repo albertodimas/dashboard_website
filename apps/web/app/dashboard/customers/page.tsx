@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 import DashboardNav from '@/components/DashboardNav'
 
 interface Customer {
@@ -39,6 +41,9 @@ export default function CustomersPage() {
   const [error, setError] = useState<string | null>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(12)
+  const [totalPages, setTotalPages] = useState(1)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
@@ -51,18 +56,35 @@ export default function CustomersPage() {
     email: '',
     phone: ''
   })
+  const confirm = useConfirm()
+  const toast = useToast()
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (opts?: { page?: number; q?: string }) => {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch('/api/dashboard/customers')
+      const p = opts?.page ?? page
+      const q = opts?.q ?? searchTerm
+      const params = new URLSearchParams()
+      params.set('page', String(p))
+      params.set('limit', String(pageSize))
+      if (q) params.set('q', q)
+      const response = await fetch(`/api/dashboard/customers?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to load customers')
       }
       const data = await response.json()
-      // Ensure we always have an array
-      setCustomers(Array.isArray(data) ? data : [])
+      if (Array.isArray(data)) {
+        setCustomers(data)
+        setTotalPages(Math.max(1, Math.ceil(data.length / pageSize)))
+      } else if (data && Array.isArray(data.items)) {
+        setCustomers(data.items)
+        setPage(data.page || 1)
+        setTotalPages(data.totalPages || 1)
+      } else {
+        setCustomers([])
+        setTotalPages(1)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load customers')
     } finally {
@@ -79,7 +101,7 @@ export default function CustomersPage() {
       })
       .then(() => {
         // Load customers from API
-        loadCustomers()
+        loadCustomers({ page: 1, q: searchTerm })
       })
       .catch(() => {
         router.push('/login')
@@ -177,7 +199,13 @@ export default function CustomersPage() {
   }
 
   const handleDeleteCustomer = async (customerId: string) => {
-    if (confirm(t('deleteCustomerConfirm'))) {
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: t('deleteCustomerConfirm') || 'Are you sure?',
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (ok) {
       try {
         setSaving(true)
         setError(null)
@@ -190,8 +218,10 @@ export default function CustomersPage() {
         }
         
         await loadCustomers() // Reload customers after deletion
+        toast(t('deleted') || 'Deleted', 'success')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete customer')
+        toast(t('failedToDelete') || 'Failed to delete', 'error')
       } finally {
         setSaving(false)
       }
@@ -300,8 +330,16 @@ export default function CustomersPage() {
             placeholder={t('searchCustomers')}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setPage(1) }}
           />
+          <div className="mt-2 flex justify-end">
+            <button
+              onClick={() => loadCustomers({ page: 1, q: searchTerm })}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {t('view') || 'View'}
+            </button>
+          </div>
         </div>
 
         {/* Customers Table */}
@@ -409,6 +447,27 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => { const p = page - 1; setPage(p); loadCustomers({ page: p, q: searchTerm }) }}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => { const p = page + 1; setPage(p); loadCustomers({ page: p, q: searchTerm }) }}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {filteredCustomers.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg">

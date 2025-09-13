@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ClientAuthProvider } from '@/contexts/ClientAuthContext'
+import { ConfirmProvider } from '@/components/ui/ConfirmDialog'
+import { ToastProvider } from '@/components/ui/ToastProvider'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -29,7 +31,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ClientAuthProvider>
           <LanguageProvider>
-            {children}
+            <ToastProvider>
+              <ConfirmProvider>
+                {children}
+              </ConfirmProvider>
+            </ToastProvider>
           </LanguageProvider>
         </ClientAuthProvider>
       </body>

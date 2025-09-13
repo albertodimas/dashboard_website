@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/ToastProvider'
 import OperationModeSelector from '@/components/OperationModeSelector'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [mode, setMode] = useState<'RESERVA' | 'PROYECTO'>('RESERVA')
@@ -51,7 +53,7 @@ export default function OnboardingPage() {
       if (!r.ok) throw new Error('save-failed')
       router.push('/dashboard')
     } catch {
-      alert('No se pudo guardar. Intenta nuevamente.')
+      toast('No se pudo guardar. Intenta nuevamente.', 'error')
     } finally {
       setSaving(false)
     }

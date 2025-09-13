@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
+import { useAutoFocusFirstInput } from '@/hooks/useAutoFocusFirstInput'
 
 interface Service {
   id: string
@@ -29,6 +32,10 @@ export default function ServicesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [services, setServices] = useState<Service[]>([])
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(12)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isPaged, setIsPaged] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
@@ -46,18 +53,43 @@ export default function ServicesPage() {
   })
   const [availableStaff, setAvailableStaff] = useState<Staff[]>([])
   const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
+  const addModalRef = useRef<HTMLDivElement>(null)
+  const editModalRef = useRef<HTMLDivElement>(null)
+  useAutoFocusFirstInput(showAddModal, addModalRef)
+  useAutoFocusFirstInput(showEditModal, editModalRef)
+  const confirm = useConfirm()
+  const toast = useToast()
 
-  const loadServices = async () => {
+  const loadServices = async (opts?: { page?: number; category?: string }) => {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch('/api/dashboard/services')
+      const p = opts?.page ?? page
+      const cat = opts?.category ?? selectedCategory
+      const params = new URLSearchParams()
+      params.set('page', String(p))
+      params.set('limit', String(pageSize))
+      const q = cat && cat !== 'all' ? cat : ''
+      if (q) params.set('q', q)
+      const response = await fetch(`/api/dashboard/services?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to load services')
       }
       const data = await response.json()
-      // Ensure we always have an array
-      setServices(Array.isArray(data) ? data : [])
+      if (Array.isArray(data)) {
+        setIsPaged(false)
+        setServices(data)
+        setTotalPages(Math.max(1, Math.ceil(data.length / pageSize)))
+      } else if (data && Array.isArray(data.items)) {
+        setIsPaged(true)
+        setServices(data.items)
+        setPage(data.page || 1)
+        setTotalPages(data.totalPages || 1)
+      } else {
+        setIsPaged(false)
+        setServices([])
+        setTotalPages(1)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load services')
     } finally {
@@ -74,7 +106,7 @@ export default function ServicesPage() {
       })
       .then(async () => {
         // Load services from API
-        loadServices()
+        loadServices({ page: 1, category: selectedCategory })
         
         // Check if staff module is enabled
         try {
@@ -147,7 +179,13 @@ export default function ServicesPage() {
   }
 
   const handleDeleteService = async (serviceId: string) => {
-    if (confirm(t('deleteServiceConfirm'))) {
+    const ok = await confirm({
+      title: t('delete') || 'Delete',
+      message: t('deleteServiceConfirm') || 'Are you sure you want to delete this service?',
+      confirmText: t('delete') || 'Delete',
+      variant: 'danger'
+    })
+    if (ok) {
       try {
         setSaving(true)
         const response = await fetch(`/api/dashboard/services?id=${serviceId}`, {
@@ -157,8 +195,10 @@ export default function ServicesPage() {
           throw new Error('Failed to delete service')
         }
         await loadServices() // Reload services after deletion
+        toast(t('deleted') || 'Deleted', 'success')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete service')
+        toast(t('failedToDelete') || 'Failed to delete', 'error')
       } finally {
         setSaving(false)
       }
@@ -235,9 +275,7 @@ export default function ServicesPage() {
   // Get unique categories from all services
   const allCategories = ['all', ...new Set(services.map(s => s.category))]
   
-  const filteredServices = selectedCategory === 'all' 
-    ? services 
-    : services.filter(s => s.category === selectedCategory)
+  const filteredServices = isPaged ? services : (selectedCategory === 'all' ? services : services.filter(s => s.category === selectedCategory))
 
   if (loading) {
     return (
@@ -303,13 +341,34 @@ export default function ServicesPage() {
           {allCategories.map(category => (
             <button 
               key={category}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => { setSelectedCategory(category); setPage(1); loadServices({ page: 1, category }) }}
               className={`px-4 py-2 rounded-full ${selectedCategory === category ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
             >
               {category === 'all' ? t('all') : category}
             </button>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => { const p = page - 1; setPage(p); loadServices({ page: p }) }}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => { const p = page + 1; setPage(p); loadServices({ page: p }) }}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -391,7 +450,7 @@ export default function ServicesPage() {
         {/* Edit Service Modal */}
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div ref={editModalRef} className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">{t('editService')}</h2>
               <form className="space-y-4" onSubmit={handleSaveService}>
                 <div>
@@ -497,7 +556,7 @@ export default function ServicesPage() {
         {/* Add Service Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div ref={addModalRef} className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">{t('addNewService')}</h2>
               <form className="space-y-4" onSubmit={handleSaveService}>
                 <div>

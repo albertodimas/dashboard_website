@@ -16,6 +16,8 @@ import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 import { useClientAuth } from '@/contexts/ClientAuthContext'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface BusinessLandingProps {
   business: any
@@ -27,6 +29,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   
   // Usar el contexto de autenticación global
   const { isAuthenticated, clientData, checkAuth, logout, isRegisteredInBusiness } = useClientAuth()
+  const confirm = useConfirm()
+  const toast = useToast()
   const isRegistered = isRegisteredInBusiness(business.id)
   
   // Estados de autenticación local (para el modal de login/registro)
@@ -60,6 +64,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [servicesCategory, setServicesCategory] = useState<string>('all')
   const [servicesPage, setServicesPage] = useState(0)
+  // Public gallery state
+  const [galleryCategory, setGalleryCategory] = useState<string>('all')
+  const [galleryPage, setGalleryPage] = useState(0)
   const [bookingData, setBookingData] = useState({
     customerName: '',
     customerEmail: '',
@@ -272,7 +279,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         
         // In development, show the code
         if (data.devCode) {
-          alert(`Código de verificación (solo desarrollo): ${data.devCode}`)
+          toast(`Código de verificación (solo desarrollo): ${data.devCode}`, 'info')
         }
         
       } else if (loginMode === 'verify') {
@@ -365,7 +372,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Cancel appointment modal handlers
   const openCancelModal = (appointmentId: string) => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para cancelar citas')
+      toast('Debes iniciar sesión para cancelar citas', 'info')
       return
     }
     setAppointmentToCancel(appointmentId)
@@ -391,11 +398,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       } else {
         let msg = 'Error al cancelar la cita'
         try { const error = await response.json(); msg = error?.error || msg } catch {}
-        alert(msg)
+        toast(msg, 'error')
       }
     } catch (e) {
       console.error('Error canceling appointment:', e)
-      alert('Error al cancelar la cita')
+      toast('Error al cancelar la cita', 'error')
     } finally {
       setIsCancelling(false)
     }
@@ -598,11 +605,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             if (extra) errorMsg += `\n(${extra})`
           }
         } catch {}
-        alert(errorMsg)
+        toast(errorMsg, 'error')
       }
     } catch (error) {
       console.error('Booking error:', error)
-      alert('Ocurrió un error. Por favor intenta nuevamente.')
+      toast('Ocurrió un error. Por favor intenta nuevamente.', 'error')
     }
   }
 
@@ -828,6 +835,14 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               >
                 {t('services')}
               </a>
+              {galleryItems.length > 0 && (
+                <a
+                  href="#gallery"
+                  className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-full font-bold hover:bg-white/20 transition-all duration-300"
+                >
+                  {t('gallery')}
+                </a>
+              )}
             </div>
           </div>
 
@@ -1469,6 +1484,142 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         </section>
       )}
 
+      {/* Gallery Section (public) with categories and pagination */}
+      {galleryItems.length > 0 && (
+        <section id="gallery" className="py-2 bg-gray-50">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-8">
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
+                {t('gallery')}
+              </span>
+              <h2 className="text-4xl font-black mt-2 mb-4">
+                {t('gallery')}
+              </h2>
+            </div>
+
+            {/* Category filters */}
+            {(() => {
+              const configuredCategories = (business.settings?.galleryCategories || [])
+                .slice()
+                .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                .map((c: any) => c.name)
+              const derivedCategories = Array.from(new Set(
+                galleryItems
+                  .filter((it: any) => (it.type || 'image') === 'image')
+                  .map((it: any) => it.category)
+                  .filter(Boolean)
+              )) as string[]
+              const categories = (configuredCategories.length > 0 ? configuredCategories : derivedCategories)
+
+              if (categories.length > 1) {
+                return (
+                  <div className="flex justify-center mb-8">
+                    <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full">
+                      <button
+                        onClick={() => { setGalleryCategory('all'); setGalleryPage(0) }}
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                          galleryCategory === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        {t('all')}
+                      </button>
+                      {categories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => { setGalleryCategory(category); setGalleryPage(0) }}
+                          className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                            galleryCategory === category ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
+
+            {/* Gallery grid with pagination (6 per page) */}
+            {(() => {
+              const imagesOnly = galleryItems.filter((it: any) => (it.type || 'image') === 'image')
+              const filtered = galleryCategory === 'all'
+                ? imagesOnly
+                : imagesOnly.filter((it: any) => (it.category || '') === galleryCategory)
+              const perPage = 6
+              const pages = Math.ceil((filtered.length || 0) / perPage)
+              const start = galleryPage * perPage
+              const pageItems = filtered.slice(start, start + perPage)
+
+              return (
+                <>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pageItems.map((item: any) => (
+                      <div key={item.id} className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+                        <div className="h-56 overflow-hidden">
+                          <img
+                            src={getImageUrl(item.id || item.url, 'gallery', 1000)}
+                            srcSet={getImageSrcSet(item.id || item.url, 'gallery')}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            alt={item.title || 'Gallery'}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                          />
+                        </div>
+                        {(item.title || item.category) && (
+                          <div className="p-4">
+                            <div className="flex items-center gap-2">
+                              {item.category && (
+                                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                                  {item.category}
+                                </span>
+                              )}
+                              {item.title && (
+                                <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                  {item.title}
+                                </h3>
+                              )}
+                            </div>
+                            {item.description && (
+                              <p className="mt-1 text-sm text-gray-600 line-clamp-2">{item.description}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {pages > 1 && (
+                    <div className="flex items-center justify-center gap-4 mt-8">
+                      <button
+                        onClick={() => setGalleryPage((p) => Math.max(0, p - 1))}
+                        disabled={galleryPage === 0}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 ${galleryPage === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Prev
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        {galleryPage + 1} / {pages}
+                      </span>
+                      <button
+                        onClick={() => setGalleryPage((p) => Math.min(pages - 1, p + 1))}
+                        disabled={galleryPage >= pages - 1}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 ${galleryPage >= pages - 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </section>
+      )}
+
       {/* Reviews Section mejorada */}
       {reviews.length > 0 && (
         <section id="reviews" className="py-2 bg-white">
@@ -1774,7 +1925,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                   setHasSearchedPackages(true)
                                   setBookingStep(1.5) // Ir a selección de paquete
                                 } else {
-                                  alert(t('noActivePackages'))
+                                  toast(t('noActivePackages'), 'info')
                                   setBookingType('package') // Cambiar a comprar paquete
                                 }
                               }
@@ -1785,8 +1936,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             }
                           } else {
                             // Si no está logueado, preguntar si desea iniciar sesión
-                            const confirmLogin = confirm(t('mustSignInUsePackages'))
-                            if (confirmLogin) {
+                            const ok = await confirm({
+                              title: t('login') || 'Login',
+                              message: t('mustSignInUsePackages'),
+                              confirmText: t('login') || 'Login'
+                            })
+                            if (ok) {
                               const currentUrl = encodeURIComponent(window.location.href)
                               window.location.href = `/cliente/login?from=${currentUrl}`
                             } else {
@@ -2115,7 +2270,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                     setSelectedService(fullService)
                                     setBookingStep(2)
                                   } else {
-                                    alert('Error: No se pudo encontrar el servicio. Por favor, recarga la página.')
+                                    toast('Error: No se pudo encontrar el servicio. Por favor, recarga la página.', 'error')
                                   }
                                 }}
                                 className="p-4 rounded-xl border-2 border-gray-200 hover:border-purple-300 transition-all text-left"

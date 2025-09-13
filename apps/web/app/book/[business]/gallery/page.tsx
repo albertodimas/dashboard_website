@@ -34,8 +34,8 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
-    // Load business info from API
-    const loadBusinessInfo = async () => {
+    // Load public business info including gallery items (no auth required)
+    const loadBusinessAndGallery = async () => {
       try {
         const response = await fetch(`/api/public/business/${businessId}`)
         if (response.ok) {
@@ -46,29 +46,21 @@ export default function GalleryPage() {
             phone: data.phone,
             address: data.address
           })
+          // Use gallery_items from the public endpoint
+          const items = Array.isArray(data.galleryItems) ? data.galleryItems : []
+          setGalleryItems(items)
+        } else {
+          setGalleryItems([])
         }
       } catch (error) {
-        console.error('Error loading business info:', error)
-      }
-    }
-
-    // Load gallery from API
-    const loadGallery = async () => {
-      try {
-        const response = await fetch('/api/dashboard/gallery')
-        if (response.ok) {
-          const data = await response.json()
-          setGalleryItems(Array.isArray(data) ? data : [])
-        }
-      } catch (error) {
-        console.error('Error loading gallery:', error)
+        console.error('Error loading business info or gallery:', error)
+        setGalleryItems([])
       } finally {
         setLoading(false)
       }
     }
 
-    loadBusinessInfo()
-    loadGallery()
+    loadBusinessAndGallery()
   }, [businessId])
   
   const getBusinessName = () => {

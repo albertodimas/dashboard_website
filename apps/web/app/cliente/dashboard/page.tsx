@@ -9,6 +9,7 @@ import {
   Trash2, AlertCircle, XCircle, ExternalLink
 } from 'lucide-react'
 import Link from 'next/link'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Package {
   id: string
@@ -631,6 +632,8 @@ export default function ClientDashboard() {
     }
   }
 
+  const toast = useToast()
+
   const handleCancelAppointment = async () => {
     if (!appointmentToCancel) return
 
@@ -645,7 +648,7 @@ export default function ClientDashboard() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Error al cancelar la cita')
+        toast(data.error || 'Error al cancelar la cita', 'error')
         return
       }
 
@@ -656,12 +659,12 @@ export default function ClientDashboard() {
           : apt
       ))
       setAppointmentToCancel(null)
-      alert('Cita cancelada exitosamente')
+      toast('Cita cancelada exitosamente', 'success')
       
       // Recargar datos
       fetchDashboardData()
     } catch (error) {
-      alert('Error al procesar la solicitud')
+      toast('Error al procesar la solicitud', 'error')
     } finally {
       setIsCancelling(false)
     }
@@ -681,16 +684,16 @@ export default function ClientDashboard() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Error al desregistrarse del negocio')
+        toast(data.error || 'Error al desregistrarse del negocio', 'error')
         return
       }
 
       // Actualizar la lista de negocios
       setMyBusinesses(myBusinesses.filter(b => b.id !== businessToUnregister.id))
       setBusinessToUnregister(null)
-      alert('Te has desregistrado exitosamente del negocio')
+      toast('Te has desregistrado exitosamente del negocio', 'success')
     } catch (error) {
-      alert('Error al procesar la solicitud')
+      toast('Error al procesar la solicitud', 'error')
     } finally {
       setIsUnregistering(false)
     }
