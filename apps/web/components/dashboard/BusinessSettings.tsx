@@ -53,6 +53,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [heroOverlay, setHeroOverlay] = useState(currentUi.heroOverlay || 'strong')
   const [cardRadius, setCardRadius] = useState(currentUi.cardRadius || 'xl')
   const [shadowStyle, setShadowStyle] = useState(currentUi.shadowStyle || 'soft')
+  const [typographyScale, setTypographyScale] = useState(currentUi.typographyScale || 'M')
+  const [bodyScale, setBodyScale] = useState(currentUi.bodyScale || 'M')
   const [showMobileStickyCTA, setShowMobileStickyCTA] = useState(currentUi.showMobileStickyCTA !== false)
   const [showDesktopFloatingDirection, setShowDesktopFloatingDirection] = useState(currentUi.showDesktopFloatingDirection !== false)
 
@@ -159,6 +161,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           heroOverlay,
           cardRadius,
           shadowStyle,
+          typographyScale,
+          bodyScale,
           showMobileStickyCTA,
           showDesktopFloatingDirection
         }
@@ -194,6 +198,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             heroOverlay,
             cardRadius,
             shadowStyle,
+            typographyScale,
+            bodyScale,
             showMobileStickyCTA,
             showDesktopFloatingDirection
           }
@@ -925,12 +931,22 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Typography Scale</label>
-              <select value={currentUi.typographyScale || 'M'} onChange={(e) => onUpdate({ ui: { ...(business.settings?.ui||{}), typographyScale: e.target.value } })} className="w-full p-3 border rounded-lg">
+              <select value={typographyScale} onChange={(e)=>setTypographyScale(e.target.value)} className="w-full p-3 border rounded-lg">
                 <option value="S">Small</option>
                 <option value="M">Medium</option>
                 <option value="L">Large</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">Adjust headline sizes across the landing.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Body Text Scale</label>
+              <select value={bodyScale} onChange={(e)=>setBodyScale(e.target.value)} className="w-full p-3 border rounded-lg">
+                <option value="S">Small</option>
+                <option value="M">Medium</option>
+                <option value="L">Large</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Fine-tune overall body text size.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Filter Chips Behavior</label>

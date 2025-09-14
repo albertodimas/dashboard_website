@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import Link from 'next/link'
 import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail, Instagram, Facebook, Twitter, ArrowRight, ChevronLeft, ChevronRight, User } from 'lucide-react'
@@ -29,6 +29,14 @@ export default function ProjectLanding({ business }: Props) {
   const [success, setSuccess] = useState(false)
 
   const reviews = business.reviews || []
+  // Apply body text scale based on UI setting
+  useEffect(() => {
+    const ui = (business.settings?.ui as any) || {}
+    const size = ui.bodyScale === 'L' ? '17px' : ui.bodyScale === 'S' ? '15px' : '16px'
+    const prev = document.documentElement.style.getPropertyValue('--root-font')
+    document.documentElement.style.setProperty('--root-font', size)
+    return () => { document.documentElement.style.setProperty('--root-font', prev || '16px') }
+  }, [business.settings?.ui])
   const galleryItems = business.galleryItems || []
   const staff = (business.staff || []).filter((s: any) => s.isActive)
 

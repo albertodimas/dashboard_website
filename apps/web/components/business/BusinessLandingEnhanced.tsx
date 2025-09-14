@@ -182,6 +182,14 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const shadowCls = shadowStyle === 'md' ? 'shadow-md hover:shadow-lg' : 'shadow-sm hover:shadow-lg'
   const h1Cls = typographyScale === 'L' ? 'text-5xl sm:text-7xl' : typographyScale === 'S' ? 'text-3xl sm:text-5xl' : 'text-4xl sm:text-6xl'
   const h2Cls = typographyScale === 'L' ? 'text-5xl' : typographyScale === 'S' ? 'text-3xl' : 'text-4xl'
+
+  // Apply body text scale by tweaking root font-size via CSS var
+  useEffect(() => {
+    const size = ui.bodyScale === 'L' ? '17px' : ui.bodyScale === 'S' ? '15px' : '16px'
+    const prev = document.documentElement.style.getPropertyValue('--root-font')
+    document.documentElement.style.setProperty('--root-font', size)
+    return () => { document.documentElement.style.setProperty('--root-font', prev || '16px') }
+  }, [ui.bodyScale])
   
   // Button style mapping
   const getButtonClasses = (baseClasses: string = '') => {
