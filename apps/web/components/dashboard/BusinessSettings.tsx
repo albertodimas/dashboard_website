@@ -924,6 +924,15 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           <p className="text-sm text-gray-600 mb-6">Tweak layout and interactions in your public site.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Typography Scale</label>
+              <select value={currentUi.typographyScale || 'M'} onChange={(e) => onUpdate({ ui: { ...(business.settings?.ui||{}), typographyScale: e.target.value } })} className="w-full p-3 border rounded-lg">
+                <option value="S">Small</option>
+                <option value="M">Medium</option>
+                <option value="L">Large</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Adjust headline sizes across the landing.</p>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Filter Chips Behavior</label>
               <div className="flex items-center gap-3">
                 <input id="chipsSticky" type="checkbox" checked={chipsSticky} onChange={(e)=>setChipsSticky(e.target.checked)} />

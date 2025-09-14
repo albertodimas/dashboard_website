@@ -170,6 +170,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const shadowStyle = ui.shadowStyle || 'soft'
   const showMobileStickyCTA = ui.showMobileStickyCTA !== false
   const showDesktopFloatingDirection = ui.showDesktopFloatingDirection !== false
+  const typographyScale = ui.typographyScale || 'M'
 
   const overlayClass = heroOverlay === 'light'
     ? 'from-black/40 via-black/25 to-black/50'
@@ -179,6 +180,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
   const radiusCls = cardRadius === 'md' ? 'rounded-xl' : cardRadius === 'lg' ? 'rounded-2xl' : 'rounded-[1.25rem]'
   const shadowCls = shadowStyle === 'md' ? 'shadow-md hover:shadow-lg' : 'shadow-sm hover:shadow-lg'
+  const h1Cls = typographyScale === 'L' ? 'text-5xl sm:text-7xl' : typographyScale === 'S' ? 'text-3xl sm:text-5xl' : 'text-4xl sm:text-6xl'
+  const h2Cls = typographyScale === 'L' ? 'text-5xl' : typographyScale === 'S' ? 'text-3xl' : 'text-4xl'
   
   // Button style mapping
   const getButtonClasses = (baseClasses: string = '') => {
@@ -996,7 +999,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
               {t('services')}
             </span>
-            <h2 className="text-4xl font-black mt-2 mb-4">
+            <h2 className={`${h2Cls} font-black mt-2 mb-4`}>
               {t('whatWeOffer')}
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -1459,7 +1462,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setBookingStep(3) // Jump directly to customer info for packages
                           setShowBookingModal(true)
                         }}
-                        className="w-full py-3 rounded-xl font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300 mt-auto"
+                        className={`w-full py-3 font-semibold text-white transition-all duration-300 mt-auto ${radiusCls}`}
+                        style={{ background: buttonStyle === 'gradient' ? colors.gradient : colors.primary }}
                       >
                         {t('buyPackage')}
                       </button>
@@ -1536,7 +1540,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
                 {t('gallery')}
               </span>
-              <h2 className="text-4xl font-black mt-2 mb-2">
+              <h2 className={`${h2Cls} font-black mt-2 mb-2`}>
                 {t('ourWork')}
               </h2>
               <p className="text-gray-600 max-w-2xl mx-auto">
@@ -1725,7 +1729,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
                 {t('team')}
               </span>
-              <h2 className="text-4xl font-black mt-2 mb-2">
+              <h2 className={`${h2Cls} font-black mt-2 mb-2`}>
                 {t('ourProfessionals')}
               </h2>
               <p className="text-gray-600 max-w-2xl mx-auto">{t('meetOurTeam')}</p>
@@ -1806,7 +1810,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
                 {t('reviewsTitle')}
               </span>
-              <h2 className="text-4xl font-black mt-2 mb-2">
+              <h2 className={`${h2Cls} font-black mt-2 mb-2`}>
                 {t('whatClientsSay')}
               </h2>
               <p className="text-gray-600 max-w-2xl mx-auto">{t('reviewsSubtitle')}</p>
