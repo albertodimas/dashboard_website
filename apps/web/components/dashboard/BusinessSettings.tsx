@@ -40,6 +40,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [heroOverlay, setHeroOverlay] = useState(currentUi.heroOverlay || 'strong')
   const [cardRadius, setCardRadius] = useState(currentUi.cardRadius || 'xl')
   const [shadowStyle, setShadowStyle] = useState(currentUi.shadowStyle || 'soft')
+  const [showMobileStickyCTA, setShowMobileStickyCTA] = useState(currentUi.showMobileStickyCTA !== false)
+  const [showDesktopFloatingDirection, setShowDesktopFloatingDirection] = useState(currentUi.showDesktopFloatingDirection !== false)
 
   const publicUrl = business.customSlug 
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.customSlug}`
@@ -143,7 +145,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           paginationStyle,
           heroOverlay,
           cardRadius,
-          shadowStyle
+          shadowStyle,
+          showMobileStickyCTA,
+          showDesktopFloatingDirection
         }
       }
       
@@ -176,7 +180,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             paginationStyle,
             heroOverlay,
             cardRadius,
-            shadowStyle
+            shadowStyle,
+            showMobileStickyCTA,
+            showDesktopFloatingDirection
           }
         })
         setCustomSlug(data.customSlug || '')
@@ -892,6 +898,23 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                 <option value="soft">Soft</option>
                 <option value="md">Medium</option>
               </select>
+            </div>
+
+            <div className="col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Sticky CTA</label>
+              <div className="flex items-center gap-3">
+                <input id="mobileStickyCta" type="checkbox" checked={showMobileStickyCTA} onChange={(e)=>setShowMobileStickyCTA(e.target.checked)} />
+                <label htmlFor="mobileStickyCta" className="text-sm text-gray-700">Show a bottom bar with Reserve / Call on mobile</label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Improves conversion by exposing main actions persistently on small screens.</p>
+            </div>
+
+            <div className="col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Desktop Floating "How to get there"</label>
+              <div className="flex items-center gap-3">
+                <input id="desktopFloatingDir" type="checkbox" checked={showDesktopFloatingDirection} onChange={(e)=>setShowDesktopFloatingDirection(e.target.checked)} />
+                <label htmlFor="desktopFloatingDir" className="text-sm text-gray-700">Show floating Google Maps button on desktop</label>
+              </div>
             </div>
           </div>
         </div>

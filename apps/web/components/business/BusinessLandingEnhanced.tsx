@@ -168,6 +168,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const heroOverlay = ui.heroOverlay || 'strong'
   const cardRadius = ui.cardRadius || 'xl'
   const shadowStyle = ui.shadowStyle || 'soft'
+  const showMobileStickyCTA = ui.showMobileStickyCTA !== false
+  const showDesktopFloatingDirection = ui.showDesktopFloatingDirection !== false
 
   const overlayClass = heroOverlay === 'light'
     ? 'from-black/40 via-black/25 to-black/50'
@@ -1987,8 +1989,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       </section>
 
       {/* Floating Map Button */}
-      {business.address && (
-        <div className="fixed bottom-20 right-4 z-40">
+      {business.address && showDesktopFloatingDirection && (
+        <div className="hidden md:block fixed bottom-20 right-4 z-40">
           <a
             href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
             target="_blank"
@@ -3159,6 +3161,28 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile sticky CTA bar */}
+      {showMobileStickyCTA && (
+        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40">
+          <div className="mx-3 mb-3 rounded-2xl shadow-lg flex overflow-hidden" style={{ background: colors.gradient }}>
+            <button
+              onClick={() => setShowBookingModal(true)}
+              className="flex-1 py-3 text-white font-semibold"
+            >
+              {t('bookShort')}
+            </button>
+            {business.phone && (
+              <a
+                href={`tel:${(business.phone || '').replace(/\s|\(|\)|-/g,'')}`}
+                className="flex-1 py-3 text-white/90 font-medium text-center border-l border-white/20"
+              >
+                {t('phone')}
+              </a>
+            )}
           </div>
         </div>
       )}

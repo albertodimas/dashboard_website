@@ -38,6 +38,9 @@ export default function ProjectLanding({ business }: Props) {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [lightboxItems, setLightboxItems] = useState<any[]>([])
+  const ui = (business.settings?.ui as any) || {}
+  const showMobileStickyCTA = ui.showMobileStickyCTA !== false
+  const showDesktopFloatingDirection = ui.showDesktopFloatingDirection !== false
   const averageRating = useMemo(() => {
     if (reviews.length > 0) {
       const total = reviews.reduce((acc: number, r: any) => acc + (r?.rating ?? 0), 0)
@@ -420,6 +423,41 @@ export default function ProjectLanding({ business }: Props) {
           index={lightboxIndex}
           onClose={() => setIsLightboxOpen(false)}
         />
+      )}
+
+      {/* Floating Map Button (desktop) */}
+      {business.address && showDesktopFloatingDirection && (
+        <div className="hidden md:block fixed bottom-20 right-4 z-40">
+          <a
+            href={getGoogleMapsDirectionsUrl(business.address, business.city, business.state)}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 group"
+            title={t('seeRoute') + ' - Google Maps'}
+          >
+            <MapPin className="w-5 h-5" />
+            <span className="font-medium text-sm hidden sm:inline">{t('howToGetThere')}</span>
+            <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+          </a>
+        </div>
+      )}
+
+      {/* Mobile sticky CTA */}
+      {showMobileStickyCTA && (
+        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40">
+          <div className="mx-3 mb-3 rounded-2xl shadow-lg flex overflow-hidden" style={{ background: colors.gradient }}>
+            <a
+              href="#services"
+              className="flex-1 py-3 text-white font-semibold text-center"
+            >
+              {t('bookShort')}
+            </a>
+            {business.phone && (
+              <a href={`tel:${(business.phone || '').replace(/\s|\(|\)|-/g,'')}`} className="flex-1 py-3 text-white/90 font-medium text-center border-l border-white/20">
+                {t('phone')}
+              </a>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Reviews Section (homogeneous styling) */}
