@@ -1983,7 +1983,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               
               <button
                 onClick={() => setShowBookingModal(true)}
-                className="mt-1 px-4 py-1 rounded font-semibold text-xs text-gray-900 bg-white hover:bg-gray-100 transition-all duration-300"
+                className={getButtonClasses("mt-1 px-4 py-1 rounded font-semibold text-xs text-white transition-all duration-300")}
+                style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
               >
                 {t('bookAppointmentCTA')}
               </button>

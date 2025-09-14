@@ -376,7 +376,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Modern Blue Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#3B82F6')&&eq(secondaryColor,'#1F2937')&&eq(accentColor,'#10B981')&&eq(backgroundColor,'#FFFFFF') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`}
                 onClick={() => {
                   setPrimaryColor('#3B82F6')
                   setSecondaryColor('#1F2937')
@@ -397,7 +397,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Elegant Purple Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#8B5CF6')&&eq(secondaryColor,'#374151')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#F9FAFB') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-purple-300'}`}
                 onClick={() => {
                   setPrimaryColor('#8B5CF6')
                   setSecondaryColor('#374151')
@@ -418,7 +418,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Fresh Green Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-green-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#059669')&&eq(secondaryColor,'#111827')&&eq(accentColor,'#F97316')&&eq(backgroundColor,'#F0FDF4') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-green-300'}`}
                 onClick={() => {
                   setPrimaryColor('#059669')
                   setSecondaryColor('#111827')
@@ -439,7 +439,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Warm Orange Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-orange-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#EA580C')&&eq(secondaryColor,'#1F2937')&&eq(accentColor,'#0891B2')&&eq(backgroundColor,'#FFF7ED') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-orange-300'}`}
                 onClick={() => {
                   setPrimaryColor('#EA580C')
                   setSecondaryColor('#1F2937')
@@ -460,7 +460,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Classic Dark Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-gray-400 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#6B7280')&&eq(secondaryColor,'#111827')&&eq(accentColor,'#EF4444')&&eq(backgroundColor,'#F9FAFB') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-gray-400'}`}
                 onClick={() => {
                   setPrimaryColor('#6B7280')
                   setSecondaryColor('#111827')
@@ -481,7 +481,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Ocean Blue Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-cyan-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#0891B2')&&eq(secondaryColor,'#0F172A')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#F0F9FF') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-cyan-300'}`}
                 onClick={() => {
                   setPrimaryColor('#0891B2')
                   setSecondaryColor('#0F172A')
@@ -502,7 +502,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Rose Pink Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-pink-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#EC4899')&&eq(secondaryColor,'#831843')&&eq(accentColor,'#14B8A6')&&eq(backgroundColor,'#FDF2F8') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-pink-300'}`}
                 onClick={() => {
                   setPrimaryColor('#EC4899')
                   setSecondaryColor('#831843')
@@ -523,7 +523,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Sunset Red Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-red-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#DC2626')&&eq(secondaryColor,'#7F1D1D')&&eq(accentColor,'#FBBF24')&&eq(backgroundColor,'#FEF2F2') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-red-300'}`}
                 onClick={() => {
                   setPrimaryColor('#DC2626')
                   setSecondaryColor('#7F1D1D')
@@ -544,7 +544,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Mint Fresh Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-teal-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#14B8A6')&&eq(secondaryColor,'#134E4A')&&eq(accentColor,'#F472B6')&&eq(backgroundColor,'#F0FDFA') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-teal-300'}`}
                 onClick={() => {
                   setPrimaryColor('#14B8A6')
                   setSecondaryColor('#134E4A')
@@ -565,7 +565,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
               {/* Golden Hour Theme */}
               <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 transition"
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#F59E0B')&&eq(secondaryColor,'#78350F')&&eq(accentColor,'#7C3AED')&&eq(backgroundColor,'#FFFBEB') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-yellow-300'}`}
                 onClick={() => {
                   setPrimaryColor('#F59E0B')
                   setSecondaryColor('#78350F')
