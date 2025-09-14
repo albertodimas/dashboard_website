@@ -33,6 +33,14 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [fontFamily, setFontFamily] = useState(currentTheme.fontFamily || 'inter')
   const [buttonStyle, setButtonStyle] = useState(currentTheme.buttonStyle || 'rounded')
 
+  // UI layout options
+  const currentUi = business.settings?.ui || {}
+  const [chipsSticky, setChipsSticky] = useState(currentUi.chipsSticky !== false)
+  const [paginationStyle, setPaginationStyle] = useState(currentUi.paginationStyle || 'numbered')
+  const [heroOverlay, setHeroOverlay] = useState(currentUi.heroOverlay || 'strong')
+  const [cardRadius, setCardRadius] = useState(currentUi.cardRadius || 'xl')
+  const [shadowStyle, setShadowStyle] = useState(currentUi.shadowStyle || 'soft')
+
   const publicUrl = business.customSlug 
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.customSlug}`
     : `${typeof window !== 'undefined' ? window.location.origin : ''}/business/${business.slug}`
@@ -129,6 +137,13 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           backgroundColor,
           fontFamily,
           buttonStyle
+        },
+        ui: {
+          chipsSticky,
+          paginationStyle,
+          heroOverlay,
+          cardRadius,
+          shadowStyle
         }
       }
       
@@ -155,6 +170,13 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             backgroundColor,
             fontFamily,
             buttonStyle
+          },
+          ui: {
+            chipsSticky,
+            paginationStyle,
+            heroOverlay,
+            cardRadius,
+            shadowStyle
           }
         })
         setCustomSlug(data.customSlug || '')
@@ -824,6 +846,52 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               >
                 Accent Button
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* UI Layout Options */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">🧩 UI Options</h3>
+          <p className="text-sm text-gray-600 mb-6">Tweak layout and interactions in your public site.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Filter Chips Behavior</label>
+              <div className="flex items-center gap-3">
+                <input id="chipsSticky" type="checkbox" checked={chipsSticky} onChange={(e)=>setChipsSticky(e.target.checked)} />
+                <label htmlFor="chipsSticky" className="text-sm text-gray-700">Sticky on scroll (recommended)</label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Keeps category filters visible while scrolling.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pagination Style</label>
+              <select value={paginationStyle} onChange={(e)=>setPaginationStyle(e.target.value)} className="w-full p-3 border rounded-lg">
+                <option value="numbered">Numbered (1, 2, 3)</option>
+                <option value="simple">Simple (Prev/Next)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hero Overlay</label>
+              <select value={heroOverlay} onChange={(e)=>setHeroOverlay(e.target.value)} className="w-full p-3 border rounded-lg">
+                <option value="light">Light</option>
+                <option value="medium">Medium</option>
+                <option value="strong">Strong</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Card Radius</label>
+              <select value={cardRadius} onChange={(e)=>setCardRadius(e.target.value)} className="w-full p-3 border rounded-lg">
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+                <option value="xl">Extra Large</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Shadow Style</label>
+              <select value={shadowStyle} onChange={(e)=>setShadowStyle(e.target.value)} className="w-full p-3 border rounded-lg">
+                <option value="soft">Soft</option>
+                <option value="md">Medium</option>
+              </select>
             </div>
           </div>
         </div>

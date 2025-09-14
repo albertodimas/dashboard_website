@@ -160,6 +160,23 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Font and button styles
   const fontFamily = business.settings?.theme?.fontFamily || 'inter'
   const buttonStyle = business.settings?.theme?.buttonStyle || 'rounded'
+
+  // UI options
+  const ui = business.settings?.ui || {}
+  const chipsSticky = ui.chipsSticky !== false
+  const paginationStyle = ui.paginationStyle || 'numbered'
+  const heroOverlay = ui.heroOverlay || 'strong'
+  const cardRadius = ui.cardRadius || 'xl'
+  const shadowStyle = ui.shadowStyle || 'soft'
+
+  const overlayClass = heroOverlay === 'light'
+    ? 'from-black/40 via-black/25 to-black/50'
+    : heroOverlay === 'medium'
+    ? 'from-black/50 via-black/35 to-black/60'
+    : 'from-black/60 via-black/40 to-black/70'
+
+  const radiusCls = cardRadius === 'md' ? 'rounded-xl' : cardRadius === 'lg' ? 'rounded-2xl' : 'rounded-[1.25rem]'
+  const shadowCls = shadowStyle === 'md' ? 'shadow-md hover:shadow-lg' : 'shadow-sm hover:shadow-lg'
   
   // Button style mapping
   const getButtonClasses = (baseClasses: string = '') => {
@@ -786,7 +803,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       />
                     )
                   })()}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+                  <div className={`absolute inset-0 bg-gradient-to-b ${overlayClass}`} />
                 </div>
               ))}
             </div>
@@ -993,7 +1010,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             
             if (categories.length > 1) {
                 return (
-                  <div className="flex justify-center mb-8 sticky top-24 z-10">
+                  <div className={`flex justify-center mb-8 ${chipsSticky ? 'sticky top-24 z-10' : ''}`}>
                     <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full overflow-x-auto no-scrollbar max-w-full">
                       <button
                         onClick={() => {
@@ -1051,7 +1068,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   {currentServices.map((service: any) => (
                     <div 
                       key={service.id} 
-                      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+                      className={`group bg-white ${radiusCls} ${shadowCls} transition-all duration-300 overflow-hidden`}
                     >
                       {service.image && (
                         <div className="h-48 overflow-hidden">
@@ -1130,25 +1147,27 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
-                    
-                    <div className="flex gap-2">
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setServicesPage(i)}
-                          className={`w-10 h-10 rounded-full font-medium transition-all ${
-                            i === servicesPage
-                              ? 'text-white shadow-lg transform scale-110'
-                              : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
-                          }`}
-                          style={{
-                            background: i === servicesPage ? colors.gradient : undefined
-                          }}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
+                    {paginationStyle === 'numbered' ? (
+                      <div className="flex gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setServicesPage(i)}
+                            className={`w-10 h-10 rounded-full font-medium transition-all ${
+                              i === servicesPage
+                                ? 'text-white shadow-lg transform scale-110'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
+                            }`}
+                            style={{ background: i === servicesPage ? colors.gradient : undefined }}
+                            aria-current={i === servicesPage}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-600">{servicesPage + 1} / {totalPages}</span>
+                    )}
                     
                     <button
                       onClick={() => setServicesPage(Math.min(totalPages - 1, servicesPage + 1))}
@@ -1327,7 +1346,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 return (
                   <div 
                     key={pkg.id} 
-                    className="relative group bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full"
+                    className={`relative group bg-gradient-to-br from-gray-50 to-white ${radiusCls} ${shadowCls} transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full`}
                   >
                     {pkg.discount && (
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10">
@@ -1582,7 +1601,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {pageItems.map((item: any, idx: number) => (
-                      <div key={item.id} className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+                      <div key={item.id} className={`group bg-white ${radiusCls} ${shadowCls} transition-all duration-300 overflow-hidden`}>
                         <div className="h-56 overflow-hidden">
                           {(() => {
                             const { src, srcSet } = resolveGallerySources(item.url || item.id, 1000)
@@ -1648,24 +1667,27 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         <ChevronLeft className="w-5 h-5" />
                       </button>
 
-                      <div className="flex gap-2">
-                        {Array.from({ length: pages }, (_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setGalleryPage(i)}
-                            className={`w-10 h-10 rounded-full font-medium transition-all ${
-                              i === galleryPage
-                                ? 'text-white shadow-lg transform scale-110'
-                                : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
-                            }`}
-                            style={{
-                              background: i === galleryPage ? colors.gradient : undefined
-                            }}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                      </div>
+                      {paginationStyle === 'numbered' ? (
+                        <div className="flex gap-2">
+                          {Array.from({ length: pages }, (_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setGalleryPage(i)}
+                              className={`w-10 h-10 rounded-full font-medium transition-all ${
+                                i === galleryPage
+                                  ? 'text-white shadow-lg transform scale-110'
+                                  : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
+                              }`}
+                              style={{ background: i === galleryPage ? colors.gradient : undefined }}
+                              aria-current={i === galleryPage}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-600">{galleryPage + 1} / {pages}</span>
+                      )}
 
                       <button
                         onClick={() => setGalleryPage(Math.min(pages - 1, galleryPage + 1))}

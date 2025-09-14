@@ -125,6 +125,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update business information
+    // Merge settings
+    const currentSettings: any = (business.settings as any) || {}
+    const mergedSettings: any = { ...currentSettings }
+    if (body.customDomain !== undefined) mergedSettings.customDomain = body.customDomain
+    if (body.theme !== undefined) mergedSettings.theme = body.theme
+    if (body.ui !== undefined) mergedSettings.ui = body.ui
+
     const updatedBusiness = await prisma.business.update({
       where: { id: business.id },
       data: {
@@ -144,7 +151,7 @@ export async function PUT(request: NextRequest) {
         logo: body.logo !== undefined ? body.logo : business.logo,
         coverImage: body.coverImage !== undefined ? body.coverImage : business.coverImage,
         customSlug: customSlug,
-        settings: body.settings || business.settings,
+        settings: Object.keys(mergedSettings).length ? mergedSettings : (body.settings || business.settings),
         features: body.features || business.features
       }
     })
