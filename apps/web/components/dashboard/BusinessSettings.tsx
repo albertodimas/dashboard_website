@@ -3,10 +3,48 @@
 import { useState } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import { Globe, Save, ExternalLink, Copy, Check, AlertCircle } from 'lucide-react'
+import { THEME_PRESETS } from './theme-presets'
+
+interface BusinessThemeSettings {
+  primaryColor?: string
+  secondaryColor?: string
+  accentColor?: string
+  backgroundColor?: string
+  fontFamily?: string
+  buttonStyle?: string
+}
+
+interface BusinessUiSettings {
+  chipsSticky?: boolean
+  paginationStyle?: string
+  heroOverlay?: string
+  cardRadius?: string
+  shadowStyle?: string
+  typographyScale?: string
+  bodyScale?: string
+  useGradientButtons?: boolean
+  showMobileStickyCTA?: boolean
+  showDesktopFloatingDirection?: boolean
+  tagline?: string
+}
+
+interface BusinessSettingsObject {
+  theme?: BusinessThemeSettings
+  ui?: BusinessUiSettings
+}
+
+interface Business {
+  slug: string
+  websiteUrl?: string
+  customSlug?: string | null
+  customDomain?: string | null
+  description?: string | null
+  settings?: BusinessSettingsObject
+}
 
 interface BusinessSettingsProps {
-  business: any
-  onUpdate: (data: any) => void
+  business: Business
+  onUpdate: (data: Partial<Business>) => void
 }
 
 export default function BusinessSettings({ business, onUpdate }: BusinessSettingsProps) {
@@ -29,33 +67,56 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [accentColor, setAccentColor] = useState(currentTheme.accentColor || '#10B981')
   const [backgroundColor, setBackgroundColor] = useState(currentTheme.backgroundColor || '#FFFFFF')
   const eq = (a: string, b: string) => (a || '').toLowerCase() === (b || '').toLowerCase()
-  // Unified presets used for rendering and detection
-  const PRESETS: Array<{ name: string; p: string; s: string; a: string; b: string }> = [
-    // Core presets
-    { name: 'Modern Blue',    p: '#3B82F6', s: '#1F2937', a: '#10B981', b: '#FFFFFF' },
-    { name: 'Elegant Purple', p: '#8B5CF6', s: '#374151', a: '#F59E0B', b: '#F9FAFB' },
-    { name: 'Fresh Green',    p: '#059669', s: '#111827', a: '#F97316', b: '#F0FDF4' },
-    { name: 'Warm Orange',    p: '#EA580C', s: '#1F2937', a: '#0891B2', b: '#FFF7ED' },
-    { name: 'Classic Dark',   p: '#6B7280', s: '#111827', a: '#EF4444', b: '#F9FAFB' },
-    { name: 'Ocean Blue',     p: '#0891B2', s: '#0F172A', a: '#F59E0B', b: '#F0F9FF' },
-    { name: 'Rose Pink',      p: '#EC4899', s: '#831843', a: '#14B8A6', b: '#FDF2F8' },
-    { name: 'Sunset Red',     p: '#DC2626', s: '#7F1D1D', a: '#FBBF24', b: '#FEF2F2' },
-    { name: 'Mint Fresh',     p: '#14B8A6', s: '#134E4A', a: '#F472B6', b: '#F0FDFA' },
-    // Additional presets
-    { name: 'Sand Dune',      p: '#FCD34D', s: '#78716C', a: '#A78BFA', b: '#FEFCE8' },
-    { name: 'Royal Purple',   p: '#7C3AED', s: '#1F2937', a: '#F59E0B', b: '#F5F3FF' },
-    { name: 'Forest Green',   p: '#22C55E', s: '#064E3B', a: '#F59E0B', b: '#ECFDF5' },
-    { name: 'Teal Navy',      p: '#0EA5E9', s: '#0F172A', a: '#14B8A6', b: '#E0F2FE' },
-    // New dark presets
-    { name: 'Dark Elegant',   p: '#6366F1', s: '#0F172A', a: '#F59E0B', b: '#0B1220' },
-    { name: 'Forest Night',   p: '#22C55E', s: '#14532D', a: '#86EFAC', b: '#0B1220' },
-    { name: 'Neon Pulse',     p: '#06B6D4', s: '#0B1120', a: '#F43F5E', b: '#0B1120' },
-  ]
-  const selectedPresetName = (PRESETS.find(x => eq(primaryColor,x.p) && eq(secondaryColor,x.s) && eq(accentColor,x.a) && eq(backgroundColor,x.b))?.name) || 'Custom'
+  // Presets moved to a shared module
+  const PRESETS = THEME_PRESETS
   
   // Typography and button style states
   const [fontFamily, setFontFamily] = useState(currentTheme.fontFamily || 'inter')
   const [buttonStyle, setButtonStyle] = useState(currentTheme.buttonStyle || 'rounded')
+  const fontClass = (ff: string) => (
+    ff === 'inter' ? 'font-["Inter"]' :
+    ff === 'poppins' ? 'font-["Poppins"]' :
+    ff === 'lato' ? 'font-["Lato"]' :
+    ff === 'opensans' ? 'font-["Open_Sans"]' :
+    ff === 'raleway' ? 'font-["Raleway"]' :
+    ff === 'nunito' ? 'font-["Nunito"]' :
+    ff === 'merriweather' ? 'font-["Merriweather"]' :
+    ff === 'sourcesans' ? 'font-["Source_Sans_Pro"]' :
+    ff === 'montserrat' ? 'font-["Montserrat"]' :
+    ff === 'roboto' ? 'font-["Roboto"]' :
+    ff === 'playfair' ? 'font-["Playfair_Display"]' :
+    ff === 'worksans' ? 'font-["Work_Sans"]' :
+    'font-["Inter"]'
+  )
+  const FONT_OPTIONS = [
+    { value: 'inter', label: 'Inter' },
+    { value: 'poppins', label: 'Poppins' },
+    { value: 'lato', label: 'Lato' },
+    { value: 'opensans', label: 'Open Sans' },
+    { value: 'raleway', label: 'Raleway' },
+    { value: 'nunito', label: 'Nunito' },
+    { value: 'merriweather', label: 'Merriweather' },
+    { value: 'sourcesans', label: 'Source Sans Pro' },
+    { value: 'montserrat', label: 'Montserrat' },
+    { value: 'roboto', label: 'Roboto' },
+    { value: 'playfair', label: 'Playfair Display' },
+    { value: 'worksans', label: 'Work Sans' },
+  ] as const
+
+  const BUTTON_STYLES = [
+    { value: 'soft', label: 'Soft' },
+    { value: 'rounded', label: 'Rounded' },
+    { value: 'square', label: 'Square' },
+    { value: 'pill', label: 'Pill' },
+    { value: 'soft-rounded', label: 'Soft Rounded' },
+    { value: 'outlined', label: 'Outlined' },
+    { value: 'shadow', label: 'Shadow' },
+    { value: '3d', label: '3D' },
+    { value: 'gradient', label: 'Gradient' },
+    { value: 'outline-dashed', label: 'Outline Dashed' },
+    { value: 'ghost', label: 'Ghost' },
+    { value: 'link', label: 'Link' },
+  ] as const
 
   // UI layout options
   const currentUi = business.settings?.ui || {}
@@ -69,6 +130,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [useGradientButtons, setUseGradientButtons] = useState(currentUi.useGradientButtons !== false)
   const [showMobileStickyCTA, setShowMobileStickyCTA] = useState(currentUi.showMobileStickyCTA !== false)
   const [showDesktopFloatingDirection, setShowDesktopFloatingDirection] = useState(currentUi.showDesktopFloatingDirection !== false)
+  const [tagline, setTagline] = useState(currentUi.tagline || '')
 
   const publicUrl = business.customSlug 
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.customSlug}`
@@ -177,7 +239,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           bodyScale,
           useGradientButtons,
           showMobileStickyCTA,
-          showDesktopFloatingDirection
+          showDesktopFloatingDirection,
+          tagline
         }
       }
       
@@ -215,7 +278,8 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             bodyScale,
             useGradientButtons,
             showMobileStickyCTA,
-            showDesktopFloatingDirection
+            showDesktopFloatingDirection,
+            tagline
           }
         })
         setCustomSlug(data.customSlug || '')
@@ -383,7 +447,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             <p className="text-sm text-gray-600">
               Choose from our professionally designed color combinations
             </p>
-            <div className="text-xs text-gray-500 mb-3">Selected: <span className="font-medium">{selectedPresetName}</span></div>
+            {/* Selected label removed; visual highlight is enough */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {PRESETS.map(({ name, p, s, a, b }) => {
                 const isActive = eq(primaryColor,p) && eq(secondaryColor,s) && eq(accentColor,a) && eq(backgroundColor,b)
@@ -395,10 +459,13 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">{name}</span>
-                      <div className="flex gap-1">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: p }}></div>
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: s }}></div>
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: a }}></div>
+                      <div className="flex items-center gap-2">
+                        {/* Badge removed; card highlight indicates selection */}
+                        <div className="flex gap-1">
+                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: p }}></div>
+                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: s }}></div>
+                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: a }}></div>
+                        </div>
                       </div>
                     </div>
                     <div className="h-2 rounded w-full" style={{ background: `linear-gradient(90deg, ${p} 0%, ${a} 100%)` }} />
@@ -555,6 +622,58 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           </div>
         </div>
 
+        {/* Button Styles */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">🔘 Button Styles</h3>
+          <p className="text-sm text-gray-600 mb-4">Elige la forma/estilo de tus botones.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {BUTTON_STYLES.map(({ value, label }) => {
+              const active = buttonStyle === value
+              const baseTile = `p-4 border-2 rounded-lg cursor-pointer transition ${active ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`
+              const sampleCommon = 'px-4 py-2 font-medium'
+              const radius = (
+                value === 'rounded' ? 'rounded-lg' :
+                value === 'square' ? '' :
+                value === 'pill' ? 'rounded-full' :
+                value === 'soft-rounded' ? 'rounded-2xl' :
+                'rounded-lg'
+              )
+              const isOutlined = value === 'outlined'
+              const isDashed = value === 'outline-dashed'
+              const isGhost = value === 'ghost'
+              const isLink = value === 'link'
+              const isShadow = value === 'shadow'
+              const is3d = value === '3d'
+              const isGradient = value === 'gradient'
+              const borderOnly = isOutlined || isDashed || isGhost || isLink
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setButtonStyle(value)}
+                  className={baseTile}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">{label}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span
+                      className={`${sampleCommon} ${radius} ${isOutlined ? 'border-2' : ''} ${isDashed ? 'border-2 border-dashed' : ''} ${isGhost ? 'border-2 border-transparent' : ''} ${isLink ? 'underline' : ''} ${borderOnly ? '' : 'text-white'} ${isShadow ? 'shadow-lg' : ''} ${is3d ? 'shadow-[0_4px_0_rgba(0,0,0,0.25)]' : ''}`}
+                      style={{
+                        background: borderOnly ? 'transparent' : (isGradient ? `linear-gradient(90deg, ${primaryColor} 0%, ${accentColor} 100%)` : primaryColor),
+                        borderColor: (isOutlined || isDashed) ? primaryColor : undefined,
+                        color: borderOnly ? primaryColor : undefined
+                      }}
+                    >
+                      Button
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* UI Layout Options */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">UI Layout Options</h3>
@@ -581,111 +700,116 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">Typography Settings</h3>
           <div className="space-y-4">
+            <p className="text-sm text-gray-500">Selecciona una tipografía haciendo clic en una tarjeta.</p>
+
+            {/* Visual font previews */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
-              <select
-                className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-              >
-                <option value="inter">Inter</option>
-                <option value="poppins">Poppins</option>
-                <option value="lato">Lato</option>
-                <option value="opensans">Open Sans</option>
-                <option value="raleway">Raleway</option>
-                <option value="nunito">Nunito</option>
-                <option value="merriweather">Merriweather</option>
-                <option value="sourcesans">Source Sans Pro</option>
-              </select>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Vista previa de tipografías</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {FONT_OPTIONS.map(({ value, label }) => {
+                  const active = fontFamily === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setFontFamily(value)}
+                      className={`text-left p-4 border-2 rounded-lg transition focus:outline-none ${active ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">{label}</span>
+                        {/* Badge removed; card highlight indicates selection */}
+                      </div>
+                      <div className={`${fontClass(value)} select-none`}>
+                        <div className="text-xl font-semibold">The quick brown fox</div>
+                        <div className="text-sm text-gray-600">Sphinx of black quartz, judge my vow.</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+
+            {/* Removed separate selected preview; Combined Preview is below */}
           </div>
         </div>
 
-        {/* Button Style Settings */}
+        {/* Hero Tagline */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">🔘 Button Styles</h3>
-          <p className="text-sm text-gray-600 mb-6">
-            Choose how your buttons will appear across your site
-          </p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'rounded' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('rounded')}
+          <h3 className="text-lg font-semibold mb-4">Hero Tagline</h3>
+          <p className="text-sm text-gray-600 mb-2">Texto breve que aparece bajo el nombre del negocio en la portada.</p>
+          <input
+            type="text"
+            value={tagline}
+            onChange={(e) => setTagline(e.target.value)}
+            placeholder="Servicios profesionales de la más alta calidad"
+            className="w-full p-3 border border-gray-300 rounded-lg"
+          />
+          <p className="text-xs text-gray-500 mt-1">Déjalo vacío para usar la descripción del negocio o el texto por defecto.</p>
+        </div>
+
+        {/* Combined Preview */}
+        <div className="mt-6 p-4 border border-gray-200 rounded-lg">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Combined Preview</h4>
+          <div 
+            className={`p-6 rounded-lg shadow-sm ${fontClass(fontFamily)}`}
+            style={{ backgroundColor }}
+          >
+            <h3 
+              className="text-2xl font-bold mb-2"
+              style={{ color: secondaryColor }}
             >
+              Your Business Name
+            </h3>
+            <p 
+              className="text-sm mb-4"
+              style={{ color: secondaryColor, opacity: 0.7 }}
+            >
+              {tagline || 'Experience our services with your custom theme'}
+            </p>
+            <div className="flex gap-2 flex-wrap">
               <button 
-                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2"
-                style={{ backgroundColor: primaryColor }}
+                className={`px-6 py-2 font-medium ${
+                  buttonStyle === 'soft' ? 'rounded-lg shadow-md' :
+                  buttonStyle === 'rounded' ? 'rounded-lg' :
+                  buttonStyle === 'square' ? '' :
+                  buttonStyle === 'pill' ? 'rounded-full' :
+                  buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
+                  buttonStyle === 'outlined' ? 'rounded-lg border-2' :
+                  buttonStyle === 'outline-dashed' ? 'rounded-lg border-2 border-dashed' :
+                  buttonStyle === 'ghost' ? 'rounded-lg border-2 border-transparent' :
+                  buttonStyle === 'link' ? 'rounded-none underline shadow-none' :
+                  buttonStyle === 'shadow' ? 'rounded-lg shadow-lg' :
+                  buttonStyle === '3d' ? 'rounded-lg' :
+                  'rounded-lg'
+                }`}
+                style={{
+                  background: (['outlined','outline-dashed','ghost','link'].includes(buttonStyle))
+                    ? 'transparent'
+                    : ((useGradientButtons || buttonStyle === 'gradient')
+                        ? `linear-gradient(90deg, ${primaryColor} 0%, ${accentColor} 100%)`
+                        : primaryColor),
+                  color: (['outlined','outline-dashed','ghost','link'].includes(buttonStyle)) ? primaryColor : '#FFFFFF',
+                  borderColor: (['outlined','outline-dashed'].includes(buttonStyle)) ? primaryColor : undefined
+                }}
               >
-                Rounded
+                Book Now
               </button>
-              <p className="text-xs text-gray-500 text-center">Soft & friendly</p>
-            </div>
-          </div>
-          
-          {/* Combined Preview */}
-          <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Combined Preview</h4>
-            <div 
-              className={`p-6 rounded-lg shadow-sm ${
-                fontFamily === 'inter' ? 'font-["Inter"]' :
-                fontFamily === 'poppins' ? 'font-["Poppins"]' :
-                fontFamily === 'lato' ? 'font-["Lato"]' :
-                fontFamily === 'opensans' ? 'font-["Open_Sans"]' :
-                fontFamily === 'raleway' ? 'font-["Raleway"]' :
-                fontFamily === 'nunito' ? 'font-["Nunito"]' :
-                fontFamily === 'merriweather' ? 'font-["Merriweather"]' :
-                fontFamily === 'sourcesans' ? 'font-["Source_Sans_Pro"]' :
-                'font-["Inter"]'
-              }`}
-              style={{ backgroundColor }}
-            >
-              <h3 
-                className="text-2xl font-bold mb-2"
-                style={{ color: secondaryColor }}
+              <button 
+                className={`px-6 py-2 border-2 font-medium ${
+                  buttonStyle === 'soft' ? 'rounded-lg shadow-md' :
+                  buttonStyle === 'rounded' ? 'rounded-lg' :
+                  buttonStyle === 'square' ? '' :
+                  buttonStyle === 'pill' ? 'rounded-full' :
+                  buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
+                  buttonStyle === 'outlined' ? 'rounded-lg' :
+                  buttonStyle === 'shadow' ? 'rounded-lg shadow-md' :
+                  buttonStyle === '3d' ? 'rounded-lg' :
+                  'rounded-lg'
+                }`}
+                style={{ borderColor: primaryColor, color: primaryColor }}
               >
-                Your Business Name
-              </h3>
-              <p 
-                className="text-sm mb-4"
-                style={{ color: secondaryColor, opacity: 0.7 }}
-              >
-                Experience our services with your custom theme
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                <button 
-                  className={`px-6 py-2 text-white font-medium ${
-                    buttonStyle === 'rounded' ? 'rounded-lg' :
-                    buttonStyle === 'square' ? '' :
-                    buttonStyle === 'pill' ? 'rounded-full' :
-                    buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
-                    buttonStyle === 'outlined' ? 'rounded-lg border-2' :
-                    buttonStyle === 'shadow' ? 'rounded-lg shadow-lg' :
-                    buttonStyle === '3d' ? 'rounded-lg' :
-                    'rounded-lg'
-                  }`}
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  Book Now
-                </button>
-                <button 
-                  className={`px-6 py-2 border-2 font-medium ${
-                    buttonStyle === 'rounded' ? 'rounded-lg' :
-                    buttonStyle === 'square' ? '' :
-                    buttonStyle === 'pill' ? 'rounded-full' :
-                    buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
-                    buttonStyle === 'outlined' ? 'rounded-lg' :
-                    buttonStyle === 'shadow' ? 'rounded-lg shadow-md' :
-                    buttonStyle === '3d' ? 'rounded-lg' :
-                    'rounded-lg'
-                  }`}
-                  style={{ borderColor: primaryColor, color: primaryColor }}
-                >
-                  Learn More
-                </button>
-              </div>
+                Learn More
+              </button>
             </div>
           </div>
         </div>
@@ -743,4 +867,3 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     </div>
   )
 }
-

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   Star, MapPin, Phone, Mail, Clock, Calendar, Users, Package, 
-  ChevronLeft, X, Check, Eye, ChevronRight, Heart, Share2, 
+  ChevronLeft, X, Check, Eye, ChevronRight,
   Instagram, Facebook, Twitter, Award, Shield, Sparkles,
   ArrowRight, User, DollarSign, Info, Image as ImageIcon, Gift,
   LogIn, LogOut, UserCircle, UserCheck, UserPlus
@@ -169,6 +169,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     return fallback
   }
   const ui = business.settings?.ui || {}
+  const tagline = (ui && typeof ui.tagline === 'string' && ui.tagline.trim() !== '')
+    ? ui.tagline
+    : (business.description || t('professionalQuality'))
   const chipsSticky = ui.chipsSticky !== false
   const paginationStyle = ui.paginationStyle || 'numbered'
   const heroOverlay = ui.heroOverlay || 'strong'
@@ -200,17 +203,45 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Button style mapping
   const getButtonClasses = (baseClasses: string = '') => {
     const styleClasses = {
+      soft: 'rounded-lg shadow-md',
       rounded: 'rounded-lg',
       square: 'rounded-none',
       pill: 'rounded-full',
       gradient: 'rounded-lg',
       'soft-rounded': 'rounded-2xl',
-      outlined: 'rounded-lg',
+      outlined: 'rounded-lg border-2',
+      'outline-dashed': 'rounded-lg border-2 border-dashed',
+      ghost: 'rounded-lg border-2 border-transparent',
+      link: 'rounded-none underline shadow-none',
       shadow: 'rounded-lg shadow-lg',
       '3d': 'rounded-lg'
     }
     const key = buttonStyle as keyof typeof styleClasses
     return `${baseClasses} ${styleClasses[key] || styleClasses.rounded}`
+  }
+
+  const isBorderOnly = ['outlined', 'outline-dashed', 'ghost', 'link'].includes(buttonStyle)
+  const getVisualProps = (
+    variant: 'primary' | 'secondary' = 'primary',
+    size: 'sm' | 'md' | 'lg' = 'lg',
+    extraClasses = ''
+  ) => {
+    const spacing = size === 'sm' ? 'px-4 py-2' : size === 'md' ? 'px-6 py-3' : 'px-8 py-4'
+    const className = getButtonClasses(`${spacing} font-bold transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 text-white ${variant==='primary' ? 'shadow-xl hover:shadow-2xl' : 'hover:shadow-lg'} ${extraClasses}`)
+    if (isBorderOnly) {
+      const style: any = { background: 'transparent', color: variant==='primary' ? colors.primary : colors.accent }
+      if (buttonStyle === 'outlined' || buttonStyle === 'outline-dashed') {
+        style.borderColor = variant==='primary' ? colors.primary : colors.accent
+      }
+      return { className, style }
+    }
+    const style = {
+      background: (ui.useGradientButtons || buttonStyle === 'gradient')
+        ? colors.gradient
+        : (variant === 'primary' ? colors.primary : colors.accent),
+      color: '#FFFFFF'
+    }
+    return { className, style }
   }
   
   // Get font family CSS
@@ -226,7 +257,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       raleway: '"Raleway", sans-serif',
       nunito: '"Nunito", sans-serif',
       merriweather: '"Merriweather", serif',
-      sourcesans: '"Source Sans Pro", sans-serif'
+      sourcesans: '"Source Sans Pro", sans-serif',
+      worksans: '"Work Sans", sans-serif'
     }
     return { fontFamily: fontMap[fontFamily] || fontMap.inter }
   }
@@ -739,15 +771,16 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
-                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full hover:from-blue-100 hover:to-purple-100 transition-all group"
+                    className="flex items-center gap-2 px-3 py-2 rounded-full transition-all group"
+                    style={{ background: colors.gradient, opacity: 0.12 }}
                     title={t('goToMyPortal')}
                   >
-                    <UserCircle className="w-5 h-5 text-blue-600 group-hover:text-blue-700" />
+                    <UserCircle className="w-5 h-5" style={{ color: colors.primary }} />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
                       {clientData?.name?.split(' ')[0] || clientData?.name}
                     </span>
                     {isRegistered && (
-                      <Check className="w-4 h-4 text-green-600 ml-1" title={t('registeredInBusiness')} />
+                      <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} title={t('registeredInBusiness')} />
                     )}
                   </Link>
                   <button
@@ -772,20 +805,22 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               )}
               
               <LanguageSelector />
-              <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Heart className="w-5 h-5 text-gray-600" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Share2 className="w-5 h-5 text-gray-600" />
-              </button>
+              {(() => {
+                const borderOnly = ['outlined','outline-dashed','ghost','link'].includes(buttonStyle)
+                const style = borderOnly
+                  ? { background: 'transparent', color: colors.primary, borderColor: colors.primary }
+                  : { background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary, color: '#FFFFFF' }
+                return (
               <button
                 onClick={() => setShowBookingModal(true)}
                 className={getButtonClasses("px-4 sm:px-6 py-2.5 font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300")}
-                style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
+                style={style}
               >
                 <span className="hidden sm:inline">{t('bookAppointmentCTA')}</span>
                 <span className="sm:hidden">{t('bookShort')}</span>
               </button>
+                )
+              })()}
             </div>
           </div>
         </nav>
@@ -838,7 +873,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             </h1>
             
             <p className="text-lg sm:text-xl text-white/90 mb-8 leading-relaxed">
-              {business.description || t('professionalQuality')}
+              {tagline}
             </p>
 
             {/* Stats mejorados */}
@@ -852,7 +887,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </div>
               
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2">
-                <Star className="w-5 h-5 text-yellow-400 fill-current" />
+                <Star className="w-5 h-5" style={{ color: colors.accent }} />
                 <span className="text-white font-semibold">
                   {averageRating.toFixed(1)} ({reviews.length} {t('reviewsLower')})
                 </span>
@@ -868,67 +903,83 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-4">
+              {(() => { const vp = getVisualProps('primary','lg'); return (
               <button
                 onClick={() => setShowBookingModal(true)}
-                className="px-8 py-4 bg-white text-gray-900 rounded-full font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
+                className={vp.className}
+                style={vp.style}
               >
                 {t('bookNow')}
                 <ArrowRight className="w-5 h-5" />
               </button>
+              )})()}
               {isAuthenticated ? (
+                (() => { const vp = getVisualProps('secondary','lg'); return (
                 <Link
                   href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
-                  className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
+                  className={vp.className}
+                  style={vp.style}
                 >
                   <UserCircle className="w-5 h-5" />
                   {t('myPortal')}
                 </Link>
+                )})()
               ) : (
+                (() => { const vp = getVisualProps('secondary','lg'); return (
                 <button
                   onClick={() => {
                     const currentUrl = encodeURIComponent(window.location.href)
                     window.location.href = `/cliente/login?from=${currentUrl}`
                   }}
-                  className="px-6 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-full font-bold hover:bg-white/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2"
+                  className={vp.className}
+                  style={vp.style}
                 >
                   <LogIn className="w-5 h-5" />
                   {t('signIn')}
                 </button>
+                )})()
               )}
               
+              {(() => { const vp = getVisualProps('secondary','lg'); return (
               <a
                 href="#services"
-                className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-full font-bold hover:bg-white/20 transition-all duration-300"
+                className={vp.className}
+                style={vp.style}
               >
                 {t('services')}
               </a>
+              )})()}
               {galleryItems.length > 0 && (
+                (() => { const vp = getVisualProps('secondary','lg'); return (
                 <a
                   href="#gallery"
-                  className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-full font-bold hover:bg-white/20 transition-all duration-300"
+                  className={vp.className}
+                  style={vp.style}
                 >
                   {t('gallery')}
                 </a>
+                )})()
               )}
             </div>
           </div>
 
           {/* Indicadores de galería */}
-          {galleryItems.length > 1 && (
-            <div className="flex gap-2 mt-8">
-              {galleryItems.map((_: any, index: number) => (
-                <button
-                  key={index}
-                  onClick={() => setActiveGalleryIndex(index)}
-                  className={`h-1 rounded-full transition-all duration-300 ${
-                    index === activeGalleryIndex 
-                      ? 'w-8 bg-white' 
+              {galleryItems.length > 1 && (
+                <div className="flex gap-2 mt-8">
+                  {galleryItems.map((_: any, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveGalleryIndex(index)}
+                      className={`h-1 rounded-full transition-all duration-300 ${
+                        index === activeGalleryIndex 
+                      ? 'w-8' 
                       : 'w-4 bg-white/40 hover:bg-white/60'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+                      }`}
+                      style={index === activeGalleryIndex ? { background: colors.gradient } : undefined}
+                    />
+                  ))}
+                </div>
+              )}
         </div>
       </section>
 
@@ -959,7 +1010,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               >
                 <div className="relative">
                   <MapPin className="w-5 h-5" style={{ color: colors.primary }} />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse" style={{ background: colors.accent }} />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 group-hover:text-gray-700">📍 {t('howToGetThere')}</p>
@@ -1119,10 +1170,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         </p>
                         
                         <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2 text-gray-500">
-                            <Clock className="w-4 h-4" />
-                            <span className="text-sm">{service.duration} min</span>
-                          </div>
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Clock className="w-4 h-4" style={{ color: colors.primary }} />
+                  <span className="text-sm">{service.duration} min</span>
+                </div>
                           <div className="text-2xl font-bold" style={{ color: colors.primary }}>
                             {formatCurrency(service.price)}
                           </div>
@@ -1134,8 +1185,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             setBookingType('service')
                             setShowBookingModal(true)
                           }}
-                          className={getButtonClasses("w-full py-3 font-semibold text-white transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5")}
-                          style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
+                          className={getVisualProps('primary','md','w-full').className}
+                          style={getVisualProps('primary','md','w-full').style}
                       >
                           {t('bookAppointmentCTA')}
                       </button>
@@ -1208,7 +1259,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
       {/* My Packages & Appointments Section for Authenticated Users */}
       {isAuthenticated && (customerPackages.length > 0 || myAppointments.length > 0) && (
-        <section className="py-1 bg-gradient-to-br from-blue-50 to-purple-50">
+        <section className="py-1" style={{ background: colors.gradient, opacity: 0.06 }}>
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-2">
               <h2 className="text-3xl font-bold mb-2">{t('myAccount')}</h2>
@@ -1333,7 +1384,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       {business.packages?.length > 0 && (
         <section id="packages" className="py-2 bg-white">
           <div className="container mx-auto px-4 sm:px-6">
-            <div className="text-center mb-12">
+            <div className="text-center mb-12" style={{ background: 'transparent' }}>
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
                 {t('specialOffers')}
               </span>
@@ -1362,7 +1413,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     className={`relative group bg-gradient-to-br from-gray-50 to-white ${radiusCls} ${shadowCls} transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full`}
                   >
                     {pkg.discount && (
-                      <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10">
+                      <div className="absolute top-4 right-4 text-white px-3 py-1 rounded-full text-sm font-bold z-10" style={{ background: colors.accent }}>
                         -{formatDiscount(pkg.discount)}%
                       </div>
                     )}
@@ -1442,7 +1493,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 return newSet
                               })
                             }}
-                            className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium mt-2 flex items-center justify-center gap-1 transition-colors"
+                            className="w-full text-sm font-medium mt-2 flex items-center justify-center gap-1 transition-colors"
+                            style={{ color: colors.primary }}
                           >
                             {expandedPackages.has(pkg.id) ? (
                               <>
@@ -1470,8 +1522,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setBookingStep(3) // Jump directly to customer info for packages
                           setShowBookingModal(true)
                         }}
-                        className={getButtonClasses("w-full py-3 font-semibold text-white transition-all duration-300 mt-auto hover:shadow-lg transform hover:-translate-y-0.5")}
-                        style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
+                        className={getVisualProps('primary','md','w-full mt-auto').className}
+                        style={getVisualProps('primary','md','w-full mt-auto').style}
                       >
                         {t('buyPackage')}
                       </button>
@@ -1765,7 +1817,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     </div>
                     {(member.rating && member.rating > 0) ? (
                       <div className="absolute bottom-0 right-1/2 translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                        <Star className="w-4 h-4" style={{ color: colors.accent }} />
                         <span className="text-sm font-semibold">{member.rating}</span>
                       </div>
                     ) : null}
@@ -1904,7 +1956,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   >
                     <div className="relative">
                       <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
-                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse" style={{ background: colors.accent }} />
                     </div>
                     <div>
                       <p className="font-semibold text-sm flex items-center gap-1">
@@ -1979,7 +2031,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       <span className={`font-medium text-right w-20 ${isToday ? 'text-white' : 'text-gray-400'}`}>
                         {daysOfWeek[day]}
                       </span>
-                      <span className={`ml-4 text-right min-w-[110px] ${isToday ? (dayHours?.isActive ? 'text-green-300' : 'text-red-300') : (dayHours?.isActive ? 'text-gray-300' : 'text-gray-500 line-through')}`}>
+                <span className={`ml-4 text-right min-w-[110px] ${isToday ? (dayHours?.isActive ? '' : 'text-red-300') : (dayHours?.isActive ? 'text-gray-300' : 'text-gray-500 line-through')}`}
+                  style={isToday && dayHours?.isActive ? { color: colors.accent } : undefined}>
                         {dayHours && dayHours.isActive
                           ? `${dayHours.startTime} - ${dayHours.endTime}`
                           : t('todayClosed')}
@@ -1989,13 +2042,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 })}
               </div>
               
+              {(() => { const vp = getVisualProps('primary','sm','mt-1 text-xs'); return (
               <button
                 onClick={() => setShowBookingModal(true)}
-                className={getButtonClasses("mt-1 px-4 py-1 rounded font-semibold text-xs text-white transition-all duration-300")}
-                style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
+                className={vp.className}
+                style={vp.style}
               >
                 {t('bookAppointmentCTA')}
               </button>
+              )})()}
             </div>
           </div>
         </div>
@@ -2054,17 +2109,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               
               {/* Progress bar */}
               <div className="flex gap-2 mt-4">
-                <div className={`h-1 flex-1 rounded-full transition-colors ${
-                  bookingStep >= 1 ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gray-200'
-                }`} />
-                <div className={`h-1 flex-1 rounded-full transition-colors ${
-                  bookingStep >= 2 ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gray-200'
-                }`} />
-                <div className={`h-1 flex-1 rounded-full transition-colors ${
-                  bookingStep >= 3 ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gray-200'
-                }`} />
+                <div className={`h-1 flex-1 rounded-full transition-colors ${bookingStep >= 1 ? '' : 'bg-gray-200'}`} style={bookingStep >= 1 ? { background: colors.gradient } : undefined} />
+                <div className={`h-1 flex-1 rounded-full transition-colors ${bookingStep >= 2 ? '' : 'bg-gray-200'}`} style={bookingStep >= 2 ? { background: colors.gradient } : undefined} />
+                <div className={`h-1 flex-1 rounded-full transition-colors ${bookingStep >= 3 ? '' : 'bg-gray-200'}`} style={bookingStep >= 3 ? { background: colors.gradient } : undefined} />
                 {bookingStep === 4 && (
-                  <div className="h-1 flex-1 rounded-full bg-green-500" />
+                  <div className="h-1 flex-1 rounded-full" style={{ background: colors.accent }} />
                 )}
               </div>
             </div>
@@ -2081,11 +2130,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     <div className={`grid gap-3 ${business.packages?.length > 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1'}`}>
                       <button
                         onClick={() => setBookingType('service')}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          bookingType === 'service'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className={`p-4 rounded-xl border-2 transition-all ${bookingType === 'service' ? '' : 'border-gray-200 hover:border-gray-300'}`}
+                        style={bookingType === 'service' ? { borderColor: colors.primary, background: '#ffffff' } : undefined}
                       >
                         <Calendar className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'service' ? '#3B82F6' : '#9CA3AF'} />
@@ -2142,11 +2188,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             }
                           }
                         }}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          bookingType === 'use-package'
-                            ? 'border-green-500 bg-green-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className={`p-4 rounded-xl border-2 transition-all ${bookingType === 'use-package' ? '' : 'border-gray-200 hover:border-gray-300'}`}
+                        style={bookingType === 'use-package' ? { borderColor: colors.accent, background: '#ffffff' } : undefined}
                       >
                         <Gift className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'use-package' ? '#10B981' : '#9CA3AF'} />
@@ -2156,11 +2199,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       
                       <button
                         onClick={() => setBookingType('package')}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          bookingType === 'package'
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className={`p-4 rounded-xl border-2 transition-all ${bookingType === 'package' ? '' : 'border-gray-200 hover:border-gray-300'}`}
+                        style={bookingType === 'package' ? { borderColor: colors.accent, background: '#ffffff' } : undefined}
                       >
                         <Package className="w-6 h-6 mx-auto mb-2" 
                           color={bookingType === 'package' ? '#8B5CF6' : '#9CA3AF'} />
@@ -2193,11 +2233,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={() => setSelectedCategory('all')}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                  selectedCategory === 'all'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === 'all' ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                style={selectedCategory === 'all' ? { background: colors.primary } : undefined}
                               >
                                 {t('all')}
                               </button>
@@ -2205,11 +2242,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 <button
                                   key={category}
                                   onClick={() => setSelectedCategory(category)}
-                                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                    selectedCategory === category
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                  }`}
+                                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === category ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                  style={selectedCategory === category ? { background: colors.primary } : undefined}
                                 >
                                   {category}
                                 </button>
@@ -2252,11 +2286,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                       setSelectedService(service)
                                       setBookingStep(2)
                                     }}
-                                    className={`w-full text-left p-4 rounded-xl transition-all mb-2 ${
-                                      selectedService?.id === service.id
-                                        ? 'bg-blue-50 border-2 border-blue-500'
-                                        : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                                    }`}
+                                    className={`w-full text-left p-4 rounded-xl transition-all mb-2 ${selectedService?.id === service.id ? 'border-2' : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'}`}
+                                    style={selectedService?.id === service.id ? { borderColor: colors.primary, background: '#fff' } : undefined}
                                   >
                                     <div className="flex justify-between items-start">
                                       <div>
@@ -2280,11 +2311,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                   setSelectedService(service)
                                   setBookingStep(2)
                                 }}
-                                className={`w-full text-left p-4 rounded-xl transition-all ${
-                                  selectedService?.id === service.id
-                                    ? 'bg-blue-50 border-2 border-blue-500'
-                                    : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                                }`}
+                                className={`w-full text-left p-4 rounded-xl transition-all ${selectedService?.id === service.id ? 'border-2' : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'}`}
+                                style={selectedService?.id === service.id ? { borderColor: colors.primary, background: '#fff' } : undefined}
                               >
                                 <div className="flex justify-between items-start">
                                   <div>
@@ -2307,11 +2335,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                               setSelectedPackage(pkg)
                               setBookingStep(3) // Skip to customer info for packages
                             }}
-                            className={`w-full text-left p-4 rounded-xl transition-all ${
-                              selectedPackage?.id === pkg.id
-                                ? 'bg-purple-50 border-2 border-purple-500'
-                                : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
-                            }`}
+                            className={`w-full text-left p-4 rounded-xl transition-all ${selectedPackage?.id === pkg.id ? 'border-2' : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'}`}
+                            style={selectedPackage?.id === pkg.id ? { borderColor: colors.accent, background: '#fff' } : undefined}
                           >
                             <div className="flex justify-between items-start">
                               <div>
@@ -2465,7 +2490,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                     toast('Error: No se pudo encontrar el servicio. Por favor, recarga la página.', 'error')
                                   }
                                 }}
-                                className="p-4 rounded-xl border-2 border-gray-200 hover:border-purple-300 transition-all text-left"
+                                className="p-4 rounded-xl border-2 transition-all text-left"
+                                style={{ borderColor: '#e5e7eb' }}
                               >
                                 <div className="flex justify-between items-center">
                                   <div>
@@ -2486,11 +2512,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   
                   {/* Mensaje si no tiene paquetes - solo mostrar después de buscar */}
                   {bookingData.customerEmail && !isLoadingPackages && hasSearchedPackages && customerPackages.length === 0 && (
-                    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 text-center">
-                      <p className="text-yellow-800 font-semibold mb-2">
+                    <div className="rounded-xl p-4 text-center" style={{ background: '#FFFBEB', border: `2px solid ${colors.accent}` }}>
+                      <p className="font-semibold mb-2" style={{ color: colors.accent }}>
                         No encontramos paquetes activos
                       </p>
-                      <p className="text-sm text-yellow-700 mb-3">
+                      <p className="text-sm mb-3" style={{ color: colors.accent }}>
                         {t('noPackagesWithEmail')}
                       </p>
                       <button
@@ -2498,7 +2524,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setBookingType('package')
                           setBookingStep(1)
                         }}
-                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                        className="text-sm font-medium"
+                        style={{ color: colors.accent }}
                       >
                         {t('wantToBuyPackage')}
                       </button>
@@ -2529,9 +2556,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         {/* Opción "Cualquier disponible" */}
                         <div
                           onClick={() => setSelectedStaff(null)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-300 ${
-                            !selectedStaff ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            !selectedStaff ? '' : 'border-gray-200'
                           }`}
+                          style={!selectedStaff ? { borderColor: colors.primary, background: '#fff' } : undefined}
                         >
                           <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
                             <Users size={20} className="text-gray-500" />
@@ -2541,7 +2569,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             <p className="text-sm text-gray-500">Se asignará automáticamente</p>
                           </div>
                           {!selectedStaff && (
-                            <Check size={20} className="text-blue-500" />
+                            <Check size={20} style={{ color: colors.primary }} />
                           )}
                         </div>
                         
@@ -2550,9 +2578,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           <div
                             key={s.id}
                             onClick={() => setSelectedStaff(s)}
-                            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-300 ${
-                              selectedStaff?.id === s.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                            }`}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedStaff?.id === s.id ? '' : 'border-gray-200'}`}
+                            style={selectedStaff?.id === s.id ? { borderColor: colors.primary, background: '#fff' } : undefined}
                           >
                             <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                               {s.photo ? (
@@ -2584,7 +2611,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             </div>
                             
                             {selectedStaff?.id === s.id && (
-                              <Check size={20} className="text-blue-500" />
+                              <Check size={20} style={{ color: colors.primary }} />
                             )}
                           </div>
                         ))}
@@ -2626,11 +2653,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 setSelectedTime(slot)
                                 setBookingStep(3)
                               }}
-                              className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                                selectedTime === slot
-                                  ? 'bg-blue-500 text-white'
-                                  : 'bg-gray-100 hover:bg-gray-200'
-                              }`}
+                              className={`px-4 py-3 rounded-xl font-medium transition-all ${selectedTime === slot ? 'text-white' : ''}`}
+                              style={selectedTime === slot ? { background: colors.primary } : { background: '#f3f4f6' }}
                             >
                               {slot}
                             </button>
@@ -2738,8 +2762,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
                     {/* Paquetes disponibles del cliente - solo para servicios */}
                     {bookingType === 'service' && customerPackages.length > 0 && (
-                      <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                        <p className="font-semibold text-green-800 mb-3">🎉 {t('youHavePackages')}</p>
+                    <div className="rounded-xl p-4" style={{ background: '#ecfdf5', border: `2px solid ${colors.accent}` }}>
+                      <p className="font-semibold mb-3" style={{ color: colors.accent }}>🎉 {t('youHavePackages')}</p>
                         <div className="space-y-2">
                           {customerPackages.map((pkg) => {
                             const isApplicable = pkg.package.services.some((ps: any) => 
@@ -2840,13 +2864,15 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     </div>
                   </div>
 
+                  {(() => { const vp = getVisualProps('primary','md','w-full'); return (
                   <button
                     type="submit"
-                    className="w-full py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
-                    style={{ background: colors.gradient }}
+                    className={vp.className}
+                    style={vp.style}
                   >
                     {bookingType === 'package' ? t('confirmPurchase') : t('confirmBookingShort')}
                   </button>
+                  )})()}
                   
                   <p className="text-xs text-center text-gray-500">
                     {t('acceptTerms')}
@@ -2958,23 +2984,29 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
                   {/* Botones de acción */}
                   <div className="flex gap-3">
+                    {(() => { const vp = getVisualProps('primary','md','flex-1'); return (
                     <button
                       onClick={() => {
                         resetBookingForm()
                       }}
-                      className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                      className={vp.className}
+                      style={vp.style}
                     >
                       {bookingType === 'package' ? t('buyAnotherPackage') : t('makeAnotherReservation')}
                     </button>
+                    )})()}
+                    {(() => { const vp = getVisualProps('secondary','md','flex-1'); return (
                     <button
                       onClick={() => {
                         setShowBookingModal(false)
                         resetBookingForm()
                       }}
-                      className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-all"
+                      className={vp.className}
+                      style={vp.style}
                     >
                       {t('close')}
                     </button>
+                    )})()}
                   </div>
 
                   <p className="text-xs text-gray-500">
@@ -3060,14 +3092,17 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         autoFocus
                       />
                     </div>
+                    {(() => { const vp = getVisualProps('primary','md','w-full disabled:opacity-50'); return (
                     <button
                       type="submit"
                       disabled={isLoggingIn || verificationCode.length !== 6}
-                      className="w-full py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg disabled:opacity-50"
-                      style={{ background: colors.gradient }}
+                      className={vp.className}
+                      style={vp.style}
                     >
                       {isLoggingIn ? t('verifying') : t('verifyCode')}
                     </button>
+                    )})()}
+                    {(() => { const vp = getVisualProps('secondary','sm','w-full'); return (
                     <button
                       type="button"
                       onClick={() => {
@@ -3076,10 +3111,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         setVerificationCode('')
                         setLoginError('')
                       }}
-                      className="w-full py-2 text-sm text-gray-600 hover:text-gray-800"
+                      className={vp.className}
+                      style={vp.style}
                     >
                       ← {t('back')}
                     </button>
+                    )})()}
                   </>
                 ) : (
                   // Regular login/register form
@@ -3140,11 +3177,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       </div>
                     )}
 
+                    {(() => { const vp = getVisualProps('primary','md','w-full disabled:opacity-50'); return (
                     <button
                       type="submit"
                       disabled={isLoggingIn}
-                      className="w-full py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:shadow-lg disabled:opacity-50"
-                      style={{ background: colors.gradient }}
+                      className={vp.className}
+                      style={vp.style}
                     >
                       {isLoggingIn
                         ? t('processing')
@@ -3152,6 +3190,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             ? (t('signInBtn') || t('signIn'))
                             : t('sendVerificationCode'))}
                     </button>
+                    )})()}
                   </>
                 )}
               </form>
@@ -3226,26 +3265,31 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 placeholder={t('writeNoteOptional')}
                 className="w-full min-h-28 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    setShowCancelModal(false)
-                    setCancelReason('')
-                    setAppointmentToCancel(null)
-                  }}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  {t('close')}
-                </button>
-                <button
-                  onClick={confirmCancelAppointment}
-                  disabled={isCancelling}
-                  className="flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50"
-                  style={{ background: colors.gradient }}
-                >
-                  {isCancelling ? t('cancelling') : t('confirmCancellation')}
-                </button>
-              </div>
+                  <div className="flex gap-2 pt-2">
+                    {(() => { const vp = getVisualProps('secondary','md','flex-1'); return (
+                    <button
+                      onClick={() => {
+                        setShowCancelModal(false)
+                        setCancelReason('')
+                        setAppointmentToCancel(null)
+                      }}
+                      className={vp.className}
+                      style={vp.style}
+                    >
+                      {t('close')}
+                    </button>
+                    )})()}
+                    {(() => { const vp = getVisualProps('primary','md','flex-1 disabled:opacity-50'); return (
+                    <button
+                      onClick={confirmCancelAppointment}
+                      disabled={isCancelling}
+                      className={vp.className}
+                      style={vp.style}
+                    >
+                      {isCancelling ? t('cancelling') : t('confirmCancellation')}
+                    </button>
+                    )})()}
+                  </div>
             </div>
           </div>
         </div>

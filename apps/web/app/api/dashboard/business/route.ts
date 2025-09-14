@@ -227,19 +227,30 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    // Prepare merged settings (theme, ui, customDomain)
+    const existingSettings: any = (business.settings as any) || {}
+    const shouldUpdateSettings = (
+      body.customDomain !== undefined ||
+      body.theme !== undefined ||
+      body.ui !== undefined
+    )
+
+    const mergedSettings = shouldUpdateSettings
+      ? {
+          ...existingSettings,
+          ...(body.customDomain !== undefined && { customDomain: body.customDomain }),
+          ...(body.theme !== undefined && { theme: body.theme }),
+          ...(body.ui !== undefined && { ui: { ...(existingSettings.ui || {}), ...(body.ui || {}) } })
+        }
+      : existingSettings
+
     // Update the business
     const updatedBusiness = await prisma.business.update({
       where: { id: business.id },
       data: {
         ...(body.customSlug !== undefined && { customSlug: body.customSlug || null }),
         ...(body.websiteUrl !== undefined && { website: body.websiteUrl }),
-        ...((body.customDomain !== undefined || body.theme !== undefined) && { 
-          settings: {
-            ...(business.settings as any || {}),
-            ...(body.customDomain !== undefined && { customDomain: body.customDomain }),
-            ...(body.theme !== undefined && { theme: body.theme })
-          }
-        })
+        ...(shouldUpdateSettings && { settings: mergedSettings })
       }
     })
 

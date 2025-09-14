@@ -129,7 +129,8 @@
       "Bash(cat:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(pnpm -C packages/db prisma migrate dev -n add_project_requests)"
+      "Bash(pnpm -C packages/db prisma migrate dev -n add_project_requests)",
+      "Bash(pnpm:*)"
     ],
     "deny": [],
     "ask": [],
