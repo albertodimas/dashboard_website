@@ -28,6 +28,19 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [secondaryColor, setSecondaryColor] = useState(currentTheme.secondaryColor || '#1F2937')
   const [accentColor, setAccentColor] = useState(currentTheme.accentColor || '#10B981')
   const [backgroundColor, setBackgroundColor] = useState(currentTheme.backgroundColor || '#FFFFFF')
+  const eq = (a: string, b: string) => (a || '').toLowerCase() === (b || '').toLowerCase()
+  const presetDetect: Array<{ name: string; p: string; s: string; a: string; b: string }> = [
+    { name: 'Modern Blue', p: '#3B82F6', s: '#1F2937', a: '#10B981', b: '#FFFFFF' },
+    { name: 'Elegant Purple', p: '#8B5CF6', s: '#374151', a: '#F59E0B', b: '#F9FAFB' },
+    { name: 'Fresh Green', p: '#059669', s: '#111827', a: '#F97316', b: '#F0FDF4' },
+    { name: 'Warm Orange', p: '#EA580C', s: '#1F2937', a: '#0891B2', b: '#FFF7ED' },
+    { name: 'Classic Dark', p: '#6B7280', s: '#111827', a: '#EF4444', b: '#F9FAFB' },
+    { name: 'Ocean Blue', p: '#0891B2', s: '#0F172A', a: '#F59E0B', b: '#F0F9FF' },
+    { name: 'Rose Pink', p: '#EC4899', s: '#831843', a: '#14B8A6', b: '#FDF2F8' },
+    { name: 'Sunset Red', p: '#DC2626', s: '#7F1D1D', a: '#FBBF24', b: '#FEF2F2' },
+    { name: 'Mint Fresh', p: '#14B8A6', s: '#134E4A', a: '#F472B6', b: '#F0FDFA' },
+  ]
+  const selectedPresetName = (presetDetect.find(x => eq(primaryColor,x.p) && eq(secondaryColor,x.s) && eq(accentColor,x.a) && eq(backgroundColor,x.b))?.name) || 'Custom'
   
   // Typography and button style states
   const [fontFamily, setFontFamily] = useState(currentTheme.fontFamily || 'inter')
@@ -346,10 +359,11 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
           {/* Theme Presets */}
           <div className="mb-8">
-            <h4 className="text-md font-semibold mb-4">🎯 Quick Theme Presets</h4>
-            <p className="text-sm text-gray-600 mb-4">
+            <h4 className="text-md font-semibold mb-1">🎯 Quick Theme Presets</h4>
+            <p className="text-sm text-gray-600">
               Choose from our professionally designed color combinations
             </p>
+            <div className="text-xs text-gray-500 mb-3">Selected: <span className="font-medium">{selectedPresetName}</span></div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Modern Blue Theme */}
@@ -707,6 +721,54 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                   </div>
                 </div>
                 <div className="text-xs text-gray-500">Desert & calm</div>
+              </div>
+
+              {/* Royal Purple */}
+              <div 
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#7C3AED')&&eq(secondaryColor,'#1F2937')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#F5F3FF') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-purple-300'}`}
+                onClick={() => { setPrimaryColor('#7C3AED'); setSecondaryColor('#1F2937'); setAccentColor('#F59E0B'); setBackgroundColor('#F5F3FF') }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Royal Purple</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7C3AED' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1F2937' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Premium & bold</div>
+              </div>
+
+              {/* Forest Green */}
+              <div 
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#22C55E')&&eq(secondaryColor,'#064E3B')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#ECFDF5') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-green-300'}`}
+                onClick={() => { setPrimaryColor('#22C55E'); setSecondaryColor('#064E3B'); setAccentColor('#F59E0B'); setBackgroundColor('#ECFDF5') }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Forest Green</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#22C55E' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#064E3B' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Natural & calm</div>
+              </div>
+
+              {/* Teal Navy */}
+              <div 
+                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#0EA5E9')&&eq(secondaryColor,'#0F172A')&&eq(accentColor,'#14B8A6')&&eq(backgroundColor,'#E0F2FE') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-sky-300'}`}
+                onClick={() => { setPrimaryColor('#0EA5E9'); setSecondaryColor('#0F172A'); setAccentColor('#14B8A6'); setBackgroundColor('#E0F2FE') }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">Teal Navy</span>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0EA5E9' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0F172A' }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#14B8A6' }}></div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Cool & modern</div>
               </div>
             </div>
           </div>
