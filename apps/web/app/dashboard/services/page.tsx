@@ -51,6 +51,7 @@ export default function ServicesPage() {
     isActive: true,
     assignedStaff: [] as string[]
   })
+  const [formErrors, setFormErrors] = useState<{ name?: string; duration?: string; price?: string; category?: string }>({})
   const [availableStaff, setAvailableStaff] = useState<Staff[]>([])
   const [staffModuleEnabled, setStaffModuleEnabled] = useState(false)
   const addModalRef = useRef<HTMLDivElement>(null)
@@ -161,6 +162,7 @@ export default function ServicesPage() {
       isActive: true,
       assignedStaff: []
     })
+    setFormErrors({})
     setShowAddModal(true)
   }
 
@@ -175,6 +177,7 @@ export default function ServicesPage() {
       isActive: service.isActive,
       assignedStaff: service.assignedStaff || []
     })
+    setFormErrors({})
     setShowEditModal(true)
   }
 
@@ -207,6 +210,20 @@ export default function ServicesPage() {
 
   const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Client-side validation
+    const errors: { name?: string; duration?: string; price?: string; category?: string } = {}
+    if (!formData.name || formData.name.trim() === '') errors.name = t('fieldRequired') || 'This field is required'
+    if (!formData.category || formData.category.trim() === '') errors.category = t('fieldRequired') || 'This field is required'
+    if (!formData.duration || formData.duration <= 0) errors.duration = t('mustBeGreaterThanZero') || 'Must be greater than 0'
+    if (formData.price < 0) errors.price = t('priceMustBeZeroOrMore') || 'Must be zero or more'
+    const nameLower = (formData.name || '').trim().toLowerCase()
+    const dupLocal = services.find(s => s.name.trim().toLowerCase() === nameLower && (!showEditModal || s.id !== (editingService?.id)))
+    if (dupLocal) errors.name = t('alreadyExists') || 'Already exists'
+    setFormErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      toast(t('validationError') || 'Please correct the highlighted fields', 'error')
+      return
+    }
     try {
       setSaving(true)
       setError(null)
@@ -221,7 +238,9 @@ export default function ServicesPage() {
           body: JSON.stringify({ ...formData, id: editingService.id }),
         })
         if (!response.ok) {
-          throw new Error('Failed to update service')
+          const data = await response.json().catch(() => ({}))
+          toast(data.error || (t('failedToSaveService') || 'Failed to update service'), 'error')
+          return
         }
         setShowEditModal(false)
       } else {
@@ -234,14 +253,17 @@ export default function ServicesPage() {
           body: JSON.stringify(formData),
         })
         if (!response.ok) {
-          throw new Error('Failed to create service')
+          const data = await response.json().catch(() => ({}))
+          toast(data.error || (t('failedToSaveService') || 'Failed to create service'), 'error')
+          return
         }
         setShowAddModal(false)
       }
       
       await loadServices() // Reload services after save
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save service')
+      console.error('Save service error:', err)
+      toast(t('failedToSaveService') || 'Failed to save service', 'error')
     } finally {
       setSaving(false)
     }
@@ -266,7 +288,8 @@ export default function ServicesPage() {
       
       await loadServices() // Reload services after update
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update service status')
+      console.error('Update service status error:', err)
+      toast(t('failedToUpdateService') || 'Failed to update service', 'error')
     } finally {
       setSaving(false)
     }
@@ -459,8 +482,9 @@ export default function ServicesPage() {
                     type="text"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setFormErrors(fe => ({ ...fe, name: undefined })) }}
                   />
+                  {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">{t('description')}</label>
@@ -478,8 +502,9 @@ export default function ServicesPage() {
                       type="number"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       value={formData.duration}
-                      onChange={(e) => setFormData({...formData, duration: parseInt(e.target.value) || 0})}
+                      onChange={(e) => { setFormData({...formData, duration: parseInt(e.target.value) || 0}); setFormErrors(fe => ({ ...fe, duration: undefined })) }}
                     />
+                    {formErrors.duration && <p className="text-xs text-red-600 mt-1">{formErrors.duration}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">{t('priceAmount')}</label>
@@ -487,8 +512,9 @@ export default function ServicesPage() {
                       type="number"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                      onChange={(e) => { setFormData({...formData, price: parseFloat(e.target.value) || 0}); setFormErrors(fe => ({ ...fe, price: undefined })) }}
                     />
+                    {formErrors.price && <p className="text-xs text-red-600 mt-1">{formErrors.price}</p>}
                   </div>
                 </div>
                 <div>
@@ -496,7 +522,7 @@ export default function ServicesPage() {
                   <select
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) => { setFormData({...formData, category: e.target.value}); setFormErrors(fe => ({ ...fe, category: undefined })) }}
                     required
                   >
                     <option value="">{t('selectCategory')}</option>
@@ -504,6 +530,7 @@ export default function ServicesPage() {
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
+                  {formErrors.category && <p className="text-xs text-red-600 mt-1">{formErrors.category}</p>}
                 </div>
                 {/* Staff Assignment (if module is enabled) */}
                 {staffModuleEnabled && availableStaff.length > 0 && (
@@ -566,8 +593,9 @@ export default function ServicesPage() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                     placeholder="e.g., Premium Haircut"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setFormErrors(fe => ({ ...fe, name: undefined })) }}
                   />
+                  {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">{t('description')}</label>
@@ -587,8 +615,9 @@ export default function ServicesPage() {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       placeholder="30"
                       value={formData.duration}
-                      onChange={(e) => setFormData({...formData, duration: parseInt(e.target.value) || 0})}
+                      onChange={(e) => { setFormData({...formData, duration: parseInt(e.target.value) || 0}); setFormErrors(fe => ({ ...fe, duration: undefined })) }}
                     />
+                    {formErrors.duration && <p className="text-xs text-red-600 mt-1">{formErrors.duration}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">{t('priceAmount')}</label>
@@ -597,8 +626,9 @@ export default function ServicesPage() {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       placeholder="35"
                       value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                      onChange={(e) => { setFormData({...formData, price: parseFloat(e.target.value) || 0}); setFormErrors(fe => ({ ...fe, price: undefined })) }}
                     />
+                    {formErrors.price && <p className="text-xs text-red-600 mt-1">{formErrors.price}</p>}
                   </div>
                 </div>
                 <div>
@@ -606,7 +636,7 @@ export default function ServicesPage() {
                   <select
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) => { setFormData({...formData, category: e.target.value}); setFormErrors(fe => ({ ...fe, category: undefined })) }}
                     required
                   >
                     <option value="">{t('selectCategory')}</option>
@@ -614,6 +644,7 @@ export default function ServicesPage() {
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
+                  {formErrors.category && <p className="text-xs text-red-600 mt-1">{formErrors.category}</p>}
                 </div>
                 {/* Staff Assignment (if module is enabled) */}
                 {staffModuleEnabled && availableStaff.length > 0 && (

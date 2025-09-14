@@ -3,11 +3,12 @@
 import { useMemo, useState } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import Link from 'next/link'
-import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail, Instagram, Facebook, Twitter, ArrowRight } from 'lucide-react'
+import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail, Instagram, Facebook, Twitter, ArrowRight, ChevronLeft, ChevronRight, User } from 'lucide-react'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 import { getImageSrcSet, getImageUrl } from '@/lib/upload-utils-client'
 import { formatCurrency } from '@/lib/format-utils'
 import { useLanguage } from '@/contexts/LanguageContext'
+import Lightbox from '@/components/ui/Lightbox'
 
 interface Props { business: any }
 
@@ -28,6 +29,15 @@ export default function ProjectLanding({ business }: Props) {
   const [success, setSuccess] = useState(false)
 
   const reviews = business.reviews || []
+  const galleryItems = business.galleryItems || []
+  const staff = (business.staff || []).filter((s: any) => s.isActive)
+
+  // Gallery/lightbox state
+  const [galleryCategory, setGalleryCategory] = useState<string>('all')
+  const [galleryPage, setGalleryPage] = useState(0)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [lightboxItems, setLightboxItems] = useState<any[]>([])
   const averageRating = useMemo(() => {
     if (reviews.length > 0) {
       const total = reviews.reduce((acc: number, r: any) => acc + (r?.rating ?? 0), 0)
@@ -37,6 +47,18 @@ export default function ProjectLanding({ business }: Props) {
   }, [reviews])
 
   const categories = Array.from(new Set((business.services || []).map((s: any) => s.category).filter(Boolean))) as string[]
+
+  // Helper to resolve gallery image URLs from id or absolute URL
+  const resolveGallerySources = (urlOrId?: string | null, size: number = 800) => {
+    if (!urlOrId) return { src: '', srcSet: '' }
+    const value = String(urlOrId)
+    if (value.startsWith('http') || value.startsWith('/')) {
+      const match = value.match(/\/gallery\/([^_]+)_\d+\.webp/i)
+      const imgId = match?.[1]
+      return { src: value, srcSet: imgId ? getImageSrcSet(imgId, 'gallery') : '' }
+    }
+    return { src: getImageUrl(value, 'gallery', size), srcSet: getImageSrcSet(value, 'gallery') }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -232,7 +254,7 @@ export default function ProjectLanding({ business }: Props) {
               {t('services')}
             </span>
             <h2 className="text-3xl font-black mt-2 mb-2">{t('whatWeOffer')}</h2>
-            <p className="text-gray-600">{t('selectTypeToSpeed') || 'Select a type in the form to speed up your request.'}</p>
+            <p className="text-gray-600">{t('tailoredToYourNeeds')}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {(business.services || []).map((service: any) => (
@@ -256,6 +278,196 @@ export default function ProjectLanding({ business }: Props) {
           </div>
         </div>
       </section>
+
+      {/* Gallery Section (project mode) */}
+      {galleryItems.length > 0 && (
+        <section id="gallery" className="py-10 bg-gray-50">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-8">
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
+                {t('gallery')}
+              </span>
+              <h2 className="text-3xl font-black mt-2 mb-2">{t('ourWork')}</h2>
+              <p className="text-gray-600">{t('seeOurQuality')}</p>
+            </div>
+
+            {(() => {
+              const configured = (business.settings?.galleryCategories || [])
+                .slice().sort((a: any,b: any) => (a.order||0)-(b.order||0)).map((c: any) => c.name)
+              const derived = Array.from(new Set(galleryItems.filter((it: any) => (it.type||'image')==='image').map((it: any)=>it.category).filter(Boolean))) as string[]
+              const categories = configured.length ? configured : derived
+              if (categories.length > 1) {
+                return (
+                  <div className="flex justify-center mb-8">
+                    <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full">
+                      <button onClick={() => { setGalleryCategory('all'); setGalleryPage(0) }} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${galleryCategory==='all'?'bg-white text-gray-900 shadow-sm':'text-gray-600 hover:text-gray-900'}`}>{t('all')}</button>
+                      {categories.map((c) => (
+                        <button key={c} onClick={() => { setGalleryCategory(c); setGalleryPage(0) }} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${galleryCategory===c?'bg-white text-gray-900 shadow-sm':'text-gray-600 hover:text-gray-900'}`}>{c}</button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
+
+            {(() => {
+              const imagesOnly = galleryItems.filter((it: any) => (it.type||'image')==='image')
+              const filtered = galleryCategory==='all' ? imagesOnly : imagesOnly.filter((it:any)=> (it.category||'')===galleryCategory)
+              const perPage = 6
+              const pages = Math.ceil((filtered.length||0)/perPage)
+              const start = galleryPage*perPage
+              const pageItems = filtered.slice(start,start+perPage)
+
+              return (
+                <>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pageItems.map((item:any, idx:number) => {
+                      const { src, srcSet } = resolveGallerySources(item.url || item.id, 1000)
+                      return (
+                        <div key={item.id} className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+                          <div className="h-56 overflow-hidden">
+                            <img
+                              onClick={() => { setLightboxItems(filtered); setLightboxIndex(start+idx); setIsLightboxOpen(true) }}
+                              src={src}
+                              srcSet={srcSet}
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              alt={item.title || 'Gallery'}
+                              className="w-full h-full object-cover cursor-zoom-in group-hover:scale-110 transition-transform duration-500"
+                              loading="lazy"
+                            />
+                          </div>
+                          {(item.title || item.category) && (
+                            <div className="p-4">
+                              <div className="flex items-center gap-2">
+                                {item.category && (<span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">{item.category}</span>)}
+                                {item.title && (<h3 className="text-sm font-semibold text-gray-900 truncate">{item.title}</h3>)}
+                              </div>
+                              {item.description && (<p className="mt-1 text-sm text-gray-600 line-clamp-2">{item.description}</p>)}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {pages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-10">
+                      <button onClick={() => setGalleryPage(Math.max(0,galleryPage-1))} disabled={galleryPage===0} className={`p-2 rounded-full transition-all ${galleryPage===0?'bg-gray-100 text-gray-400 cursor-not-allowed':'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'}`}>
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <div className="flex gap-2">
+                        {Array.from({length: pages},(_,i)=> (
+                          <button key={i} onClick={()=>setGalleryPage(i)} className={`w-10 h-10 rounded-full font-medium transition-all ${i===galleryPage?'text-white shadow-lg transform scale-110':'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'}`} style={{ background: i===galleryPage ? `${colors.gradient}` : undefined }}>{i+1}</button>
+                        ))}
+                      </div>
+                      <button onClick={() => setGalleryPage(Math.min(pages-1,galleryPage+1))} disabled={galleryPage===pages-1} className={`p-2 rounded-full transition-all ${galleryPage===pages-1?'bg-gray-100 text-gray-400 cursor-not-allowed':'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'}`}>
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {filtered.length > perPage && (
+                    <p className="text-center text-sm text-gray-500 mt-4">Mostrando {start+1}-{Math.min(start+perPage, filtered.length)} de {filtered.length} imágenes</p>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </section>
+      )}
+
+      {/* Team Section (after gallery) */}
+      {staff.length > 0 && (
+        <section className="py-10 bg-white">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-8">
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>{t('team')}</span>
+              <h2 className="text-3xl font-black mt-2 mb-2">{t('ourProfessionals')}</h2>
+              <p className="text-gray-600">{t('meetOurTeam')}</p>
+            </div>
+            <div className={`grid gap-6 ${staff.length === 1 ? 'max-w-sm mx-auto' : staff.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : staff.length === 3 ? 'sm:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+              {staff.map((member: any) => (
+                <div key={member.id} className="text-center group">
+                  <div className="relative mb-4">
+                    <div className="w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-200">
+                      {member.photo ? (
+                        <img src={member.photo.startsWith('data:') ? member.photo : getImageUrl(member.photo, 'avatar', 256)} srcSet={member.photo.startsWith('data:') ? '' : getImageSrcSet(member.photo, 'avatar')} sizes="128px" alt={member.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><User className="w-16 h-16 text-gray-400" /></div>
+                      )}
+                    </div>
+                    {(member.rating && member.rating > 0) ? (
+                      <div className="absolute bottom-0 right-1/2 translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                        <span className="text-sm font-semibold">{member.rating}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <h3 className="font-bold text-lg">{member.name}</h3>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Lightbox overlay */}
+      {isLightboxOpen && (
+        <Lightbox
+          items={lightboxItems.map((it: any) => { const { src } = resolveGallerySources(it.url || it.id, 1200); return { src, title: it.title, description: it.description } })}
+          index={lightboxIndex}
+          onClose={() => setIsLightboxOpen(false)}
+        />
+      )}
+
+      {/* Reviews Section (homogeneous styling) */}
+      {reviews.length > 0 && (
+        <section id="reviews" className="py-10 bg-white">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-8">
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
+                {t('reviewsTitle')}
+              </span>
+              <h2 className="text-3xl font-black mt-2 mb-2">{t('whatClientsSay')}</h2>
+              <p className="text-gray-600">{t('reviewsSubtitle')}</p>
+
+              <div className="flex items-center justify-center gap-4 mt-8">
+                <div className="text-5xl font-bold" style={{ color: colors.primary }}>
+                  {averageRating.toFixed(1)}
+                </div>
+                <div>
+                  <div className="flex gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className="w-6 h-6"
+                        fill={i < Math.round(averageRating) ? colors.accent : 'none'}
+                        color={colors.accent}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-500 text-sm mt-1">{`${t('basedOn')} ${reviews.length} ${t('reviewsLower')}`}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reviews.map((review: any) => (
+                <div key={review.id} className="bg-white rounded-xl border shadow-sm p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    {[...Array(review.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4" fill={colors.accent} color={colors.accent} />
+                    ))}
+                  </div>
+                  {review.comment && <p className="text-gray-700 text-sm">{review.comment}</p>}
+                  <p className="text-xs text-gray-500 mt-3">{review.customer?.name || 'Cliente'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Request Modal */}
       {showRequestModal && (

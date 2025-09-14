@@ -12,7 +12,8 @@ import {
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LanguageSelector from '@/components/LanguageSelector'
-import { getImageUrl, getImageSrcSet } from '@/lib/upload-utils-client'
+import { getImageUrl, getImageSrcSet, getPlaceholderUrl } from '@/lib/upload-utils-client'
+import Lightbox from '@/components/ui/Lightbox'
 import { formatPrice, formatCurrency, formatDiscount } from '@/lib/format-utils'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 import { useClientAuth } from '@/contexts/ClientAuthContext'
@@ -67,6 +68,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   // Public gallery state
   const [galleryCategory, setGalleryCategory] = useState<string>('all')
   const [galleryPage, setGalleryPage] = useState(0)
+  // Packages pagination state
+  const [packagesPage, setPackagesPage] = useState(0)
   const [bookingData, setBookingData] = useState({
     customerName: '',
     customerEmail: '',
@@ -88,10 +91,36 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const [cancelReason, setCancelReason] = useState('')
   const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
+  // Lightbox state
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [lightboxItems, setLightboxItems] = useState<any[]>([])
   
   // Datos del negocio
   const reviews = business.reviews || []
   const galleryItems = business.galleryItems || []
+
+  // Helper to resolve gallery image src/srcSet from either stored URL or imageId
+  const resolveGallerySources = (urlOrId?: string | null, size: number = 800) => {
+    if (!urlOrId) {
+      return { src: getPlaceholderUrl('gallery'), srcSet: '' }
+    }
+    const value = String(urlOrId)
+    // If it's a full/relative URL, use it and try to derive srcset if pattern matches
+    if (value.startsWith('http') || value.startsWith('/')) {
+      const match = value.match(/\/gallery\/([^_]+)_\d+\.webp/i)
+      const imgId = match?.[1]
+      return {
+        src: value,
+        srcSet: imgId ? getImageSrcSet(imgId, 'gallery') : ''
+      }
+    }
+    // Otherwise assume it's an image id
+    return {
+      src: getImageUrl(value, 'gallery', size),
+      srcSet: getImageSrcSet(value, 'gallery')
+    }
+  }
   
   // Si el módulo de staff está deshabilitado y hay owner, mostrar el owner como único profesional
   let displayStaff = business.staff || []
@@ -743,14 +772,19 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     index === activeGalleryIndex ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
-                  <img
-                    src={getImageUrl(item.id || item.url, 'gallery', 1200)}
-                    srcSet={getImageSrcSet(item.id || item.url, 'gallery')}
+                  {(() => {
+                    const { src, srcSet } = resolveGallerySources(item.url || item.id, 1200)
+                    return (
+                      <img
+                        src={src}
+                        srcSet={srcSet}
                     sizes="100vw"
                     alt={item.title || 'Gallery'}
                     className="w-full h-full object-cover"
                     loading="lazy"
-                  />
+                      />
+                    )
+                  })()}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
                 </div>
               ))}
@@ -761,7 +795,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         {/* Contenido del hero */}
         <div className="relative container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 mt-4 sm:mt-6">
               <Shield className="w-5 h-5 text-white/80" />
               <span className="text-white/80 text-sm">{t('verifiedBusiness')}</span>
             </div>
@@ -1273,13 +1307,19 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <h2 className="text-4xl font-black mt-2 mb-4">
                 {t('packagesAndPromos')}
               </h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                Ahorra con nuestros paquetes especialmente diseñados
-              </p>
+              <p className="text-gray-600 max-w-2xl mx-auto">{t('saveWithPackages')}</p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {business.packages.map((pkg: any) => {
+            {(() => {
+              const perPage = 6
+              const totalPages = Math.ceil((business.packages?.length || 0) / perPage)
+              const startIndex = packagesPage * perPage
+              const pageItems = business.packages.slice(startIndex, startIndex + perPage)
+
+              return (
+                <>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pageItems.map((pkg: any) => {
                 const visibleServices = pkg.services?.slice(0, 3) || []
                 const remainingCount = (pkg.services?.length || 0) - 3
                 
@@ -1404,85 +1444,67 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     </div>
                   </div>
                 )
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Staff Section */}
-      {displayStaff.length > 0 && (
-        <section className="py-2 bg-gray-50">
-          <div className="container mx-auto px-4 sm:px-6">
-            <div className="text-center mb-12">
-              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
-                {t('team')}
-              </span>
-              <h2 className="text-4xl font-black mt-2 mb-4">
-                {t('ourProfessionals')}
-              </h2>
-            </div>
-
-            <div className={`grid gap-6 ${displayStaff.length === 1 ? 'max-w-sm mx-auto' : displayStaff.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : displayStaff.length === 3 ? 'sm:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
-              {displayStaff.map((member: any) => (
-                <div key={member.id} className="text-center group">
-                  <div className="relative mb-4">
-                    <div className="w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-200">
-                      {member.photo ? (
-                        <img 
-                          src={member.photo.startsWith('data:') ? member.photo : getImageUrl(member.photo, 'avatar', 256)}
-                          srcSet={member.photo.startsWith('data:') ? '' : getImageSrcSet(member.photo, 'avatar')}
-                          sizes="128px"
-                          alt={member.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <User className="w-16 h-16 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    {(member.rating && member.rating > 0) ? (
-                      <div className="absolute bottom-0 right-1/2 translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm font-semibold">{member.rating}</span>
-                      </div>
-                    ) : null}
+                    })}
                   </div>
-                  
-                  <h3 className="font-bold text-lg">{member.name}</h3>
-                  {(() => {
-                    // Check if specialties exists and is valid
-                    if (!member.specialties) return null;
-                    if (member.specialties === '0' || member.specialties === 0 || member.specialties === '') return null;
-                    
-                    if (Array.isArray(member.specialties)) {
-                      const validSpecialties = member.specialties.filter((s: any) => s && s !== '0' && s !== 0);
-                      if (validSpecialties.length === 0) return null;
-                      return (
-                        <p className="text-sm text-gray-500 mt-1">
-                          {validSpecialties.join(', ')}
-                        </p>
-                      );
-                    }
-                    
-                    if (typeof member.specialties === 'string' && member.specialties.trim() !== '') {
-                      return (
-                        <p className="text-sm text-gray-500 mt-1">
-                          {member.specialties}
-                        </p>
-                      );
-                    }
-                    
-                    return null;
-                  })()}
-                </div>
-              ))}
-            </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-10">
+                      <button
+                        onClick={() => setPackagesPage(Math.max(0, packagesPage - 1))}
+                        disabled={packagesPage === 0}
+                        className={`p-2 rounded-full transition-all ${
+                          packagesPage === 0
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'
+                        }`}
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      <div className="flex gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setPackagesPage(i)}
+                            className={`w-10 h-10 rounded-full font-medium transition-all ${
+                              i === packagesPage
+                                ? 'text-white shadow-lg transform scale-110'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
+                            }`}
+                            style={{ background: i === packagesPage ? colors.gradient : undefined }}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setPackagesPage(Math.min(totalPages - 1, packagesPage + 1))}
+                        disabled={packagesPage === totalPages - 1}
+                        className={`p-2 rounded-full transition-all ${
+                          packagesPage === totalPages - 1
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'
+                        }`}
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {business.packages.length > perPage && (
+                    <p className="text-center text-sm text-gray-500 mt-4">
+                      Mostrando {startIndex + 1}-{Math.min(startIndex + perPage, business.packages.length)} de {business.packages.length} paquetes
+                    </p>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </section>
       )}
+
+      
 
       {/* Gallery Section (public) with categories and pagination */}
       {galleryItems.length > 0 && (
@@ -1492,9 +1514,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
                 {t('gallery')}
               </span>
-              <h2 className="text-4xl font-black mt-2 mb-4">
-                {t('gallery')}
+              <h2 className="text-4xl font-black mt-2 mb-2">
+                {t('ourWork')}
               </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                {t('seeOurQuality')}
+              </p>
             </div>
 
             {/* Category filters */}
@@ -1555,17 +1580,34 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               return (
                 <>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {pageItems.map((item: any) => (
+                    {pageItems.map((item: any, idx: number) => (
                       <div key={item.id} className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
                         <div className="h-56 overflow-hidden">
-                          <img
-                            src={getImageUrl(item.id || item.url, 'gallery', 1000)}
-                            srcSet={getImageSrcSet(item.id || item.url, 'gallery')}
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            alt={item.title || 'Gallery'}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            loading="lazy"
-                          />
+                          {(() => {
+                            const { src, srcSet } = resolveGallerySources(item.url || item.id, 1000)
+                            return (
+                              <img
+                                onClick={() => {
+                                  // Open lightbox with current filtered items
+                                  const imagesOnly = galleryItems.filter((it: any) => (it.type || 'image') === 'image')
+                                  const filtered = galleryCategory === 'all'
+                                    ? imagesOnly
+                                    : imagesOnly.filter((it: any) => (it.category || '') === galleryCategory)
+                                  setLightboxItems(filtered)
+                                  // Calculate absolute index within filtered list
+                                  const absoluteIndex = start + idx
+                                  setLightboxIndex(absoluteIndex)
+                                  setIsLightboxOpen(true)
+                                }}
+                                src={src}
+                                srcSet={srcSet}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                alt={item.title || 'Gallery'}
+                                className="w-full h-full object-cover cursor-zoom-in group-hover:scale-110 transition-transform duration-500"
+                                loading="lazy"
+                              />
+                            )
+                          })()}
                         </div>
                         {(item.title || item.category) && (
                           <div className="p-4">
@@ -1591,33 +1633,143 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   </div>
 
                   {pages > 1 && (
-                    <div className="flex items-center justify-center gap-4 mt-8">
+                    <div className="flex justify-center items-center gap-4 mt-10">
                       <button
-                        onClick={() => setGalleryPage((p) => Math.max(0, p - 1))}
+                        onClick={() => setGalleryPage(Math.max(0, galleryPage - 1))}
                         disabled={galleryPage === 0}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 ${galleryPage === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                        className={`p-2 rounded-full transition-all ${
+                          galleryPage === 0
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'
+                        }`}
                       >
-                        <ChevronLeft className="w-4 h-4" />
-                        Prev
+                        <ChevronLeft className="w-5 h-5" />
                       </button>
-                      <span className="text-sm text-gray-600">
-                        {galleryPage + 1} / {pages}
-                      </span>
+
+                      <div className="flex gap-2">
+                        {Array.from({ length: pages }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setGalleryPage(i)}
+                            className={`w-10 h-10 rounded-full font-medium transition-all ${
+                              i === galleryPage
+                                ? 'text-white shadow-lg transform scale-110'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
+                            }`}
+                            style={{
+                              background: i === galleryPage ? colors.gradient : undefined
+                            }}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+
                       <button
-                        onClick={() => setGalleryPage((p) => Math.min(pages - 1, p + 1))}
-                        disabled={galleryPage >= pages - 1}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 ${galleryPage >= pages - 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                        onClick={() => setGalleryPage(Math.min(pages - 1, galleryPage + 1))}
+                        disabled={galleryPage === pages - 1}
+                        className={`p-2 rounded-full transition-all ${
+                          galleryPage === pages - 1
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'
+                        }`}
                       >
-                        Next
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-5 h-5" />
                       </button>
                     </div>
+                  )}
+
+                  {filtered.length > perPage && (
+                    <p className="text-center text-sm text-gray-500 mt-4">
+                      Mostrando {start + 1}-{Math.min(start + perPage, filtered.length)} de {filtered.length} imágenes
+                    </p>
                   )}
                 </>
               )
             })()}
           </div>
         </section>
+      )}
+
+      {/* Staff Section (moved below Gallery) */}
+      {displayStaff.length > 0 && (
+        <section className="py-2 bg-gray-50">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center mb-12">
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
+                {t('team')}
+              </span>
+              <h2 className="text-4xl font-black mt-2 mb-2">
+                {t('ourProfessionals')}
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">{t('meetOurTeam')}</p>
+            </div>
+
+            <div className={`grid gap-6 ${displayStaff.length === 1 ? 'max-w-sm mx-auto' : displayStaff.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' : displayStaff.length === 3 ? 'sm:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+              {displayStaff.map((member: any) => (
+                <div key={member.id} className="text-center group">
+                  <div className="relative mb-4">
+                    <div className="w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-200">
+                      {member.photo ? (
+                        <img
+                          src={member.photo.startsWith('data:') ? member.photo : getImageUrl(member.photo, 'avatar', 256)}
+                          srcSet={member.photo.startsWith('data:') ? '' : getImageSrcSet(member.photo, 'avatar')}
+                          sizes="128px"
+                          alt={member.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <User className="w-16 h-16 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    {(member.rating && member.rating > 0) ? (
+                      <div className="absolute bottom-0 right-1/2 translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                        <span className="text-sm font-semibold">{member.rating}</span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <h3 className="font-bold text-lg">{member.name}</h3>
+                  {(() => {
+                    if (!member.specialties) return null
+                    if (member.specialties === '0' || member.specialties === 0 || member.specialties === '') return null
+                    if (Array.isArray(member.specialties)) {
+                      const validSpecialties = member.specialties.filter((s: any) => s && s !== '0' && s !== 0)
+                      if (validSpecialties.length === 0) return null
+                      return <p className="text-sm text-gray-500 mt-1">{validSpecialties.join(', ')}</p>
+                    }
+                    if (typeof member.specialties === 'string' && member.specialties.trim() !== '') {
+                      return <p className="text-sm text-gray-500 mt-1">{member.specialties}</p>
+                    }
+                    return null
+                  })()}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Lightbox overlay */}
+      {isLightboxOpen && (
+        (() => {
+          // Build lightbox display items from current list using robust src resolution
+          const items = lightboxItems.map((it: any) => {
+            const { src } = resolveGallerySources(it.url || it.id, 1200)
+            return { src, title: it.title, description: it.description }
+          })
+          return (
+            <Lightbox
+              items={items}
+              index={lightboxIndex}
+              onClose={() => setIsLightboxOpen(false)}
+            />
+          )
+        })()
       )}
 
       {/* Reviews Section mejorada */}
@@ -1628,9 +1780,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <span className="text-sm font-bold uppercase tracking-wider" style={{ color: colors.primary }}>
                 {t('reviewsTitle')}
               </span>
-              <h2 className="text-4xl font-black mt-2 mb-4">
+              <h2 className="text-4xl font-black mt-2 mb-2">
                 {t('whatClientsSay')}
               </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">{t('reviewsSubtitle')}</p>
               
               {/* Rating summary */}
               <div className="flex items-center justify-center gap-4 mt-8">

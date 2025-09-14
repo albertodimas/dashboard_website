@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -35,7 +36,11 @@ export default function GalleryManagementPage() {
   const [newCategory, setNewCategory] = useState('')
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [formErrors, setFormErrors] = useState<{ url?: string; title?: string }>({})
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const modalRef = useRef<HTMLDivElement>(null)
   useAutoFocusFirstInput(showAddModal, modalRef)
   const confirm = useConfirm()
@@ -92,8 +97,16 @@ export default function GalleryManagementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Client-side validation
+    const errs: { url?: string; title?: string } = {}
+    if (!formData.title.trim()) errs.title = t('fieldRequired') || 'This field is required'
+    if (!formData.url.trim()) errs.url = t('fieldRequired') || 'This field is required'
+    setFormErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      toast(t('validationError') || 'Please correct the highlighted fields', 'error')
+      return
+    }
     setSaving(true)
-    
     try {
       let response: Response
       if (editingItem) {
@@ -126,6 +139,9 @@ export default function GalleryManagementPage() {
         })
         setShowAddModal(false)
         setEditingItem(null)
+      } else {
+        const data = await response.json().catch(() => ({}))
+        toast(data.error || (t('failedToSaveGalleryItem') || 'Failed to save gallery item'), 'error')
       }
     } catch (error) {
       console.error('Error saving gallery item:', error)
@@ -145,6 +161,28 @@ export default function GalleryManagementPage() {
       category: item.category || ''
     })
     setShowAddModal(true)
+  }
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      setUploading(true)
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('type', 'gallery')
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        toast(data.error || (t('failedToUploadImage') || 'Failed to upload image'), 'error')
+        return
+      }
+      setFormData((prev) => ({ ...prev, url: data.url }))
+      toast(t('uploaded') || 'Uploaded', 'success')
+    } catch (e) {
+      console.error('Upload error:', e)
+      toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -195,7 +233,13 @@ export default function GalleryManagementPage() {
             <h1 className="text-3xl font-bold text-gray-900">{t('galleryManagement') || 'Gallery Management'}</h1>
             <p className="mt-2 text-sm text-gray-700">{t('galleryManagementSubtitle') || 'Upload and manage images and videos of your work'}</p>
           </div>
-          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex gap-2">
+            <Link
+              href="/dashboard/gallery-categories"
+              className="block rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+            >
+              {t('manageCategories')}
+            </Link>
             <button
               onClick={() => setShowAddModal(true)}
               className="block rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
@@ -204,6 +248,26 @@ export default function GalleryManagementPage() {
             </button>
           </div>
         </div>
+
+        {/* Category Filter */}
+        {(() => {
+          const derived = Array.from(new Set(galleryItems.map((g) => g.category).filter(Boolean))) as string[]
+          const cats = ['all', ...(availableCategories.length ? availableCategories : derived)]
+          if (cats.length <= 1) return null
+          return (
+            <div className="mt-6 mb-2 flex gap-2 flex-wrap">
+              {cats.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full ${selectedCategory === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  {cat === 'all' ? t('all') : cat}
+                </button>
+              ))}
+            </div>
+          )
+        })()}
 
         {/* Gallery Grid */}
         {galleryItems.length === 0 ? (
@@ -228,7 +292,7 @@ export default function GalleryManagementPage() {
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {galleryItems.map((item) => (
+            {(selectedCategory === 'all' ? galleryItems : galleryItems.filter(i => (i.category || '') === selectedCategory)).map((item) => (
               <div key={item.id} className="relative group bg-white rounded-lg shadow overflow-hidden">
                 <div className="aspect-w-16 aspect-h-9">
                   {item.type === 'image' ? (
@@ -302,18 +366,75 @@ export default function GalleryManagementPage() {
                         </select>
                       </div>
 
+                      {/* Upload helper for images */}
+                      {formData.type === 'image' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">{t('uploadImage') || 'Upload image'}</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            disabled={uploading}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f) void handleFileUpload(f)
+                            }}
+                            className="mt-1 block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                          {uploading && <p className="text-xs text-gray-500 mt-1">{t('uploading') || 'Uploading...'}</p>}
+                        </div>
+                      )}
+
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          URL
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">URL</label>
                         <input
-                          type="url"
+                          type={formData.type === 'video' ? 'url' : 'text'}
                           required
                           value={formData.url}
-                          onChange={(e) => setFormData({...formData, url: e.target.value})}
+                          onChange={(e) => { setFormData({...formData, url: e.target.value}); setFormErrors(fe => ({ ...fe, url: undefined })) }}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                          placeholder="https://example.com/image.jpg"
+                          placeholder={formData.type === 'image' ? 'https://... or /gallery/<id>_800.webp' : 'https://youtu.be/...'}
                         />
+                        {formErrors.url && <p className="text-xs text-red-600 mt-1">{formErrors.url}</p>}
+                        {formData.type === 'image' && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {t('tipExternalImages') || 'Tip: External image links (e.g., from Google) may block hotlinking. Uploading here is more reliable.'}
+                          </p>
+                        )}
+                        {formData.type === 'image' && (
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              disabled={!formData.url || importing}
+                              onClick={async () => {
+                                if (!formData.url) return
+                                try {
+                                  setImporting(true)
+                                  const res = await fetch('/api/upload/import', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ url: formData.url, type: 'gallery' })
+                                  })
+                                  const data = await res.json()
+                                  if (!res.ok) {
+                                    toast(data.error || (t('failedToUploadImage') || 'Failed to import image'), 'error')
+                                  } else {
+                                    setFormData(prev => ({ ...prev, url: data.url }))
+                                    toast(t('uploaded') || 'Imported', 'success')
+                                  }
+                                } catch (e) {
+                                  console.error('Import error:', e)
+                                  toast(t('failedToUploadImage') || 'Failed to import image', 'error')
+                                } finally {
+                                  setImporting(false)
+                                }
+                              }}
+                              className="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50"
+                            >
+                              {importing ? (t('saving') || 'Processing...') : (t('importFromUrl') || 'Import from URL')}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -322,9 +443,10 @@ export default function GalleryManagementPage() {
                           type="text"
                           required
                           value={formData.title}
-                          onChange={(e) => setFormData({...formData, title: e.target.value})}
+                          onChange={(e) => { setFormData({...formData, title: e.target.value}); setFormErrors(fe => ({ ...fe, title: undefined })) }}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         />
+                        {formErrors.title && <p className="text-xs text-red-600 mt-1">{formErrors.title}</p>}
                       </div>
 
                       <div>

@@ -23,6 +23,7 @@ export default function GalleryCategoriesPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [formData, setFormData] = useState({ name: '', order: 0 })
+  const [formErrors, setFormErrors] = useState<{ name?: string }>({})
   const [saving, setSaving] = useState(false)
   const [reassignFrom, setReassignFrom] = useState('')
   const [reassignTo, setReassignTo] = useState('')
@@ -58,12 +59,14 @@ export default function GalleryCategoriesPage() {
 
   const handleAddCategory = () => {
     setFormData({ name: '', order: categories.length + 1 })
+    setFormErrors({})
     setShowAddModal(true)
   }
 
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category)
     setFormData({ name: category.name, order: category.order })
+    setFormErrors({})
     setShowEditModal(true)
   }
 
@@ -114,6 +117,18 @@ export default function GalleryCategoriesPage() {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Client-side validation
+    const errs: { name?: string } = {}
+    const name = formData.name.trim()
+    if (!name) errs.name = t('fieldRequired') || 'This field is required'
+    const nameLower = name.toLowerCase()
+    const duplicate = categories.some(c => c.name.trim().toLowerCase() === nameLower && (!showEditModal || c.id !== editingCategory?.id))
+    if (duplicate) errs.name = t('alreadyExists') || 'Already exists'
+    setFormErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      toast(t('validationError') || 'Please correct the highlighted fields', 'error')
+      return
+    }
     setSaving(true)
     try {
       if (showEditModal && editingCategory) {
@@ -311,7 +326,8 @@ export default function GalleryCategoriesPage() {
               <form onSubmit={handleSaveCategory}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('name')}</label>
-                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="text" value={formData.name} onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setFormErrors({}) }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('orderTitle') || 'Order'}</label>
@@ -334,7 +350,8 @@ export default function GalleryCategoriesPage() {
               <form onSubmit={handleSaveCategory}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('name')}</label>
-                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="text" value={formData.name} onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setFormErrors({}) }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('orderTitle') || 'Order'}</label>

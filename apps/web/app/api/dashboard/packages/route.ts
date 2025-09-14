@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json()
     const { services, ...packageData } = data
+    const name = (packageData.name || '').toString().trim()
+    if (!name) return NextResponse.json({ error: 'Package name is required' }, { status: 400 })
 
     // Calcular duración total del paquete
     let totalDuration = 0
@@ -76,9 +78,17 @@ export async function POST(request: NextRequest) {
     // Calculate final price with discount (60% discount = pay 40%)
     const finalPrice = originalPrice * (1 - (packageData.discount || 0) / 100)
 
+    // Enforce unique name per business (case-insensitive)
+    const dup = await prisma.package.findFirst({
+      where: { businessId: business.id, name: { equals: name, mode: 'insensitive' } },
+      select: { id: true }
+    })
+    if (dup) return NextResponse.json({ error: 'A package with this name already exists' }, { status: 409 })
+
     const newPackage = await prisma.package.create({
       data: {
         ...packageData,
+        name,
         price: finalPrice,
         duration: totalDuration,
         originalPrice,
@@ -101,8 +111,11 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(newPackage)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating package:', error)
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ error: 'A package with this name already exists' }, { status: 409 })
+    }
     return NextResponse.json({ error: 'Failed to create package' }, { status: 500 })
   }
 }
@@ -159,6 +172,16 @@ export async function PUT(request: NextRequest) {
     const finalPrice = originalPrice * (1 - (packageData.discount || 0) / 100)
 
     // Actualizar paquete y sus servicios
+    // Ensure name uniqueness if it changes
+    const newName = packageData.name !== undefined ? (packageData.name || '').toString().trim() : undefined
+    if (newName) {
+      const dup = await prisma.package.findFirst({
+        where: { businessId: existingPackage.businessId, name: { equals: newName, mode: 'insensitive' }, NOT: { id: packageId } },
+        select: { id: true }
+      })
+      if (dup) return NextResponse.json({ error: 'A package with this name already exists' }, { status: 409 })
+    }
+
     const updatedPackage = await prisma.$transaction(async (tx) => {
       // Eliminar servicios existentes
       await tx.packageService.deleteMany({
@@ -170,6 +193,7 @@ export async function PUT(request: NextRequest) {
         where: { id: packageId },
         data: {
           ...packageData,
+          ...(newName ? { name: newName } : {}),
           price: finalPrice,
           duration: totalDuration,
           originalPrice,
@@ -191,8 +215,11 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json(updatedPackage)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating package:', error)
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ error: 'A package with this name already exists' }, { status: 409 })
+    }
     return NextResponse.json({ error: 'Failed to update package' }, { status: 500 })
   }
 }

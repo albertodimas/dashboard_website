@@ -247,6 +247,7 @@ model Service {
   tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
+  @@unique([businessId, name])
   @@map("services")
 }
 
@@ -610,6 +611,7 @@ model Package {
   tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
+  @@unique([businessId, name])
   @@map("packages")
 }
 

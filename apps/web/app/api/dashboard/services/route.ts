@@ -80,6 +80,13 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(price) || price < 0) return fail('Price must be a non-negative number', 400)
     const category = body.category ? (body.category as string).toString().trim() : null
 
+    // Enforce unique name per business (case-insensitive)
+    const existingByName = await prisma.service.findFirst({
+      where: { businessId: business.id, name: { equals: name, mode: 'insensitive' } },
+      select: { id: true }
+    })
+    if (existingByName) return fail('A service with this name already exists', 409)
+
     // Create the service
     const service = await prisma.service.create({
       data: {
@@ -107,8 +114,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(service)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating service:', error)
+    if (error?.code === 'P2002') {
+      return fail('A service with this name already exists', 409)
+    }
     return fail('Failed to create service', 500)
   }
 }
@@ -135,7 +145,6 @@ export async function PUT(request: NextRequest) {
 
     if (!existingService) return fail('Service not found', 404)
 
-    // Update the service
     // Validate incoming core fields if present
     const data: any = { ...updateData }
     if (data.name !== undefined) {
@@ -154,6 +163,15 @@ export async function PUT(request: NextRequest) {
     }
     if (data.category !== undefined) {
       data.category = data.category ? (data.category as string).toString().trim() : null
+    }
+
+    // If name changes, ensure uniqueness per business
+    if (data.name) {
+      const dup = await prisma.service.findFirst({
+        where: { businessId: business.id, name: { equals: data.name, mode: 'insensitive' }, NOT: { id } },
+        select: { id: true }
+      })
+      if (dup) return fail('A service with this name already exists', 409)
     }
 
     const service = await prisma.service.update({
@@ -180,8 +198,11 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(service)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating service:', error)
+    if (error?.code === 'P2002') {
+      return fail('A service with this name already exists', 409)
+    }
     return fail('Failed to update service', 500)
   }
 }

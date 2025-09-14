@@ -56,6 +56,7 @@ export default function PackagesPage() {
     sessionCount: 1, // Number of sessions included in the package
     services: [] as PackageService[]
   })
+  const [formErrors, setFormErrors] = useState<{ name?: string; price?: string; discount?: string }>({})
   const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
   const confirm = useConfirm()
   const toast = useToast()
@@ -93,7 +94,20 @@ export default function PackagesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    // Validation
+    const errs: { name?: string; price?: string; discount?: string } = {}
+    const name = (formData.name || '').trim()
+    if (!name) errs.name = t('fieldRequired') || 'This field is required'
+    const dupLocal = packages.some(p => p.name.trim().toLowerCase() === name.toLowerCase() && (!editingPackage || p.id !== editingPackage.id))
+    if (dupLocal) errs.name = t('alreadyExists') || 'Already exists'
+    if (formData.price < 0) errs.price = t('priceMustBeZeroOrMore') || 'Must be zero or more'
+    if (formData.discount < 0 || formData.discount > 100) errs.discount = t('invalidDiscount') || 'Invalid discount'
+    setFormErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      toast(t('validationError') || 'Please correct the highlighted fields', 'error')
+      return
+    }
+
     // Calculate price based on services and discount
     const originalPrice = calculateOriginalPrice()
     const finalPrice = formData.price || calculateFinalPrice()
@@ -122,6 +136,9 @@ export default function PackagesPage() {
       if (response.ok) {
         fetchPackages()
         resetForm()
+      } else {
+        const data = await response.json().catch(() => ({}))
+        toast(data.error || (t('failedToSave') || 'Failed to save'), 'error')
       }
     } catch (error) {
       console.error('Error saving package:', error)
@@ -371,9 +388,10 @@ export default function PackagesPage() {
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setFormErrors(fe => ({ ...fe, name: undefined })) }}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
+                  {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
                 </div>
                 
                 <div>
@@ -383,10 +401,11 @@ export default function PackagesPage() {
                     min="0"
                     max="100"
                     value={formData.discount}
-                    onChange={(e) => handleDiscountChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => { handleDiscountChange(parseFloat(e.target.value) || 0); setFormErrors(fe => ({ ...fe, discount: undefined })) }}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                     placeholder="0-100"
                   />
+                  {formErrors.discount && <p className="text-xs text-red-600 mt-1">{formErrors.discount}</p>}
                 </div>
                 
                 <div>
@@ -398,11 +417,12 @@ export default function PackagesPage() {
                       min="0"
                       step="0.01"
                       value={formData.price}
-                      onChange={(e) => handlePriceChange(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => { handlePriceChange(parseFloat(e.target.value) || 0); setFormErrors(fe => ({ ...fe, price: undefined })) }}
                       className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md"
                       placeholder="0.00"
                       disabled={formData.services.length === 0}
                     />
+                    {formErrors.price && <p className="text-xs text-red-600 mt-1">{formErrors.price}</p>}
                   </div>
                 </div>
               </div>
