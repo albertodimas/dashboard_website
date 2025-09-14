@@ -782,10 +782,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     alt={item.title || 'Gallery'}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    decoding="async"
                       />
                     )
                   })()}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
                 </div>
               ))}
             </div>
@@ -984,48 +985,48 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             </p>
           </div>
 
-          {/* Filtros de categoría */}
+          {/* Filtros de categoría (sticky + horizontal scroll en móvil) */}
           {(() => {
             const categories = Array.from(new Set(
               business.services?.map((s: any) => s.category).filter(Boolean)
             )) as string[]
             
             if (categories.length > 1) {
-              return (
-                <div className="flex justify-center mb-8">
-                  <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full">
-                    <button
-                      onClick={() => {
-                        setServicesCategory('all')
-                        setServicesPage(0)
-                      }}
-                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                return (
+                  <div className="flex justify-center mb-8 sticky top-24 z-10">
+                    <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full overflow-x-auto no-scrollbar max-w-full">
+                      <button
+                        onClick={() => {
+                          setServicesCategory('all')
+                          setServicesPage(0)
+                        }}
+                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all focus-visible:ring-2 ring-offset-2 ${
                         servicesCategory === 'all'
                           ? 'bg-white text-gray-900 shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
-                    >
-                      {t('all')}
-                    </button>
-                    {categories.map((category) => (
-                      <button
-                        key={category}
-                        onClick={() => {
-                          setServicesCategory(category)
-                          setServicesPage(0)
-                        }}
-                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                      >
+                        {t('all')}
+                      </button>
+                      {categories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => {
+                            setServicesCategory(category)
+                            setServicesPage(0)
+                          }}
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all focus-visible:ring-2 ring-offset-2 ${
                           servicesCategory === category
                             ? 'bg-white text-gray-900 shadow-sm'
                             : 'text-gray-600 hover:text-gray-900'
                         }`}
-                      >
-                        {category}
-                      </button>
-                    ))}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )
+                )
             }
             return null
           })()}
@@ -1522,7 +1523,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               </p>
             </div>
 
-            {/* Category filters */}
+            {/* Category filters (sticky + horizontal scroll) */}
             {(() => {
               const configuredCategories = (business.settings?.galleryCategories || [])
                 .slice()
@@ -1538,11 +1539,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
               if (categories.length > 1) {
                 return (
-                  <div className="flex justify-center mb-8">
-                    <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full">
+                  <div className="flex justify-center mb-8 sticky top-24 z-10">
+                    <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full overflow-x-auto no-scrollbar max-w-full">
                       <button
                         onClick={() => { setGalleryCategory('all'); setGalleryPage(0) }}
-                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                        className={`px-6 py-2 rounded-full text-sm font-medium transition-all focus-visible:ring-2 ring-offset-2 ${
                           galleryCategory === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
@@ -1552,7 +1553,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                         <button
                           key={category}
                           onClick={() => { setGalleryCategory(category); setGalleryPage(0) }}
-                          className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                          className={`px-6 py-2 rounded-full text-sm font-medium transition-all focus-visible:ring-2 ring-offset-2 ${
                             galleryCategory === category ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                           }`}
                         >
@@ -1605,6 +1606,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 alt={item.title || 'Gallery'}
                                 className="w-full h-full object-cover cursor-zoom-in group-hover:scale-110 transition-transform duration-500"
                                 loading="lazy"
+                                decoding="async"
                               />
                             )
                           })()}

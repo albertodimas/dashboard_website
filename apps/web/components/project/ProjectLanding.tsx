@@ -335,6 +335,7 @@ export default function ProjectLanding({ business }: Props) {
                               alt={item.title || 'Gallery'}
                               className="w-full h-full object-cover cursor-zoom-in group-hover:scale-110 transition-transform duration-500"
                               loading="lazy"
+                              decoding="async"
                             />
                           </div>
                           {(item.title || item.category) && (
