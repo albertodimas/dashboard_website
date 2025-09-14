@@ -29,18 +29,29 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [accentColor, setAccentColor] = useState(currentTheme.accentColor || '#10B981')
   const [backgroundColor, setBackgroundColor] = useState(currentTheme.backgroundColor || '#FFFFFF')
   const eq = (a: string, b: string) => (a || '').toLowerCase() === (b || '').toLowerCase()
-  const presetDetect: Array<{ name: string; p: string; s: string; a: string; b: string }> = [
-    { name: 'Modern Blue', p: '#3B82F6', s: '#1F2937', a: '#10B981', b: '#FFFFFF' },
+  // Unified presets used for rendering and detection
+  const PRESETS: Array<{ name: string; p: string; s: string; a: string; b: string }> = [
+    // Core presets
+    { name: 'Modern Blue',    p: '#3B82F6', s: '#1F2937', a: '#10B981', b: '#FFFFFF' },
     { name: 'Elegant Purple', p: '#8B5CF6', s: '#374151', a: '#F59E0B', b: '#F9FAFB' },
-    { name: 'Fresh Green', p: '#059669', s: '#111827', a: '#F97316', b: '#F0FDF4' },
-    { name: 'Warm Orange', p: '#EA580C', s: '#1F2937', a: '#0891B2', b: '#FFF7ED' },
-    { name: 'Classic Dark', p: '#6B7280', s: '#111827', a: '#EF4444', b: '#F9FAFB' },
-    { name: 'Ocean Blue', p: '#0891B2', s: '#0F172A', a: '#F59E0B', b: '#F0F9FF' },
-    { name: 'Rose Pink', p: '#EC4899', s: '#831843', a: '#14B8A6', b: '#FDF2F8' },
-    { name: 'Sunset Red', p: '#DC2626', s: '#7F1D1D', a: '#FBBF24', b: '#FEF2F2' },
-    { name: 'Mint Fresh', p: '#14B8A6', s: '#134E4A', a: '#F472B6', b: '#F0FDFA' },
+    { name: 'Fresh Green',    p: '#059669', s: '#111827', a: '#F97316', b: '#F0FDF4' },
+    { name: 'Warm Orange',    p: '#EA580C', s: '#1F2937', a: '#0891B2', b: '#FFF7ED' },
+    { name: 'Classic Dark',   p: '#6B7280', s: '#111827', a: '#EF4444', b: '#F9FAFB' },
+    { name: 'Ocean Blue',     p: '#0891B2', s: '#0F172A', a: '#F59E0B', b: '#F0F9FF' },
+    { name: 'Rose Pink',      p: '#EC4899', s: '#831843', a: '#14B8A6', b: '#FDF2F8' },
+    { name: 'Sunset Red',     p: '#DC2626', s: '#7F1D1D', a: '#FBBF24', b: '#FEF2F2' },
+    { name: 'Mint Fresh',     p: '#14B8A6', s: '#134E4A', a: '#F472B6', b: '#F0FDFA' },
+    // Additional presets
+    { name: 'Sand Dune',      p: '#FCD34D', s: '#78716C', a: '#A78BFA', b: '#FEFCE8' },
+    { name: 'Royal Purple',   p: '#7C3AED', s: '#1F2937', a: '#F59E0B', b: '#F5F3FF' },
+    { name: 'Forest Green',   p: '#22C55E', s: '#064E3B', a: '#F59E0B', b: '#ECFDF5' },
+    { name: 'Teal Navy',      p: '#0EA5E9', s: '#0F172A', a: '#14B8A6', b: '#E0F2FE' },
+    // New dark presets
+    { name: 'Dark Elegant',   p: '#6366F1', s: '#0F172A', a: '#F59E0B', b: '#0B1220' },
+    { name: 'Forest Night',   p: '#22C55E', s: '#14532D', a: '#86EFAC', b: '#0B1220' },
+    { name: 'Neon Pulse',     p: '#06B6D4', s: '#0B1120', a: '#F43F5E', b: '#0B1120' },
   ]
-  const selectedPresetName = (presetDetect.find(x => eq(primaryColor,x.p) && eq(secondaryColor,x.s) && eq(accentColor,x.a) && eq(backgroundColor,x.b))?.name) || 'Custom'
+  const selectedPresetName = (PRESETS.find(x => eq(primaryColor,x.p) && eq(secondaryColor,x.s) && eq(accentColor,x.a) && eq(backgroundColor,x.b))?.name) || 'Custom'
   
   // Typography and button style states
   const [fontFamily, setFontFamily] = useState(currentTheme.fontFamily || 'inter')
@@ -65,7 +76,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   
   const previewUrl = customSlug 
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${customSlug}`
-    : publicUrl
+    : publicUrl;
 
   const validateSlug = (value: string) => {
     // Remove leading/trailing slashes and spaces
@@ -202,6 +213,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             shadowStyle,
             typographyScale,
             bodyScale,
+            useGradientButtons,
             showMobileStickyCTA,
             showDesktopFloatingDirection
           }
@@ -287,7 +299,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
 
         {/* Current URL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text sm font-medium text-gray-700 mb-2">
             Your Current Landing Page URL
           </label>
           <div className="flex items-center gap-2">
@@ -372,414 +384,29 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               Choose from our professionally designed color combinations
             </p>
             <div className="text-xs text-gray-500 mb-3">Selected: <span className="font-medium">{selectedPresetName}</span></div>
-            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Modern Blue Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#3B82F6')&&eq(secondaryColor,'#1F2937')&&eq(accentColor,'#10B981')&&eq(backgroundColor,'#FFFFFF') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#3B82F6')
-                  setSecondaryColor('#1F2937')
-                  setAccentColor('#10B981')
-                  setBackgroundColor('#FFFFFF')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Modern Blue</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#3B82F6' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1F2937' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#10B981' }}></div>
+              {PRESETS.map(({ name, p, s, a, b }) => {
+                const isActive = eq(primaryColor,p) && eq(secondaryColor,s) && eq(accentColor,a) && eq(backgroundColor,b)
+                return (
+                  <div
+                    key={name}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition ${isActive ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`}
+                    onClick={() => { setPrimaryColor(p); setSecondaryColor(s); setAccentColor(a); setBackgroundColor(b) }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{name}</span>
+                      <div className="flex gap-1">
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: p }}></div>
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: s }}></div>
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: a }}></div>
+                      </div>
+                    </div>
+                    <div className="h-2 rounded w-full" style={{ background: `linear-gradient(90deg, ${p} 0%, ${a} 100%)` }} />
                   </div>
-                </div>
-                <div className="text-xs text-gray-500">Professional & trustworthy</div>
-              </div>
-
-              {/* Elegant Purple Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#8B5CF6')&&eq(secondaryColor,'#374151')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#F9FAFB') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-purple-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#8B5CF6')
-                  setSecondaryColor('#374151')
-                  setAccentColor('#F59E0B')
-                  setBackgroundColor('#F9FAFB')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Elegant Purple</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#8B5CF6' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#374151' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Creative & sophisticated</div>
-              </div>
-
-              {/* Fresh Green Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#059669')&&eq(secondaryColor,'#111827')&&eq(accentColor,'#F97316')&&eq(backgroundColor,'#F0FDF4') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-green-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#059669')
-                  setSecondaryColor('#111827')
-                  setAccentColor('#F97316')
-                  setBackgroundColor('#F0FDF4')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Fresh Green</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#059669' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#111827' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F97316' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Natural & vibrant</div>
-              </div>
-
-              {/* Warm Orange Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#EA580C')&&eq(secondaryColor,'#1F2937')&&eq(accentColor,'#0891B2')&&eq(backgroundColor,'#FFF7ED') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-orange-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#EA580C')
-                  setSecondaryColor('#1F2937')
-                  setAccentColor('#0891B2')
-                  setBackgroundColor('#FFF7ED')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Warm Orange</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#EA580C' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1F2937' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0891B2' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Energetic & friendly</div>
-              </div>
-
-              {/* Classic Dark Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#6B7280')&&eq(secondaryColor,'#111827')&&eq(accentColor,'#EF4444')&&eq(backgroundColor,'#F9FAFB') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-gray-400'}`}
-                onClick={() => {
-                  setPrimaryColor('#6B7280')
-                  setSecondaryColor('#111827')
-                  setAccentColor('#EF4444')
-                  setBackgroundColor('#F9FAFB')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Classic Dark</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#6B7280' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#111827' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#EF4444' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Minimalist & elegant</div>
-              </div>
-
-              {/* Ocean Blue Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#0891B2')&&eq(secondaryColor,'#0F172A')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#F0F9FF') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-cyan-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#0891B2')
-                  setSecondaryColor('#0F172A')
-                  setAccentColor('#F59E0B')
-                  setBackgroundColor('#F0F9FF')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Ocean Blue</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0891B2' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0F172A' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Calm & trustworthy</div>
-              </div>
-
-              {/* Rose Pink Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#EC4899')&&eq(secondaryColor,'#831843')&&eq(accentColor,'#14B8A6')&&eq(backgroundColor,'#FDF2F8') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-pink-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#EC4899')
-                  setSecondaryColor('#831843')
-                  setAccentColor('#14B8A6')
-                  setBackgroundColor('#FDF2F8')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Rose Pink</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#EC4899' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#831843' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#14B8A6' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Soft & feminine</div>
-              </div>
-
-              {/* Sunset Red Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#DC2626')&&eq(secondaryColor,'#7F1D1D')&&eq(accentColor,'#FBBF24')&&eq(backgroundColor,'#FEF2F2') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-red-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#DC2626')
-                  setSecondaryColor('#7F1D1D')
-                  setAccentColor('#FBBF24')
-                  setBackgroundColor('#FEF2F2')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Sunset Red</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#DC2626' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7F1D1D' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FBBF24' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Bold & passionate</div>
-              </div>
-
-              {/* Mint Fresh Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#14B8A6')&&eq(secondaryColor,'#134E4A')&&eq(accentColor,'#F472B6')&&eq(backgroundColor,'#F0FDFA') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-teal-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#14B8A6')
-                  setSecondaryColor('#134E4A')
-                  setAccentColor('#F472B6')
-                  setBackgroundColor('#F0FDFA')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Mint Fresh</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#14B8A6' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#134E4A' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F472B6' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Clean & refreshing</div>
-              </div>
-
-              {/* Golden Hour Theme */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#F59E0B')&&eq(secondaryColor,'#78350F')&&eq(accentColor,'#7C3AED')&&eq(backgroundColor,'#FFFBEB') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-yellow-300'}`}
-                onClick={() => {
-                  setPrimaryColor('#F59E0B')
-                  setSecondaryColor('#78350F')
-                  setAccentColor('#7C3AED')
-                  setBackgroundColor('#FFFBEB')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Golden Hour</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#78350F' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7C3AED' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Warm & luxurious</div>
-              </div>
-
-              {/* Midnight Blue Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#4F46E5')
-                  setSecondaryColor('#1E1B4B')
-                  setAccentColor('#06B6D4')
-                  setBackgroundColor('#EEF2FF')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Midnight Blue</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#4F46E5' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1E1B4B' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#06B6D4' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Deep & mysterious</div>
-              </div>
-
-              {/* Sky Blue Light Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-sky-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#60A5FA')
-                  setSecondaryColor('#475569')
-                  setAccentColor('#34D399')
-                  setBackgroundColor('#F0F9FF')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Sky Blue Light</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#60A5FA' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#475569' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#34D399' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Light & airy</div>
-              </div>
-
-              {/* Soft Lavender Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#C084FC')
-                  setSecondaryColor('#6B7280')
-                  setAccentColor('#FDA4AF')
-                  setBackgroundColor('#FAF5FF')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Soft Lavender</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#C084FC' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#6B7280' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FDA4AF' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Gentle & soothing</div>
-              </div>
-
-              {/* Peach Blossom Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-orange-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#FDBA74')
-                  setSecondaryColor('#64748B')
-                  setAccentColor('#93C5FD')
-                  setBackgroundColor('#FFF7ED')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Peach Blossom</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FDBA74' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#64748B' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#93C5FD' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Soft & warm</div>
-              </div>
-
-              {/* Mint Cream Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-green-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#86EFAC')
-                  setSecondaryColor('#57534E')
-                  setAccentColor('#FCA5A5')
-                  setBackgroundColor('#F0FDF4')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Mint Cream</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#86EFAC' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#57534E' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FCA5A5' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Fresh & light</div>
-              </div>
-
-              {/* Coral Reef Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-pink-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#FB7185')
-                  setSecondaryColor('#525252')
-                  setAccentColor('#67E8F9')
-                  setBackgroundColor('#FFF1F2')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Coral Reef</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FB7185' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#525252' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#67E8F9' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Vibrant & tropical</div>
-              </div>
-
-              {/* Sand Dune Theme */}
-              <div 
-                className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 transition"
-                onClick={() => {
-                  setPrimaryColor('#FCD34D')
-                  setSecondaryColor('#78716C')
-                  setAccentColor('#A78BFA')
-                  setBackgroundColor('#FEFCE8')
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Sand Dune</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FCD34D' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#78716C' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#A78BFA' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Desert & calm</div>
-              </div>
-
-              {/* Royal Purple */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#7C3AED')&&eq(secondaryColor,'#1F2937')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#F5F3FF') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-purple-300'}`}
-                onClick={() => { setPrimaryColor('#7C3AED'); setSecondaryColor('#1F2937'); setAccentColor('#F59E0B'); setBackgroundColor('#F5F3FF') }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Royal Purple</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#7C3AED' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1F2937' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Premium & bold</div>
-              </div>
-
-              {/* Forest Green */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#22C55E')&&eq(secondaryColor,'#064E3B')&&eq(accentColor,'#F59E0B')&&eq(backgroundColor,'#ECFDF5') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-green-300'}`}
-                onClick={() => { setPrimaryColor('#22C55E'); setSecondaryColor('#064E3B'); setAccentColor('#F59E0B'); setBackgroundColor('#ECFDF5') }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Forest Green</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#22C55E' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#064E3B' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Natural & calm</div>
-              </div>
-
-              {/* Teal Navy */}
-              <div 
-                className={`p-4 border-2 rounded-lg cursor-pointer transition ${eq(primaryColor,'#0EA5E9')&&eq(secondaryColor,'#0F172A')&&eq(accentColor,'#14B8A6')&&eq(backgroundColor,'#E0F2FE') ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-sky-300'}`}
-                onClick={() => { setPrimaryColor('#0EA5E9'); setSecondaryColor('#0F172A'); setAccentColor('#14B8A6'); setBackgroundColor('#E0F2FE') }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Teal Navy</span>
-                  <div className="flex gap-1">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0EA5E9' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0F172A' }}></div>
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#14B8A6' }}></div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">Cool & modern</div>
-              </div>
+                )
+              })}
             </div>
-          </div>
+            </div>
 
           {/* Custom Colors Section */}
           <div className="border-t pt-6">
@@ -910,272 +537,66 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               >
                 This is how your brand colors will look on your landing page
               </p>
-              <button 
-                className="px-4 py-2 rounded-md text-white font-medium mr-2"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Primary Button
-              </button>
-              <button 
-                className="px-4 py-2 rounded-md text-white font-medium"
-                style={{ backgroundColor: accentColor }}
-              >
-                Accent Button
-              </button>
+              <div className="flex gap-2 flex-wrap">
+                <button 
+                  className="px-4 py-2 rounded text-white"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  Primary Button
+                </button>
+                <button 
+                  className="px-4 py-2 rounded text-white"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  Accent Button
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* UI Layout Options */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">🧩 UI Options</h3>
-          <p className="text-sm text-gray-600 mb-6">Tweak layout and interactions in your public site.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <h3 className="text-lg font-semibold mb-4">UI Layout Options</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-700">Sticky category chips on mobile</label>
+              <input type="checkbox" checked={chipsSticky} onChange={(e) => setChipsSticky(e.target.checked)} />
+            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Typography Scale</label>
-              <select value={typographyScale} onChange={(e)=>setTypographyScale(e.target.value)} className="w-full p-3 border rounded-lg">
-                <option value="S">Small</option>
-                <option value="M">Medium</option>
-                <option value="L">Large</option>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pagination style</label>
+              <select
+                className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                value={paginationStyle}
+                onChange={(e) => setPaginationStyle(e.target.value)}
+              >
+                <option value="numbered">Numbered</option>
+                <option value="infinite">Infinite scroll</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">Adjust headline sizes across the landing.</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Body Text Scale</label>
-              <select value={bodyScale} onChange={(e)=>setBodyScale(e.target.value)} className="w-full p-3 border rounded-lg">
-                <option value="S">Small</option>
-                <option value="M">Medium</option>
-                <option value="L">Large</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Fine-tune overall body text size.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filter Chips Behavior</label>
-              <div className="flex items-center gap-3">
-                <input id="chipsSticky" type="checkbox" checked={chipsSticky} onChange={(e)=>setChipsSticky(e.target.checked)} />
-                <label htmlFor="chipsSticky" className="text-sm text-gray-700">Sticky on scroll (recommended)</label>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Keeps category filters visible while scrolling.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pagination Style</label>
-              <select value={paginationStyle} onChange={(e)=>setPaginationStyle(e.target.value)} className="w-full p-3 border rounded-lg">
-                <option value="numbered">Numbered (1, 2, 3)</option>
-                <option value="simple">Simple (Prev/Next)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Hero Overlay</label>
-              <select value={heroOverlay} onChange={(e)=>setHeroOverlay(e.target.value)} className="w-full p-3 border rounded-lg">
-                <option value="light">Light</option>
-                <option value="medium">Medium</option>
-                <option value="strong">Strong</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Card Radius</label>
-              <select value={cardRadius} onChange={(e)=>setCardRadius(e.target.value)} className="w-full p-3 border rounded-lg">
-                <option value="md">Medium</option>
-                <option value="lg">Large</option>
-                <option value="xl">Extra Large</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Shadow Style</label>
-              <select value={shadowStyle} onChange={(e)=>setShadowStyle(e.target.value)} className="w-full p-3 border rounded-lg">
-                <option value="soft">Soft</option>
-                <option value="md">Medium</option>
-              </select>
-            </div>
-
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Sticky CTA</label>
-              <div className="flex items-center gap-3">
-                <input id="mobileStickyCta" type="checkbox" checked={showMobileStickyCTA} onChange={(e)=>setShowMobileStickyCTA(e.target.checked)} />
-                <label htmlFor="mobileStickyCta" className="text-sm text-gray-700">Show a bottom bar with Reserve / Call on mobile</label>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Improves conversion by exposing main actions persistently on small screens.</p>
-            </div>
-
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Desktop Floating "How to get there"</label>
-              <div className="flex items-center gap-3">
-                <input id="desktopFloatingDir" type="checkbox" checked={showDesktopFloatingDirection} onChange={(e)=>setShowDesktopFloatingDirection(e.target.checked)} />
-                <label htmlFor="desktopFloatingDir" className="text-sm text-gray-700">Show floating Google Maps button on desktop</label>
-              </div>
-            </div>
-
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Use Gradient in Primary Buttons</label>
-              <div className="flex items-center gap-3">
-                <input id="useGradientButtons" type="checkbox" checked={useGradientButtons} onChange={(e)=>setUseGradientButtons(e.target.checked)} />
-                <label htmlFor="useGradientButtons" className="text-sm text-gray-700">Apply theme gradient to main CTAs (e.g., Reserve)</label>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Typography Settings */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">📝 Typography</h3>
-          <p className="text-sm text-gray-600 mb-6">
-            Choose a font family that represents your brand personality
-          </p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Inter - Modern & Clean */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'inter' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('inter')}
-            >
-              <div className="font-['Inter'] mb-2">
-                <h4 className="text-lg font-bold">Inter</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Modern & clean</p>
-            </div>
-
-            {/* Playfair Display - Elegant */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'playfair' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('playfair')}
-            >
-              <div className="font-['Playfair_Display'] mb-2">
-                <h4 className="text-lg font-bold">Playfair Display</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Elegant & sophisticated</p>
-            </div>
-
-            {/* Montserrat - Professional */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'montserrat' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('montserrat')}
-            >
-              <div className="font-['Montserrat'] mb-2">
-                <h4 className="text-lg font-bold">Montserrat</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Professional & bold</p>
-            </div>
-
-            {/* Roboto - Friendly */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'roboto' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('roboto')}
-            >
-              <div className="font-['Roboto'] mb-2">
-                <h4 className="text-lg font-bold">Roboto</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Friendly & approachable</p>
-            </div>
-
-            {/* Poppins - Geometric */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'poppins' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('poppins')}
-            >
-              <div className="font-['Poppins'] mb-2">
-                <h4 className="text-lg font-bold">Poppins</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Geometric & modern</p>
-            </div>
-
-            {/* Lato - Humanist */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'lato' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('lato')}
-            >
-              <div className="font-['Lato'] mb-2">
-                <h4 className="text-lg font-bold">Lato</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Humanist & warm</p>
-            </div>
-
-            {/* Open Sans - Universal */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'opensans' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('opensans')}
-            >
-              <div className="font-['Open_Sans'] mb-2">
-                <h4 className="text-lg font-bold">Open Sans</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Universal & readable</p>
-            </div>
-
-            {/* Raleway - Elegant Sans */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'raleway' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('raleway')}
-            >
-              <div className="font-['Raleway'] mb-2">
-                <h4 className="text-lg font-bold">Raleway</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Elegant sans-serif</p>
-            </div>
-
-            {/* Nunito - Rounded */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'nunito' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('nunito')}
-            >
-              <div className="font-['Nunito'] mb-2">
-                <h4 className="text-lg font-bold">Nunito</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Rounded & friendly</p>
-            </div>
-
-            {/* Merriweather - Serif */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'merriweather' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('merriweather')}
-            >
-              <div className="font-['Merriweather'] mb-2">
-                <h4 className="text-lg font-bold">Merriweather</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Traditional serif</p>
-            </div>
-
-            {/* Source Sans Pro - Clean */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                fontFamily === 'sourcesans' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setFontFamily('sourcesans')}
-            >
-              <div className="font-['Source_Sans_Pro'] mb-2">
-                <h4 className="text-lg font-bold">Source Sans Pro</h4>
-                <p className="text-sm">The quick brown fox jumps</p>
-              </div>
-              <p className="text-xs text-gray-500">Clean & minimal</p>
+          <h3 className="text-lg font-semibold mb-4">Typography Settings</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+              <select
+                className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+              >
+                <option value="inter">Inter</option>
+                <option value="poppins">Poppins</option>
+                <option value="lato">Lato</option>
+                <option value="opensans">Open Sans</option>
+                <option value="raleway">Raleway</option>
+                <option value="nunito">Nunito</option>
+                <option value="merriweather">Merriweather</option>
+                <option value="sourcesans">Source Sans Pro</option>
+              </select>
             </div>
           </div>
         </div>
@@ -1188,7 +609,6 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {/* Rounded */}
             <div 
               className={`p-4 border-2 rounded-lg cursor-pointer transition ${
                 buttonStyle === 'rounded' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -1203,139 +623,14 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               </button>
               <p className="text-xs text-gray-500 text-center">Soft & friendly</p>
             </div>
-
-            {/* Square */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'square' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('square')}
-            >
-              <button 
-                className="w-full px-4 py-2 text-white font-medium mb-2"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Square
-              </button>
-              <p className="text-xs text-gray-500 text-center">Sharp & modern</p>
-            </div>
-
-            {/* Pill */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'pill' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('pill')}
-            >
-              <button 
-                className="w-full px-4 py-2 rounded-full text-white font-medium mb-2"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Pill
-              </button>
-              <p className="text-xs text-gray-500 text-center">Smooth & playful</p>
-            </div>
-
-            {/* Gradient */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'gradient' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('gradient')}
-            >
-              <button 
-                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2"
-                style={{ 
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)` 
-                }}
-              >
-                Gradient
-              </button>
-              <p className="text-xs text-gray-500 text-center">Dynamic & eye-catching</p>
-            </div>
-
-            {/* Soft Rounded */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'soft-rounded' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('soft-rounded')}
-            >
-              <button 
-                className="w-full px-4 py-2 rounded-2xl text-white font-medium mb-2"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Soft Rounded
-              </button>
-              <p className="text-xs text-gray-500 text-center">Extra smooth</p>
-            </div>
-
-            {/* Outlined */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'outlined' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('outlined')}
-            >
-              <button 
-                className="w-full px-4 py-2 rounded-lg font-medium mb-2 border-2"
-                style={{ 
-                  borderColor: primaryColor,
-                  color: primaryColor,
-                  backgroundColor: 'transparent'
-                }}
-              >
-                Outlined
-              </button>
-              <p className="text-xs text-gray-500 text-center">Minimal & clean</p>
-            </div>
-
-            {/* Shadow */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === 'shadow' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('shadow')}
-            >
-              <button 
-                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2 shadow-lg"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Shadow
-              </button>
-              <p className="text-xs text-gray-500 text-center">Elevated & bold</p>
-            </div>
-
-            {/* 3D Effect */}
-            <div 
-              className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                buttonStyle === '3d' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => setButtonStyle('3d')}
-            >
-              <button 
-                className="w-full px-4 py-2 rounded-lg text-white font-medium mb-2"
-                style={{ 
-                  backgroundColor: primaryColor,
-                  boxShadow: `0 4px 0 ${primaryColor}80`,
-                  transform: 'translateY(-2px)'
-                }}
-              >
-                3D Effect
-              </button>
-              <p className="text-xs text-gray-500 text-center">Depth & dimension</p>
-            </div>
           </div>
-
+          
           {/* Combined Preview */}
           <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Full Preview</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Combined Preview</h4>
             <div 
               className={`p-6 rounded-lg shadow-sm ${
                 fontFamily === 'inter' ? 'font-["Inter"]' :
-                fontFamily === 'playfair' ? 'font-["Playfair_Display"]' :
-                fontFamily === 'montserrat' ? 'font-["Montserrat"]' :
-                fontFamily === 'roboto' ? 'font-["Roboto"]' :
                 fontFamily === 'poppins' ? 'font-["Poppins"]' :
                 fontFamily === 'lato' ? 'font-["Lato"]' :
                 fontFamily === 'opensans' ? 'font-["Open_Sans"]' :
@@ -1371,21 +666,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                     buttonStyle === '3d' ? 'rounded-lg' :
                     'rounded-lg'
                   }`}
-                  style={{ 
-                    ...(buttonStyle === 'gradient' ? {
-                      background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)`
-                    } : buttonStyle === 'outlined' ? {
-                      backgroundColor: 'transparent',
-                      borderColor: primaryColor,
-                      color: primaryColor
-                    } : buttonStyle === '3d' ? {
-                      backgroundColor: primaryColor,
-                      boxShadow: `0 4px 0 ${primaryColor}80`,
-                      transform: 'translateY(-2px)'
-                    } : {
-                      backgroundColor: primaryColor
-                    })
-                  }}
+                  style={{ backgroundColor: primaryColor }}
                 >
                   Book Now
                 </button>
@@ -1400,14 +681,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                     buttonStyle === '3d' ? 'rounded-lg' :
                     'rounded-lg'
                   }`}
-                  style={{ 
-                    borderColor: primaryColor,
-                    color: primaryColor,
-                    ...(buttonStyle === '3d' ? {
-                      boxShadow: `0 3px 0 ${primaryColor}40`,
-                      transform: 'translateY(-1px)'
-                    } : {})
-                  }}
+                  style={{ borderColor: primaryColor, color: primaryColor }}
                 >
                   Learn More
                 </button>
@@ -1469,3 +743,4 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     </div>
   )
 }
+

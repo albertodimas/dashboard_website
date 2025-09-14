@@ -162,14 +162,20 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const buttonStyle = business.settings?.theme?.buttonStyle || 'rounded'
 
   // UI options
+  const asBool = (v: any, fallback: boolean) => {
+    if (typeof v === 'boolean') return v
+    if (typeof v === 'string') return v.toLowerCase() === 'true'
+    if (typeof v === 'number') return v !== 0
+    return fallback
+  }
   const ui = business.settings?.ui || {}
   const chipsSticky = ui.chipsSticky !== false
   const paginationStyle = ui.paginationStyle || 'numbered'
   const heroOverlay = ui.heroOverlay || 'strong'
   const cardRadius = ui.cardRadius || 'xl'
   const shadowStyle = ui.shadowStyle || 'soft'
-  const showMobileStickyCTA = ui.showMobileStickyCTA !== false
-  const showDesktopFloatingDirection = ui.showDesktopFloatingDirection !== false
+  const showMobileStickyCTA = asBool(ui.showMobileStickyCTA, true)
+  const showDesktopFloatingDirection = asBool(ui.showDesktopFloatingDirection, true)
   const typographyScale = ui.typographyScale || 'M'
 
   const overlayClass = heroOverlay === 'light'
@@ -1249,9 +1255,11 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setShowBookingModal(true)
                         }}
                         disabled={purchasedPkg.remainingSessions === 0}
-                        className="mt-4 w-full py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={getButtonClasses("mt-4 w-full py-2 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed")}
                         style={{ 
-                          background: purchasedPkg.remainingSessions > 0 ? colors.gradient : '#e5e7eb',
+                          background: purchasedPkg.remainingSessions > 0 
+                            ? ((ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary)
+                            : '#e5e7eb',
                           color: purchasedPkg.remainingSessions > 0 ? 'white' : '#9ca3af'
                         }}
                       >
@@ -1462,8 +1470,8 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           setBookingStep(3) // Jump directly to customer info for packages
                           setShowBookingModal(true)
                         }}
-                        className={`w-full py-3 font-semibold text-white transition-all duration-300 mt-auto ${radiusCls}`}
-                        style={{ background: buttonStyle === 'gradient' ? colors.gradient : colors.primary }}
+                        className={getButtonClasses("w-full py-3 font-semibold text-white transition-all duration-300 mt-auto hover:shadow-lg transform hover:-translate-y-0.5")}
+                        style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
                       >
                         {t('buyPackage')}
                       </button>
