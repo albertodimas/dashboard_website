@@ -775,11 +775,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <button
                 onClick={() => setShowBookingModal(true)}
                 className={getButtonClasses("px-4 sm:px-6 py-2.5 font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300")}
-                style={{ 
-                  background: buttonStyle === 'gradient' 
-                    ? colors.gradient 
-                    : colors.primary
-                }}
+                style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
               >
                 <span className="hidden sm:inline">{t('bookAppointmentCTA')}</span>
                 <span className="sm:hidden">{t('bookShort')}</span>
@@ -1133,11 +1129,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                             setShowBookingModal(true)
                           }}
                           className={getButtonClasses("w-full py-3 font-semibold text-white transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5")}
-                          style={{ 
-                            background: buttonStyle === 'gradient' 
-                              ? colors.gradient 
-                              : colors.primary
-                          }}
+                          style={{ background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary }}
                       >
                           {t('bookAppointmentCTA')}
                       </button>

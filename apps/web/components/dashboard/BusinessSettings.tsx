@@ -55,6 +55,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [shadowStyle, setShadowStyle] = useState(currentUi.shadowStyle || 'soft')
   const [typographyScale, setTypographyScale] = useState(currentUi.typographyScale || 'M')
   const [bodyScale, setBodyScale] = useState(currentUi.bodyScale || 'M')
+  const [useGradientButtons, setUseGradientButtons] = useState(currentUi.useGradientButtons !== false)
   const [showMobileStickyCTA, setShowMobileStickyCTA] = useState(currentUi.showMobileStickyCTA !== false)
   const [showDesktopFloatingDirection, setShowDesktopFloatingDirection] = useState(currentUi.showDesktopFloatingDirection !== false)
 
@@ -163,6 +164,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           shadowStyle,
           typographyScale,
           bodyScale,
+          useGradientButtons,
           showMobileStickyCTA,
           showDesktopFloatingDirection
         }
@@ -1001,6 +1003,14 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
               <div className="flex items-center gap-3">
                 <input id="desktopFloatingDir" type="checkbox" checked={showDesktopFloatingDirection} onChange={(e)=>setShowDesktopFloatingDirection(e.target.checked)} />
                 <label htmlFor="desktopFloatingDir" className="text-sm text-gray-700">Show floating Google Maps button on desktop</label>
+              </div>
+            </div>
+
+            <div className="col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Use Gradient in Primary Buttons</label>
+              <div className="flex items-center gap-3">
+                <input id="useGradientButtons" type="checkbox" checked={useGradientButtons} onChange={(e)=>setUseGradientButtons(e.target.checked)} />
+                <label htmlFor="useGradientButtons" className="text-sm text-gray-700">Apply theme gradient to main CTAs (e.g., Reserve)</label>
               </div>
             </div>
           </div>
