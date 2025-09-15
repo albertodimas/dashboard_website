@@ -126,17 +126,63 @@ export async function POST(request: NextRequest) {
       name: customer.name
     })
 
-    return NextResponse.json({
+    // Upsert relación con negocio referido si aplica + limpiar unregisteredBusinesses
+    try {
+      const referringCookie = request.cookies.get('referring-business')?.value
+      let referringBusinessId = referringCookie
+      if (!referringBusinessId) {
+        const referer = request.headers.get('referer') || ''
+        const match = referer.match(/\/(business|b)\/([^\/?#]+)/) || referer.match(/^https?:\/\/[^\/]+\/([^\/?#]+)/)
+        const slug = match && match[2] ? match[2] : (match && match[1] ? match[1] : '')
+        if (slug) {
+          const biz = await prisma.business.findFirst({ where: { OR: [{ slug }, { customSlug: slug }] }, select: { id: true } })
+          referringBusinessId = biz?.id
+        }
+      }
+      if (referringBusinessId) {
+        const existingRelation = await prisma.businessCustomer.findUnique({
+          where: { businessId_customerId: { businessId: referringBusinessId, customerId: customer.id } }
+        })
+        if (!existingRelation) {
+          await prisma.businessCustomer.create({ data: { businessId: referringBusinessId, customerId: customer.id, lastVisit: new Date(), totalVisits: 1 } })
+        } else {
+          await prisma.businessCustomer.update({
+            where: { businessId_customerId: { businessId: referringBusinessId, customerId: customer.id } },
+            data: { lastVisit: new Date(), totalVisits: { increment: 1 }, isActive: true }
+          })
+        }
+        const current = await prisma.customer.findUnique({ where: { id: customer.id }, select: { metadata: true } })
+        const meta: any = (current?.metadata as any) || {}
+        const arr: string[] = Array.isArray(meta.unregisteredBusinesses) ? meta.unregisteredBusinesses : []
+        if (arr.includes(referringBusinessId)) {
+          const updated = arr.filter((id) => id !== referringBusinessId)
+          await prisma.customer.update({ where: { id: customer.id }, data: { metadata: { ...meta, unregisteredBusinesses: updated } } })
+        }
+      }
+    } catch (e) {
+      console.warn('[verify-code] No se pudo upsert relación referida:', e)
+    }
+
+    const response = NextResponse.json({
       success: true,
-      token,
       customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone },
       packages,
       appointments,
       message: 'Email verificado exitosamente'
     })
+
+    // Set cookie with client token (7d)
+    response.cookies.set('client-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/'
+    })
+
+    return response
   } catch (error) {
     console.error('Verify code error:', error)
     return NextResponse.json({ error: 'Error al verificar codigo' }, { status: 500 })
   }
 }
-

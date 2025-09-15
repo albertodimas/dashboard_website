@@ -125,12 +125,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update business information
-    // Merge settings
+    // Merge settings (preserve existing + allow updating operationMode and others)
     const currentSettings: any = (business.settings as any) || {}
-    const mergedSettings: any = { ...currentSettings }
+    let mergedSettings: any = { ...currentSettings }
     if (body.customDomain !== undefined) mergedSettings.customDomain = body.customDomain
     if (body.theme !== undefined) mergedSettings.theme = body.theme
     if (body.ui !== undefined) mergedSettings.ui = body.ui
+    // If caller provided a settings object, merge it on top of current settings
+    if (body.settings && typeof body.settings === 'object') {
+      mergedSettings = {
+        ...currentSettings,
+        ...body.settings,
+        // Ensure nested objects like theme/ui are not lost if omitted in body.settings
+        ...(currentSettings.theme && !('theme' in body.settings) ? { theme: currentSettings.theme } : {}),
+        ...(currentSettings.ui && !('ui' in body.settings) ? { ui: currentSettings.ui } : {})
+      }
+    }
 
     const updatedBusiness = await prisma.business.update({
       where: { id: business.id },

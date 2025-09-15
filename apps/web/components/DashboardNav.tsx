@@ -111,65 +111,78 @@ export default function DashboardNav() {
               )}
             </div>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href
-                const isHighlight = 'highlight' in item && item.highlight
+              {(() => {
+                const galleryIdx = navItems.findIndex(n => n.href === '/dashboard/gallery')
+                const before = galleryIdx >= 0 ? navItems.slice(0, galleryIdx + 1) : navItems
+                const after = galleryIdx >= 0 ? navItems.slice(galleryIdx + 1) : []
+
+                const renderLink = (item: typeof navItems[number]) => {
+                  const isActive = pathname === item.href
+                  const isHighlight = 'highlight' in item && (item as any).highlight
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
+                        isActive
+                          ? 'border-indigo-500 text-gray-900'
+                          : isHighlight
+                          ? 'border-transparent text-blue-600 hover:border-blue-300 hover:text-blue-700'
+                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                }
+
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                      isActive
-                        ? 'border-indigo-500 text-gray-900'
-                        : isHighlight
-                        ? 'border-transparent text-blue-600 hover:border-blue-300 hover:text-blue-700'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
-              {/* Categories dropdown */}
-              <div 
-                className="relative inline-flex items-center"
-                onMouseEnter={openCategories}
-                onMouseLeave={scheduleCloseCategories}
-              >
-                <button
-                  onClick={() => setCategoriesOpen(v => !v)}
-                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                    isCategoriesActive ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  {t('categories')}
-                  <svg className="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {categoriesOpen && (
-                  <div
-                    className="absolute top-full left-0 z-10 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
-                    onMouseEnter={openCategories}
-                    onMouseLeave={scheduleCloseCategories}
-                  >
-                    <div className="py-1">
-                      <Link
-                        href="/dashboard/categories"
-                        className={`block px-4 py-2 text-sm ${pathname === '/dashboard/categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                  <>
+                    {before.map(renderLink)}
+                    {/* Categories dropdown placed immediately after Gallery */}
+                    <div 
+                      className="relative inline-flex items-center"
+                      onMouseEnter={openCategories}
+                      onMouseLeave={scheduleCloseCategories}
+                    >
+                      <button
+                        onClick={() => setCategoriesOpen(v => !v)}
+                        className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
+                          isCategoriesActive ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        }`}
                       >
-                        {t('services')}
-                      </Link>
-                      <Link
-                        href="/dashboard/gallery-categories"
-                        className={`block px-4 py-2 text-sm ${pathname === '/dashboard/gallery-categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
-                      >
-                        {t('gallery')}
-                      </Link>
+                        {t('categories')}
+                        <svg className="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      {categoriesOpen && (
+                        <div
+                          className="absolute top-full left-0 z-10 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                          onMouseEnter={openCategories}
+                          onMouseLeave={scheduleCloseCategories}
+                        >
+                          <div className="py-1">
+                            <Link
+                              href="/dashboard/categories"
+                              className={`block px-4 py-2 text-sm ${pathname === '/dashboard/categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                            >
+                              {t('services')}
+                            </Link>
+                            <Link
+                              href="/dashboard/gallery-categories"
+                              className={`block px-4 py-2 text-sm ${pathname === '/dashboard/gallery-categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                            >
+                              {t('gallery')}
+                            </Link>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                    {after.map(renderLink)}
+                  </>
+                )
+              })()}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -180,6 +193,77 @@ export default function DashboardNav() {
             >
               {t('logout')}
             </button>
+          </div>
+        </div>
+        {/* Mobile nav (after header row) */}
+        <div className="sm:hidden py-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2">
+            {(() => {
+              const galleryIdx = navItems.findIndex(n => n.href === '/dashboard/gallery')
+              const before = galleryIdx >= 0 ? navItems.slice(0, galleryIdx + 1) : navItems
+              const after = galleryIdx >= 0 ? navItems.slice(galleryIdx + 1) : []
+
+              const renderMobileLink = (item: typeof navItems[number]) => {
+                const isActive = pathname === item.href
+                const isHighlight = 'highlight' in item && (item as any).highlight
+                return (
+                  <Link
+                    key={`m-${item.href}`}
+                    href={item.href}
+                    className={`whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium border ${
+                      isActive
+                        ? 'bg-indigo-50 text-gray-900 border-indigo-200'
+                        : isHighlight
+                        ? 'text-blue-600 border-blue-200 bg-blue-50'
+                        : 'text-gray-600 border-gray-200 bg-white'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              }
+
+              return (
+                <>
+                  {before.map(renderMobileLink)}
+                  {/* Categories chip placed immediately after Gallery */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setCategoriesOpen(v => !v)}
+                      className={`whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium border ${
+                        isCategoriesActive ? 'bg-indigo-50 text-gray-900 border-indigo-200' : 'text-gray-600 border-gray-200 bg-white'
+                      }`}
+                    >
+                      {t('categories')}
+                      <svg className="ml-1 inline h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    {categoriesOpen && (
+                      <div className="absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                        <div className="py-1">
+                          <Link
+                            href="/dashboard/categories"
+                            className={`block px-4 py-2 text-sm ${pathname === '/dashboard/categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                            onClick={() => setCategoriesOpen(false)}
+                          >
+                            {t('services')}
+                          </Link>
+                          <Link
+                            href="/dashboard/gallery-categories"
+                            className={`block px-4 py-2 text-sm ${pathname === '/dashboard/gallery-categories' ? 'text-gray-900' : 'text-gray-700 hover:bg-gray-100'}`}
+                            onClick={() => setCategoriesOpen(false)}
+                          >
+                            {t('gallery')}
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {after.map(renderMobileLink)}
+                </>
+              )
+            })()}
           </div>
         </div>
       </div>

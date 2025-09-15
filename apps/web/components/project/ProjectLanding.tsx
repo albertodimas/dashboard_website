@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import Link from 'next/link'
+import LanguageSelector from '@/components/LanguageSelector'
 import { Shield, Star, Users, MapPin, Phone, Calendar, Gift, Clock, LogIn, Mail, Instagram, Facebook, Twitter, ArrowRight, ChevronLeft, ChevronRight, User } from 'lucide-react'
 import { getGoogleMapsDirectionsUrl } from '@/lib/maps-utils'
 import { getImageSrcSet, getImageUrl } from '@/lib/upload-utils-client'
@@ -47,6 +48,9 @@ export default function ProjectLanding({ business }: Props) {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [lightboxItems, setLightboxItems] = useState<any[]>([])
   const ui = (business.settings?.ui as any) || {}
+  const fontFamily = business.settings?.theme?.fontFamily || 'inter'
+  const buttonStyle = business.settings?.theme?.buttonStyle || 'rounded'
+  const heroButtonStyleOverride = (ui && typeof ui.heroButtonStyle === 'string' && ui.heroButtonStyle.trim() !== '') ? ui.heroButtonStyle as string : null
   const showMobileStickyCTA = ui.showMobileStickyCTA !== false
   const showDesktopFloatingDirection = ui.showDesktopFloatingDirection !== false
   const averageRating = useMemo(() => {
@@ -58,6 +62,8 @@ export default function ProjectLanding({ business }: Props) {
   }, [reviews])
 
   const categories = Array.from(new Set((business.services || []).map((s: any) => s.category).filter(Boolean))) as string[]
+  const [servicesCategory, setServicesCategory] = useState<string>('all')
+  const [servicesPage, setServicesPage] = useState(0)
 
   // Helper to resolve gallery image URLs from id or absolute URL
   const resolveGallerySources = (urlOrId?: string | null, size: number = 800) => {
@@ -109,6 +115,62 @@ export default function ProjectLanding({ business }: Props) {
     primary: business.settings?.theme?.primaryColor || '#6366F1',
     accent: business.settings?.theme?.accentColor || '#F59E0B',
     gradient: `linear-gradient(135deg, ${business.settings?.theme?.primaryColor || '#6366F1'} 0%, ${business.settings?.theme?.accentColor || '#F59E0B'} 100%)`
+  }
+
+  // Button helpers (aligned with reservation landing)
+  const getButtonClasses = (base: string = '', styleName?: string) => {
+    const styles: any = {
+      soft: 'rounded-lg shadow-md',
+      rounded: 'rounded-lg',
+      square: 'rounded-none',
+      pill: 'rounded-full',
+      'soft-rounded': 'rounded-2xl',
+      outlined: 'rounded-lg border-2',
+      'outline-dashed': 'rounded-lg border-2 border-dashed',
+      ghost: 'rounded-lg border-2 border-transparent',
+      link: 'rounded-none underline shadow-none',
+      shadow: 'rounded-lg shadow-lg',
+      gradient: 'rounded-lg',
+      '3d': 'rounded-lg'
+    }
+    const k = (styleName || buttonStyle) as keyof typeof styles
+    return `${base} ${styles[k] || styles.rounded}`
+  }
+  const isBorderOnly = (styleName?: string) => ['outlined','outline-dashed','ghost','link'].includes(styleName || buttonStyle)
+  const hexToRgba = (hex: string, alpha: number) => {
+    const h = hex.replace('#','')
+    const v = parseInt(h.length === 3 ? h.split('').map(c=>c+c).join('') : h, 16)
+    const r = (v>>16)&255, g=(v>>8)&255, b=v&255
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  const getVisualProps = (
+    variant: 'primary'|'secondary' = 'primary',
+    size: 'sm'|'md'|'lg' = 'lg',
+    extra = '',
+    styleName?: string
+  ) => {
+    if (styleName === '__translucent') {
+      const cls = `px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-full text-white backdrop-blur-md bg-white/10 border border-white/20 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 ${variant==='primary' ? 'shadow-xl hover:shadow-2xl' : 'hover:shadow-lg'} ${extra}`
+      return { className: cls, style: {} as any }
+    }
+    if (styleName === '__translucentHeader') {
+      const cls = `px-3 py-1.5 sm:px-5 sm:py-2.5 text-sm sm:text-base font-semibold rounded-full border transform hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 ${variant==='primary' ? 'shadow-sm hover:shadow' : 'hover:shadow'} ${extra}`
+      const style: any = { color: colors.primary, background: hexToRgba(colors.primary, 0.22), borderColor: hexToRgba(colors.primary, 0.5) }
+      return { className: cls, style }
+    }
+    const spacing = size === 'sm' ? 'px-4 py-2' : size === 'md' ? 'px-6 py-3' : 'px-8 py-4'
+    const className = getButtonClasses(`${spacing} font-bold transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 text-white ${variant==='primary' ? 'shadow-xl hover:shadow-2xl' : 'hover:shadow-lg'} ${extra}`, styleName)
+    if (isBorderOnly(styleName)) {
+      const style: any = { background: 'transparent', color: variant==='primary' ? colors.primary : colors.accent }
+      const st = styleName || buttonStyle
+      if (st === 'outlined' || st === 'outline-dashed') style.borderColor = variant==='primary' ? colors.primary : colors.accent
+      return { className, style }
+    }
+    const style = {
+      background: ((styleName || buttonStyle) === 'gradient') ? colors.gradient : (variant==='primary' ? colors.primary : colors.accent),
+      color: '#FFF'
+    }
+    return { className, style }
   }
 
   // Working hours footer
@@ -179,7 +241,7 @@ export default function ProjectLanding({ business }: Props) {
       <section className="relative pt-24 pb-20 overflow-hidden">
         <div className="relative container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 mt-4 sm:mt-6">
               <Shield className="w-5 h-5 text-gray-700" />
               <span className="text-gray-700 text-sm">{t('verifiedBusiness')}</span>
             </div>
@@ -198,16 +260,16 @@ export default function ProjectLanding({ business }: Props) {
               </div>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowRequestModal(true)}
-                className="px-8 py-4 text-white rounded-full font-bold transition-all duration-300"
-                style={{ background: colors.gradient }}
-              >
-                {t('requestQuote')}
-              </button>
-              <a href="#services" className="px-8 py-4 bg-white text-gray-900 rounded-full font-bold border">
-                {t('services')}
-              </a>
+              {(() => { const key = ui.useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('primary','lg','', key); return (
+                <button onClick={() => setShowRequestModal(true)} className={vp.className} style={vp.style}>
+                  {t('requestQuote')}
+                </button>
+              )})()}
+              {(() => { const key = ui.useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('secondary','lg','', key); return (
+                <a href="#services" className={vp.className} style={vp.style}>
+                  {t('services')}
+                </a>
+              )})()}
             </div>
           </div>
         </div>
@@ -257,7 +319,7 @@ export default function ProjectLanding({ business }: Props) {
         </div>
       </section>
 
-      {/* Services simple grid */}
+      {/* Services with category filter + pagination (same pattern as reservas) */}
       <section id="services" className="py-10 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-8">
@@ -267,8 +329,38 @@ export default function ProjectLanding({ business }: Props) {
             <h2 className="text-3xl font-black mt-2 mb-2">{t('whatWeOffer')}</h2>
             <p className="text-gray-600">{t('tailoredToYourNeeds')}</p>
           </div>
+          {/* Category chips (only if more than one category) */}
+          {categories.length > 1 && (
+            <div className="flex flex-wrap gap-2 justify-center mb-8">
+              {['all', ...categories].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => { setServicesCategory(cat); setServicesPage(0) }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                    servicesCategory === cat ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  style={servicesCategory === cat ? { } : {}}
+                >
+                  {cat === 'all' ? (t('all') || 'All') : cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(() => {
+            const filtered = servicesCategory === 'all'
+              ? (business.services || [])
+              : (business.services || []).filter((s: any) => s.category === servicesCategory)
+            const servicesPerPage = 6
+            const totalPages = Math.ceil((filtered.length || 0) / servicesPerPage) || 1
+            const startIndex = servicesPage * servicesPerPage
+            const endIndex = startIndex + servicesPerPage
+            const current = filtered.slice(startIndex, endIndex)
+
+            return (
+              <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(business.services || []).map((service: any) => (
+            {current.map((service: any) => (
               <div key={service.id} className="bg-white rounded-xl shadow-sm p-6 border">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-bold">{service.name}</h3>
@@ -287,6 +379,40 @@ export default function ProjectLanding({ business }: Props) {
               </div>
             ))}
           </div>
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-10">
+                  <button
+                    onClick={() => setServicesPage(Math.max(0, servicesPage - 1))}
+                    disabled={servicesPage === 0}
+                    className={`p-2 rounded-full transition ${servicesPage === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'}`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setServicesPage(i)}
+                        className={`w-10 h-10 rounded-full font-medium transition ${i === servicesPage ? 'text-white shadow-lg transform scale-110' : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'}`}
+                        style={i === servicesPage ? { background: colors.gradient } : undefined}
+                        aria-current={i === servicesPage}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setServicesPage(Math.min(totalPages - 1, servicesPage + 1))}
+                    disabled={servicesPage === totalPages - 1}
+                    className={`p-2 rounded-full transition ${servicesPage === totalPages - 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'}`}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+              </>
+            )
+          })()}
         </div>
       </section>
 

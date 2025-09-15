@@ -436,7 +436,9 @@ export default function CategoriesPage() {
                           ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {category.isActive ? (t('active') || 'Active') : (t('inactive') || 'Inactive')}
+                        {category.isActive 
+                          ? (t('active') || 'Active')
+                          : (t('inactive') || 'Inactive')}
                       </span>
                     )}
                   </td>

@@ -9,8 +9,8 @@ export async function POST(request: NextRequest) {
   try {
     const schema = z.object({
       email: z.string().email(),
-      name: z.string().min(1),
-      password: z.string().min(8),
+      name: z.string().min(1).optional(),
+      password: z.string().min(8).optional(),
       phone: z.string().optional(),
     })
     const parsed = schema.safeParse(await request.json())
@@ -29,20 +29,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if email is already registered with password
+    // Si ya existe con contraseña, permitimos OTP de login (sin datos de registro)
     const existingCustomer = await prisma.customer.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        password: { not: null }
-      }
+      where: { email: email.toLowerCase(), password: { not: null } }
     })
-
-    if (existingCustomer) {
-      return NextResponse.json(
-        { error: 'Este email ya está registrado' },
-        { status: 400 }
-      )
-    }
 
     // Per-email rate limit (max 3 active sends within TTL)
     const rl = await checkRateLimit(email)
@@ -55,8 +45,12 @@ export async function POST(request: NextRequest) {
 
     // Generate and store code in Redis (15m TTL by default)
     const code = Math.floor(100000 + Math.random() * 900000).toString()
-    // Attach registration data alongside code
-    await setCode(email, code, undefined, { name, password, phone })
+    // Attach registration data alongside code solo si NO existe el usuario
+    if (existingCustomer) {
+      await setCode(email, code)
+    } else {
+      await setCode(email, code, undefined, { name, password, phone })
+    }
 
     // Send email via centralized sender
     const tpl = getVerificationEmailTemplate(code, 'verification')

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Globe, Save, ExternalLink, Copy, Check, AlertCircle } from 'lucide-react'
 import { THEME_PRESETS } from './theme-presets'
 
@@ -18,6 +19,17 @@ interface BusinessUiSettings {
   chipsSticky?: boolean
   paginationStyle?: string
   heroOverlay?: string
+  heroButtonStyle?: string
+  useTranslucentHeroButtons?: boolean
+  heroButtons?: {
+    showPrimary?: boolean
+    primaryText?: string
+    showServices?: boolean
+    servicesText?: string
+    showGallery?: boolean
+    galleryText?: string
+    showAuth?: boolean
+  }
   cardRadius?: string
   shadowStyle?: string
   typographyScale?: string
@@ -49,6 +61,7 @@ interface BusinessSettingsProps {
 
 export default function BusinessSettings({ business, onUpdate }: BusinessSettingsProps) {
   const toast = useToast()
+  const { t } = useLanguage()
   const [websiteUrl, setWebsiteUrl] = useState(business.websiteUrl || '')
   const [customSlug, setCustomSlug] = useState(business.customSlug || '')
   const [customDomain, setCustomDomain] = useState(business.customDomain || '')
@@ -104,18 +117,18 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   ] as const
 
   const BUTTON_STYLES = [
-    { value: 'soft', label: 'Soft' },
-    { value: 'rounded', label: 'Rounded' },
-    { value: 'square', label: 'Square' },
-    { value: 'pill', label: 'Pill' },
-    { value: 'soft-rounded', label: 'Soft Rounded' },
-    { value: 'outlined', label: 'Outlined' },
-    { value: 'shadow', label: 'Shadow' },
-    { value: '3d', label: '3D' },
-    { value: 'gradient', label: 'Gradient' },
-    { value: 'outline-dashed', label: 'Outline Dashed' },
-    { value: 'ghost', label: 'Ghost' },
-    { value: 'link', label: 'Link' },
+    { value: 'soft', label: t('btnStyle_soft') },
+    { value: 'rounded', label: t('btnStyle_rounded') },
+    { value: 'square', label: t('btnStyle_square') },
+    { value: 'pill', label: t('btnStyle_pill') },
+    { value: 'soft-rounded', label: t('btnStyle_softRounded') },
+    { value: 'outlined', label: t('btnStyle_outlined') },
+    { value: 'shadow', label: t('btnStyle_shadow') },
+    { value: '3d', label: t('btnStyle_3d') },
+    { value: 'gradient', label: t('btnStyle_gradient') },
+    { value: 'outline-dashed', label: t('btnStyle_outlineDashed') },
+    { value: 'ghost', label: t('btnStyle_ghost') },
+    { value: 'link', label: t('btnStyle_link') },
   ] as const
 
   // UI layout options
@@ -123,6 +136,17 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [chipsSticky, setChipsSticky] = useState(currentUi.chipsSticky !== false)
   const [paginationStyle, setPaginationStyle] = useState(currentUi.paginationStyle || 'numbered')
   const [heroOverlay, setHeroOverlay] = useState(currentUi.heroOverlay || 'strong')
+  const [heroButtonStyle, setHeroButtonStyle] = useState(currentUi.heroButtonStyle || '')
+  const [useTranslucentHeroButtons, setUseTranslucentHeroButtons] = useState(!!currentUi.useTranslucentHeroButtons)
+  const [heroButtons, setHeroButtons] = useState({
+    showPrimary: currentUi.heroButtons?.showPrimary !== false,
+    primaryText: currentUi.heroButtons?.primaryText || '',
+    showServices: currentUi.heroButtons?.showServices !== false,
+    servicesText: currentUi.heroButtons?.servicesText || '',
+    showGallery: currentUi.heroButtons?.showGallery !== false,
+    galleryText: currentUi.heroButtons?.galleryText || '',
+    showAuth: currentUi.heroButtons?.showAuth !== false,
+  })
   const [cardRadius, setCardRadius] = useState(currentUi.cardRadius || 'xl')
   const [shadowStyle, setShadowStyle] = useState(currentUi.shadowStyle || 'soft')
   const [typographyScale, setTypographyScale] = useState(currentUi.typographyScale || 'M')
@@ -131,6 +155,17 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const [showMobileStickyCTA, setShowMobileStickyCTA] = useState(currentUi.showMobileStickyCTA !== false)
   const [showDesktopFloatingDirection, setShowDesktopFloatingDirection] = useState(currentUi.showDesktopFloatingDirection !== false)
   const [tagline, setTagline] = useState(currentUi.tagline || '')
+  const TAGLINE_LIMIT = 80
+  const taglineCount = (tagline || '').length
+  const taglineTooLong = taglineCount > TAGLINE_LIMIT
+
+  // Clamp initial tagline if it comes longer than allowed
+  useEffect(() => {
+    if ((tagline || '').length > TAGLINE_LIMIT) {
+      setTagline((tagline || '').slice(0, TAGLINE_LIMIT))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const publicUrl = business.customSlug 
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.customSlug}`
@@ -203,6 +238,10 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   }
 
   const handleSave = async () => {
+    const trimmedTagline = taglineTooLong ? tagline.slice(0, TAGLINE_LIMIT) : tagline
+    if (taglineTooLong) {
+      toast(`Hero Tagline truncado a ${TAGLINE_LIMIT} caracteres`, 'info')
+    }
     // Validate slug before saving
     const cleanedSlug = customSlug.trim().replace(/^\/+|\/+$/g, '')
     
@@ -233,6 +272,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           chipsSticky,
           paginationStyle,
           heroOverlay,
+          heroButtonStyle,
+          useTranslucentHeroButtons,
+          heroButtons,
           cardRadius,
           shadowStyle,
           typographyScale,
@@ -240,7 +282,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           useGradientButtons,
           showMobileStickyCTA,
           showDesktopFloatingDirection,
-          tagline
+          tagline: trimmedTagline
         }
       }
       
@@ -272,6 +314,9 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             chipsSticky,
             paginationStyle,
             heroOverlay,
+            heroButtonStyle,
+            useTranslucentHeroButtons,
+            heroButtons,
             cardRadius,
             shadowStyle,
             typographyScale,
@@ -279,9 +324,10 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             useGradientButtons,
             showMobileStickyCTA,
             showDesktopFloatingDirection,
-            tagline
+            tagline: trimmedTagline
           }
         })
+        setTagline(trimmedTagline)
         setCustomSlug(data.customSlug || '')
         toast('✅ Settings saved successfully!', 'success')
       } else {
@@ -312,14 +358,14 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center gap-3 mb-6">
         <Globe className="text-blue-600" size={24} />
-        <h2 className="text-2xl font-bold">Website Settings</h2>
+        <h2 className="text-2xl font-bold">{t('websiteSettingsTitle') || 'Website Settings'}</h2>
       </div>
 
       <div className="space-y-6">
         {/* Custom URL Path */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Custom URL Path (Optional)
+            {t('customUrlPathOptional') || 'Custom URL Path (Optional)'}
           </label>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-gray-500">{typeof window !== 'undefined' ? window.location.origin : ''}/</span>
@@ -364,7 +410,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         {/* Current URL */}
         <div>
           <label className="block text sm font-medium text-gray-700 mb-2">
-            Your Current Landing Page URL
+            {t('currentLandingUrl') || 'Your Current Landing Page URL'}
           </label>
           <div className="flex items-center gap-2">
             <input
@@ -674,6 +720,165 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           </div>
         </div>
 
+        {/* Hero/Banner Button Styles */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-2">{t('heroButtonStylesTitle') || '🔘 Hero/Banner Button Styles'}</h3>
+          <p className="text-sm text-gray-600 mb-4">{t('heroButtonStylesDesc') || 'Optionally define a different style just for the banner CTAs (if not set, they use the global style).'}</p>
+
+          {/* Hero Tagline moved here */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('heroTaglineTitle') || 'Hero Tagline'}</label>
+            <input
+              type="text"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value.slice(0, TAGLINE_LIMIT))}
+              placeholder="Servicios profesionales de la más alta calidad"
+              className={`w-full p-3 border rounded-lg ${taglineTooLong ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} focus:ring-1`}
+              aria-invalid={taglineTooLong}
+            />
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-xs text-gray-500">{t('heroTaglineHelp') || 'Short text under the business name. Leave empty to use description or default.'}</p>
+              <span className={`text-xs font-medium ${taglineTooLong ? 'text-red-600' : 'text-gray-500'}`}>{taglineCount}/{TAGLINE_LIMIT}</span>
+            </div>
+            {taglineTooLong && (
+              <p className="text-xs text-red-600 mt-1">Máximo {TAGLINE_LIMIT} caracteres.</p>
+            )}
+          </div>
+          {/* Banner buttons configuration */}
+          <div className="mb-6 space-y-4">
+            <h4 className="text-md font-semibold">{t('heroButtonsConfigTitle') || 'Hero/Banner Buttons'}</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 items-center">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={heroButtons.showPrimary} onChange={(e) => setHeroButtons(v => ({...v, showPrimary: e.target.checked}))} />
+                <span className="text-sm text-gray-700">{t('showPrimaryCta') || 'Show primary CTA'}</span>
+              </label>
+              <input
+                type="text"
+                value={heroButtons.primaryText}
+                onChange={(e) => setHeroButtons(v => ({...v, primaryText: e.target.value}))}
+                placeholder={t('primaryCtaLabel') || 'Primary CTA label (optional)'}
+                className="w-full p-2 border border-gray-300 rounded"
+              />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={heroButtons.showServices} onChange={(e) => setHeroButtons(v => ({...v, showServices: e.target.checked}))} />
+                <span className="text-sm text-gray-700">{t('showServicesButton') || 'Show Services button'}</span>
+              </label>
+              <input
+                type="text"
+                value={heroButtons.servicesText}
+                onChange={(e) => setHeroButtons(v => ({...v, servicesText: e.target.value}))}
+                placeholder={t('servicesButtonLabel') || 'Services button label (optional)'}
+                className="w-full p-2 border border-gray-300 rounded"
+              />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={heroButtons.showGallery} onChange={(e) => setHeroButtons(v => ({...v, showGallery: e.target.checked}))} />
+                <span className="text-sm text-gray-700">{t('showGalleryButton') || 'Show Gallery button'}</span>
+              </label>
+              <div>
+                <input
+                  type="text"
+                  value={heroButtons.galleryText}
+                  onChange={(e) => setHeroButtons(v => ({...v, galleryText: e.target.value}))}
+                  placeholder={t('galleryButtonLabel') || 'Gallery button label (optional)'}
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+                <p className="text-xs text-gray-500 mt-1">{t('noteGalleryOnlyIfAvailable') || 'Shown only if gallery exists'}</p>
+              </div>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={heroButtons.showAuth} onChange={(e) => setHeroButtons(v => ({...v, showAuth: e.target.checked}))} />
+                <span className="text-sm text-gray-700">{t('showAuthButton') || 'Show Sign In/My Portal button'}</span>
+              </label>
+            </div>
+          </div>
+          {/* Translucent oval buttons toggle (chips style) */}
+          <div className="mb-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={useTranslucentHeroButtons}
+                onChange={(e) => setUseTranslucentHeroButtons(e.target.checked)}
+                className="mt-1"
+              />
+              <div>
+                <div className="text-sm font-medium text-gray-800">{t('useTranslucentHeroButtons') || 'Use translucent oval buttons (chips style)'}</div>
+                <div className="text-xs text-gray-500">{t('useTranslucentHeroButtonsDesc') || 'Render hero CTAs as oval chips with translucent background like the badges above.'}</div>
+              </div>
+            </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Inherit option */}
+            <button
+              type="button"
+              onClick={() => setHeroButtonStyle('')}
+              className={`p-4 border-2 rounded-lg cursor-pointer transition ${heroButtonStyle === '' ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">{t('useGlobalButtonStyle')}</span>
+              </div>
+              <div className="flex gap-2">
+                <span
+                  className={`px-4 py-2 font-medium rounded-lg ${['outlined','outline-dashed','ghost','link'].includes(buttonStyle) ? '' : 'text-white'}`}
+                  style={{
+                    background: ['outlined','outline-dashed','ghost','link'].includes(buttonStyle)
+                      ? 'transparent'
+                      : (useGradientButtons || buttonStyle === 'gradient')
+                        ? `linear-gradient(90deg, ${primaryColor} 0%, ${accentColor} 100%)`
+                        : primaryColor,
+                    borderColor: ['outlined','outline-dashed'].includes(buttonStyle) ? primaryColor : undefined,
+                    color: ['outlined','outline-dashed','ghost','link'].includes(buttonStyle) ? primaryColor : undefined
+                  }}
+                >
+                  CTA Banner
+                </span>
+              </div>
+            </button>
+            {BUTTON_STYLES.map(({ value, label }) => {
+              const active = heroButtonStyle === value
+              const baseTile = `p-4 border-2 rounded-lg cursor-pointer transition ${active ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 hover:border-blue-300'}`
+              const sampleCommon = 'px-4 py-2 font-medium'
+              const radius = (
+                value === 'rounded' ? 'rounded-lg' :
+                value === 'square' ? '' :
+                value === 'pill' ? 'rounded-full' :
+                value === 'soft-rounded' ? 'rounded-2xl' :
+                'rounded-lg'
+              )
+              const isOutlined = value === 'outlined'
+              const isDashed = value === 'outline-dashed'
+              const isGhost = value === 'ghost'
+              const isLink = value === 'link'
+              const isShadow = value === 'shadow'
+              const is3d = value === '3d'
+              const isGradient = value === 'gradient'
+              const borderOnly = isOutlined || isDashed || isGhost || isLink
+              return (
+                <button
+                  key={`hero-${value}`}
+                  type="button"
+                  onClick={() => setHeroButtonStyle(value)}
+                  className={baseTile}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">{label}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span
+                      className={`${sampleCommon} ${radius} ${isOutlined ? 'border-2' : ''} ${isDashed ? 'border-2 border-dashed' : ''} ${isGhost ? 'border-2 border-transparent' : ''} ${isLink ? 'underline' : ''} ${borderOnly ? '' : 'text-white'} ${isShadow ? 'shadow-lg' : ''} ${is3d ? 'shadow-[0_4px_0_rgba(0,0,0,0.25)]' : ''}`}
+                      style={{
+                        background: borderOnly ? 'transparent' : (isGradient ? `linear-gradient(90deg, ${primaryColor} 0%, ${accentColor} 100%)` : primaryColor),
+                        borderColor: (isOutlined || isDashed) ? primaryColor : undefined,
+                        color: borderOnly ? primaryColor : undefined
+                      }}
+                    >
+                      CTA Banner
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* UI Layout Options */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">UI Layout Options</h3>
@@ -733,19 +938,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           </div>
         </div>
 
-        {/* Hero Tagline */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">Hero Tagline</h3>
-          <p className="text-sm text-gray-600 mb-2">Texto breve que aparece bajo el nombre del negocio en la portada.</p>
-          <input
-            type="text"
-            value={tagline}
-            onChange={(e) => setTagline(e.target.value)}
-            placeholder="Servicios profesionales de la más alta calidad"
-            className="w-full p-3 border border-gray-300 rounded-lg"
-          />
-          <p className="text-xs text-gray-500 mt-1">Déjalo vacío para usar la descripción del negocio o el texto por defecto.</p>
-        </div>
+        
 
         {/* Combined Preview */}
         <div className="mt-6 p-4 border border-gray-200 rounded-lg">
@@ -773,6 +966,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                   buttonStyle === 'rounded' ? 'rounded-lg' :
                   buttonStyle === 'square' ? '' :
                   buttonStyle === 'pill' ? 'rounded-full' :
+                  
                   buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
                   buttonStyle === 'outlined' ? 'rounded-lg border-2' :
                   buttonStyle === 'outline-dashed' ? 'rounded-lg border-2 border-dashed' :
@@ -800,6 +994,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
                   buttonStyle === 'rounded' ? 'rounded-lg' :
                   buttonStyle === 'square' ? '' :
                   buttonStyle === 'pill' ? 'rounded-full' :
+                  
                   buttonStyle === 'soft-rounded' ? 'rounded-2xl' :
                   buttonStyle === 'outlined' ? 'rounded-lg' :
                   buttonStyle === 'shadow' ? 'rounded-lg shadow-md' :
@@ -860,7 +1055,11 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={20} />
-            {isSaving ? 'Saving...' : (slugStatus==='taken' || slugError || domainStatus==='invalid' ? 'Fix errors to save' : 'Save Settings')}
+            {isSaving
+              ? 'Saving...'
+              : (slugStatus==='taken' || slugError || domainStatus==='invalid'
+                ? 'Fix errors to save'
+                : 'Save Settings')}
           </button>
         </div>
       </div>

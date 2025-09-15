@@ -169,6 +169,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     return fallback
   }
   const ui = business.settings?.ui || {}
+  const heroButtonStyleOverride = (ui && typeof (ui as any).heroButtonStyle === 'string' && (ui as any).heroButtonStyle.trim() !== '')
+    ? (ui as any).heroButtonStyle as string
+    : null
   const tagline = (ui && typeof ui.tagline === 'string' && ui.tagline.trim() !== '')
     ? ui.tagline
     : (business.description || t('professionalQuality'))
@@ -201,7 +204,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   }, [ui.bodyScale])
   
   // Button style mapping
-  const getButtonClasses = (baseClasses: string = '') => {
+  const getButtonClasses = (baseClasses: string = '', styleName?: string) => {
     const styleClasses = {
       soft: 'rounded-lg shadow-md',
       rounded: 'rounded-lg',
@@ -216,27 +219,54 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       shadow: 'rounded-lg shadow-lg',
       '3d': 'rounded-lg'
     }
-    const key = buttonStyle as keyof typeof styleClasses
+    const normalize = (s?: string) => (s === 'oval' ? 'pill' : s)
+    const key = (normalize(styleName) || normalize(buttonStyle)) as keyof typeof styleClasses
     return `${baseClasses} ${styleClasses[key] || styleClasses.rounded}`
   }
 
-  const isBorderOnly = ['outlined', 'outline-dashed', 'ghost', 'link'].includes(buttonStyle)
+  const isBorderOnly = (styleName?: string) => ['outlined', 'outline-dashed', 'ghost', 'link'].includes(styleName || buttonStyle)
   const getVisualProps = (
     variant: 'primary' | 'secondary' = 'primary',
     size: 'sm' | 'md' | 'lg' = 'lg',
-    extraClasses = ''
+    extraClasses = '',
+    styleName?: string
   ) => {
+    const hexToRgba = (hex: string, alpha: number) => {
+      const h = hex.replace('#', '')
+      const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16)
+      const r = (bigint >> 16) & 255
+      const g = (bigint >> 8) & 255
+      const b = bigint & 255
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    }
+
+    if (styleName === '__translucent') {
+      // Compact on mobile, roomier on larger screens
+      const className = `px-4 py-2 sm:px-6 sm:py-3 font-bold rounded-full text-white backdrop-blur-md bg-white/10 border border-white/20 transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 ${variant==='primary' ? 'shadow-xl hover:shadow-2xl' : 'hover:shadow-lg'} ${extraClasses}`
+      return { className, style: {} as any }
+    }
+    if (styleName === '__translucentHeader') {
+      // More compact chips on mobile for header; expand on sm+
+      const className = `px-3 py-1.5 sm:px-5 sm:py-2.5 text-sm sm:text-base font-semibold rounded-full border transform hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 ${variant==='primary' ? 'shadow-sm hover:shadow' : 'hover:shadow'} ${extraClasses}`
+      const style: any = {
+        color: colors.primary,
+        background: hexToRgba(colors.primary, 0.22),
+        borderColor: hexToRgba(colors.primary, 0.50)
+      }
+      return { className, style }
+    }
     const spacing = size === 'sm' ? 'px-4 py-2' : size === 'md' ? 'px-6 py-3' : 'px-8 py-4'
-    const className = getButtonClasses(`${spacing} font-bold transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 text-white ${variant==='primary' ? 'shadow-xl hover:shadow-2xl' : 'hover:shadow-lg'} ${extraClasses}`)
-    if (isBorderOnly) {
+    const className = getButtonClasses(`${spacing} font-bold transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 text-white ${variant==='primary' ? 'shadow-xl hover:shadow-2xl' : 'hover:shadow-lg'} ${extraClasses}`, styleName)
+    if (isBorderOnly(styleName)) {
       const style: any = { background: 'transparent', color: variant==='primary' ? colors.primary : colors.accent }
-      if (buttonStyle === 'outlined' || buttonStyle === 'outline-dashed') {
+      const st = styleName || buttonStyle
+      if (st === 'outlined' || st === 'outline-dashed') {
         style.borderColor = variant==='primary' ? colors.primary : colors.accent
       }
       return { className, style }
     }
     const style = {
-      background: (ui.useGradientButtons || buttonStyle === 'gradient')
+      background: (ui.useGradientButtons || (styleName || buttonStyle) === 'gradient')
         ? colors.gradient
         : (variant === 'primary' ? colors.primary : colors.accent),
       color: '#FFFFFF'
@@ -745,7 +775,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       <header className="fixed top-0 w-full backdrop-blur-xl bg-white/70 border-b border-gray-100 z-50 shadow-sm">
         <nav className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               {business.logo && (
                 <div className="relative">
                   <img 
@@ -765,60 +795,118 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 <p className="text-xs text-gray-500 hidden sm:block">{business.category || t('professionalServices')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* User menu */}
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
-                  <Link
-                    href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
-                    className="flex items-center gap-2 px-3 py-2 rounded-full transition-all group"
-                    style={{ background: colors.gradient, opacity: 0.12 }}
-                    title={t('goToMyPortal')}
-                  >
-                    <UserCircle className="w-5 h-5" style={{ color: colors.primary }} />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                      {clientData?.name?.split(' ')[0] || clientData?.name}
-                    </span>
-                    {isRegistered && (
-                      <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} title={t('registeredInBusiness')} />
-                    )}
-                  </Link>
-                  <button
-                    onClick={() => logout()}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    title={t('signOut')}
-                  >
-                    <LogOut className="w-5 h-5 text-gray-600" />
-                  </button>
+                  {((ui as any).useTranslucentHeroButtons) ? (
+                    (() => { const vp = getVisualProps('secondary','md','', '__translucentHeader'); return (
+                      <Link
+                        href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
+                        className={vp.className}
+                        style={{ ...vp.style, background: 'rgba(59,130,246,0.20)', borderColor: 'rgba(147,197,253,0.70)', color: '#1d4ed8' }}
+                        title={t('goToMyPortal')}
+                      >
+                        <UserCircle className="w-5 h-5" style={{ color: '#1d4ed8' }} />
+                        <span
+                          className="hidden sm:inline text-sm sm:text-base font-bold"
+                          style={{ color: '#1d4ed8' }}
+                        >
+                          {clientData?.name?.split(' ')[0] || clientData?.name}
+                        </span>
+                        {isRegistered && (
+                          <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} title={t('registeredInBusiness')} />
+                        )}
+                      </Link>
+                    )})()
+                  ) : (
+                    (() => { const vp = getVisualProps('secondary','md','', '__translucentHeader'); return (
+                      <Link
+                        href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
+                        className={vp.className}
+                        style={{ ...vp.style, background: 'rgba(59,130,246,0.20)', borderColor: 'rgba(147,197,253,0.70)', color: '#1d4ed8' }}
+                        title={t('goToMyPortal')}
+                      >
+                        <UserCircle className="w-5 h-5" style={{ color: '#1d4ed8' }} />
+                        <span
+                          className="hidden sm:inline text-sm sm:text-base font-bold"
+                          style={{ color: '#1d4ed8' }}
+                        >
+                          {clientData?.name?.split(' ')[0] || clientData?.name}
+                        </span>
+                        {isRegistered && (
+                          <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} title={t('registeredInBusiness')} />
+                        )}
+                      </Link>
+                    )})()
+                  )}
+                  {((ui as any).useTranslucentHeroButtons) ? (
+                    (() => { const vp = getVisualProps('secondary','md','', '__translucentHeader'); return (
+                      <button
+                        onClick={() => logout()}
+                        className={vp.className}
+                        style={vp.style}
+                        title={t('signOut')}
+                      >
+                        <LogOut className="w-5 h-5" style={{ color: colors.primary }} />
+                        <span className="hidden sm:inline text-sm font-medium" style={{ color: colors.primary }}>{t('signOut')}</span>
+                      </button>
+                    )})()
+                  ) : (
+                    <button
+                      onClick={() => logout()}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                      title={t('signOut')}
+                    >
+                      <LogOut className="w-5 h-5 text-gray-600" />
+                    </button>
+                  )}
                 </div>
               ) : (
-                <button
-                  onClick={() => {
-                    const currentUrl = encodeURIComponent(window.location.href)
-                    window.location.href = `/cliente/login?from=${currentUrl}`
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <LogIn className="w-5 h-5 text-gray-600" />
-                  <span className="hidden sm:inline text-sm font-medium">{t('signIn')}</span>
-                </button>
+                ((ui as any).useTranslucentHeroButtons) ? (
+                  (() => { const vp = getVisualProps('secondary','md','', '__translucentHeader'); return (
+                    <button
+                      onClick={() => {
+                        const currentUrl = encodeURIComponent(window.location.href)
+                        window.location.href = `/cliente/login?from=${currentUrl}`
+                      }}
+                      className={vp.className}
+                      style={{ ...vp.style, background: 'rgba(59,130,246,0.20)', borderColor: 'rgba(147,197,253,0.70)', color: '#1d4ed8' }}
+                    >
+                      <LogIn className="w-5 h-5" style={{ color: '#1d4ed8' }} />
+                      <span className="hidden sm:inline text-sm font-bold" style={{ color: '#1d4ed8' }}>{t('signIn')}</span>
+                    </button>
+                  )})()
+                ) : (
+                  (() => { const vp = getVisualProps('secondary','md','', '__translucentHeader'); return (
+                    <button
+                      onClick={() => {
+                        const currentUrl = encodeURIComponent(window.location.href)
+                        window.location.href = `/cliente/login?from=${currentUrl}`
+                      }}
+                      className={vp.className}
+                      style={{ ...vp.style, background: 'rgba(59,130,246,0.20)', borderColor: 'rgba(147,197,253,0.70)', color: '#1d4ed8' }}
+                    >
+                      <LogIn className="w-5 h-5" style={{ color: '#1d4ed8' }} />
+                      <span className="hidden sm:inline text-sm font-bold" style={{ color: '#1d4ed8' }}>{t('signIn')}</span>
+                    </button>
+                  )})()
+                )
               )}
               
               <LanguageSelector />
               {(() => {
-                const borderOnly = ['outlined','outline-dashed','ghost','link'].includes(buttonStyle)
-                const style = borderOnly
-                  ? { background: 'transparent', color: colors.primary, borderColor: colors.primary }
-                  : { background: (ui.useGradientButtons || buttonStyle === 'gradient') ? colors.gradient : colors.primary, color: '#FFFFFF' }
+                const styleKey = (ui as any).useTranslucentHeroButtons ? '__translucentHeader' : (heroButtonStyleOverride || undefined)
+                const vp = getVisualProps('primary','md','', styleKey)
                 return (
-              <button
-                onClick={() => setShowBookingModal(true)}
-                className={getButtonClasses("px-4 sm:px-6 py-2.5 font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300")}
-                style={style}
-              >
-                <span className="hidden sm:inline">{t('bookAppointmentCTA')}</span>
-                <span className="sm:hidden">{t('bookShort')}</span>
-              </button>
+                  <button
+                    onClick={() => setShowBookingModal(true)}
+                    className={vp.className}
+                    style={vp.style}
+                  >
+                    <span className="hidden sm:inline">{t('bookAppointmentCTA')}</span>
+                    <span className="sm:hidden">{t('bookShort')}</span>
+                  </button>
                 )
               })()}
             </div>
@@ -896,25 +984,25 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2">
                 <Award className="w-5 h-5 text-white" />
                 <span className="text-white font-semibold">
-                  Top Professional
+                  {t('topProfessional')}
                 </span>
               </div>
             </div>
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-4">
-              {(() => { const vp = getVisualProps('primary','lg'); return (
+              {(ui.heroButtons?.showPrimary !== false) && (() => { const styleKey = (ui as any).useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('primary','lg','', styleKey); return (
               <button
                 onClick={() => setShowBookingModal(true)}
                 className={vp.className}
                 style={vp.style}
               >
-                {t('bookNow')}
+                {(ui.heroButtons?.primaryText && ui.heroButtons?.primaryText.trim()) ? ui.heroButtons?.primaryText : t('bookNow')}
                 <ArrowRight className="w-5 h-5" />
               </button>
               )})()}
-              {isAuthenticated ? (
-                (() => { const vp = getVisualProps('secondary','lg'); return (
+              {(ui.heroButtons?.showAuth !== false) && (isAuthenticated ? (
+                (() => { const styleKey = (ui as any).useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('secondary','lg','', styleKey); return (
                 <Link
                   href={`/cliente/dashboard?from=${encodeURIComponent(`/${business.customSlug || business.slug}`)}`}
                   className={vp.className}
@@ -925,7 +1013,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 </Link>
                 )})()
               ) : (
-                (() => { const vp = getVisualProps('secondary','lg'); return (
+                (() => { const styleKey = (ui as any).useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('secondary','lg','', styleKey); return (
                 <button
                   onClick={() => {
                     const currentUrl = encodeURIComponent(window.location.href)
@@ -938,25 +1026,25 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                   {t('signIn')}
                 </button>
                 )})()
-              )}
+              ))}
               
-              {(() => { const vp = getVisualProps('secondary','lg'); return (
+              {(ui.heroButtons?.showServices !== false) && (() => { const styleKey = (ui as any).useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('secondary','lg','', styleKey); return (
               <a
                 href="#services"
                 className={vp.className}
                 style={vp.style}
               >
-                {t('services')}
+                {(ui.heroButtons?.servicesText && ui.heroButtons?.servicesText.trim()) ? ui.heroButtons?.servicesText : t('services')}
               </a>
               )})()}
-              {galleryItems.length > 0 && (
-                (() => { const vp = getVisualProps('secondary','lg'); return (
+              {galleryItems.length > 0 && (ui.heroButtons?.showGallery !== false) && (
+                (() => { const styleKey = (ui as any).useTranslucentHeroButtons ? '__translucent' : (heroButtonStyleOverride || undefined); const vp = getVisualProps('secondary','lg','', styleKey); return (
                 <a
                   href="#gallery"
                   className={vp.className}
                   style={vp.style}
                 >
-                  {t('gallery')}
+                  {(ui.heroButtons?.galleryText && ui.heroButtons?.galleryText.trim()) ? ui.heroButtons?.galleryText : t('gallery')}
                 </a>
                 )})()
               )}
@@ -3075,9 +3163,12 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                 {loginMode === 'verify' ? (
                   // Verification code input
                   <>
-                    <div className="text-center mb-2">
+                    <div className="text-center mb-3">
                       <p className="text-gray-600">{t('weSentVerificationTo')}</p>
                       <p className="font-semibold">{loginForm.email}</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {t('otpReactivateHint') || 'If you already had an account, this code will sign you in and re‑add this business to your portal.'}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">{t('verificationCodeLabel')}</label>

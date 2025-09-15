@@ -60,8 +60,22 @@ export async function GET(request: NextRequest) {
     })
     
     // Obtener la lista de negocios desregistrados desde metadata
-    const customerMetadata = referenceCustomer.metadata as any || {}
-    const unregisteredBusinesses = customerMetadata.unregisteredBusinesses || []
+    const customerMetadata = (referenceCustomer.metadata as any) || {}
+    let unregisteredBusinesses: string[] = customerMetadata.unregisteredBusinesses || []
+    // Si el cliente viene referido desde un negocio y éste estaba desregistrado, auto-rehabilitarlo
+    if (referringBusinessId && unregisteredBusinesses.includes(referringBusinessId)) {
+      try {
+        const updated = unregisteredBusinesses.filter(id => id !== referringBusinessId)
+        await prisma.customer.update({
+          where: { id: referenceCustomer.id },
+          data: { metadata: { ...customerMetadata, unregisteredBusinesses: updated } }
+        })
+        unregisteredBusinesses = updated
+        console.log('🔄 [businesses API] Removido referringBusiness de unregisteredBusinesses')
+      } catch (e) {
+        console.warn('⚠️ [businesses API] No se pudo actualizar metadata para remover referringBusiness', e)
+      }
+    }
     console.log('🚫 [businesses API] Negocios desregistrados:', unregisteredBusinesses)
     
     // Buscar TODOS los customers con el mismo email y contraseña
@@ -279,4 +293,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

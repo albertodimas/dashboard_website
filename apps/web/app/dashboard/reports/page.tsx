@@ -458,7 +458,7 @@ export default function ReportsPage() {
                           <p className="text-sm text-purple-600">{t('appointmentsTitle') || 'Total Appointments'}</p>
                           <p className="text-2xl font-bold text-purple-900">{staff.metrics.appointments}</p>
                           <p className="text-sm text-purple-600 mt-1">
-                            {staff.metrics.completedAppointments} {t('completed') || 'completed'}
+                            {staff.metrics.completedAppointments} {t('completed') || 'Completed'}
                           </p>
                         </div>
                         

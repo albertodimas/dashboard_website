@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface ClientData {
@@ -31,42 +31,27 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       setLoading(true)
-      
-      // Verificar si hay token en cookies
-      let response = await fetch('/api/cliente/auth/me', {
+      // Consultar un endpoint amable que nunca responde 401
+      const res = await fetch('/api/cliente/auth/check', {
         credentials: 'include',
         cache: 'no-store'
       })
-
-      // Si el token expiró, intentar refrescar
-      if (response.status === 401) {
-        const refreshResponse = await fetch('/api/cliente/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-          cache: 'no-store'
-        })
-
-        if (refreshResponse.ok) {
-          // Token refrescado exitosamente, reintentar la verificación
-          response = await fetch('/api/cliente/auth/me', {
-            credentials: 'include',
-            cache: 'no-store'
-          })
-        }
-      }
-
-      if (response.ok) {
-        const data = await response.json()
+      const data = await res.json().catch(() => ({ authenticated: false }))
+      if (data?.authenticated) {
         setIsAuthenticated(true)
-        setClientData(data.customer)
-        
-        // Obtener negocios donde está registrado (solo si está autenticado)
+        setClientData({
+          id: data.customer?.id,
+          name: data.customer?.name || '',
+          email: data.customer?.email,
+          phone: data.customer?.phone,
+          registeredBusinesses: []
+        } as any)
+        // Obtener negocios donde está registrado (no crítico)
         try {
           const businessesResponse = await fetch('/api/cliente/businesses', {
             credentials: 'include',
             cache: 'no-store'
           })
-          
           if (businessesResponse.ok) {
             const businessData = await businessesResponse.json()
             setClientData(prev => ({
@@ -74,23 +59,12 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
               registeredBusinesses: businessData.myBusinesses?.map((b: any) => b.id) || []
             }))
           }
-        } catch (businessError) {
-          // Si falla obtener negocios, no es crítico
-          console.log('Could not fetch registered businesses')
-        }
-      } else if (response.status === 401) {
-        // No autorizado es un estado válido, no es un error
-        setIsAuthenticated(false)
-        setClientData(null)
+        } catch {}
       } else {
-        // Otros errores
-        console.error('Auth check failed with status:', response.status)
         setIsAuthenticated(false)
         setClientData(null)
       }
-    } catch (error) {
-      // Error de red o servidor no disponible
-      console.log('Auth check skipped - server may be unavailable')
+    } catch {
       setIsAuthenticated(false)
       setClientData(null)
     } finally {
@@ -121,8 +95,13 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
     return clientData?.registeredBusinesses?.includes(businessId) || false
   }
 
+  // Evitar doble ejecución en Strict Mode (dev) y chequear solo una vez
+  const didInitRef = useRef(false)
   useEffect(() => {
+    if (didInitRef.current) return
+    didInitRef.current = true
     checkAuth()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

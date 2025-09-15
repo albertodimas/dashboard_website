@@ -298,6 +298,23 @@ export async function POST(request: NextRequest) {
             }
           })
         }
+
+        // Si el cliente había desregistrado este negocio (metadata.unregisteredBusinesses), removerlo
+        try {
+          const current = await prisma.customer.findUnique({ where: { id: customer.id }, select: { metadata: true } })
+          const meta: any = (current?.metadata as any) || {}
+          const arr: string[] = Array.isArray(meta.unregisteredBusinesses) ? meta.unregisteredBusinesses : []
+          if (arr.includes(business.id)) {
+            const updated = arr.filter((id) => id !== business.id)
+            await prisma.customer.update({
+              where: { id: customer.id },
+              data: { metadata: { ...meta, unregisteredBusinesses: updated } }
+            })
+            console.log('[Cliente Login] Removido negocio de unregisteredBusinesses para el cliente')
+          }
+        } catch (e) {
+          console.warn('[Cliente Login] No se pudo sincronizar metadata.unregisteredBusinesses:', e)
+        }
       }
     }
 

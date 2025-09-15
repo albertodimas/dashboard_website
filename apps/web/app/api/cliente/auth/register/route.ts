@@ -81,9 +81,14 @@ export async function POST(request: NextRequest) {
         return response
       }
 
-      // Ya existe con contraseña: no crear duplicado; guiar a login
+      // Ya existe con contraseña: no crear duplicado; guiar a autenticación cómoda (OTP)
       return NextResponse.json(
-        { error: 'Este email ya tiene una cuenta. Inicia sesión o restablece tu contraseña.', alreadyRegistered: true },
+        { 
+          error: 'Este email ya tiene una cuenta.',
+          alreadyRegistered: true,
+          needsAuth: true,
+          method: 'otp'
+        },
         { status: 409 }
       )
     }
