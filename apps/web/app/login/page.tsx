@@ -56,9 +56,6 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center">
         <div className="max-w-md w-full space-y-8 px-4">
           <div>
-            <Link href="/" className="text-2xl font-bold text-center block">
-              {t('dashboard')}
-            </Link>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               {t('signIn')}
             </h2>
@@ -148,6 +145,11 @@ export default function LoginPage() {
             </div>
 
           </form>
+          <div className="text-center">
+            <Link href="/" className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition">
+              <span aria-hidden="true">←</span> Volver al inicio
+            </Link>
+          </div>
         </div>
       </div>
     </div>

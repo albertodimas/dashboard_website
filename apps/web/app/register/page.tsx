@@ -162,12 +162,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
+      <div className="max-w-md w-full space-y-8 px-4">
         <div>
-          <Link href="/" className="text-2xl font-bold text-center block">
-            Dashboard
-          </Link>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -178,7 +175,8 @@ export default function RegisterPage() {
           </p>
         </div>
         {step === 'register' ? (
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <>
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
               {error}
@@ -397,9 +395,16 @@ export default function RegisterPage() {
             {' '}and{' '}
             <a href="#" className="text-primary hover:underline">Privacy Policy</a>
           </div>
-        </form>
+            </form>
+            <div className="text-center">
+              <Link href="/" className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition">
+                <span aria-hidden="true">←</span> Volver al inicio
+              </Link>
+            </div>
+          </>
         ) : (
-        <form className="mt-8 space-y-6" onSubmit={handleVerification}>
+          <>
+            <form className="mt-8 space-y-6" onSubmit={handleVerification}>
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Verify your email</h3>
             <p className="text-sm text-gray-600 mb-4">
@@ -443,7 +448,13 @@ export default function RegisterPage() {
               </button>
             </div>
           </div>
-        </form>
+            </form>
+            <div className="mt-6 text-center">
+              <Link href="/" className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition">
+                <span aria-hidden="true">←</span> Volver al inicio
+              </Link>
+            </div>
+          </>
         )}
       </div>
     </div>

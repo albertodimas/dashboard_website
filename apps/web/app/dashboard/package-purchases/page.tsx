@@ -31,6 +31,34 @@ export default function PackagePurchasesPage() {
     notes: ''
   })
 
+  const statusClassMap: Record<string, string> = {
+    PENDING: 'bg-yellow-100 text-yellow-800',
+    ACTIVE: 'bg-green-100 text-green-800',
+    COMPLETED: 'bg-blue-100 text-blue-800',
+    EXPIRED: 'bg-red-100 text-red-800',
+    CANCELLED: 'bg-red-100 text-red-800'
+  }
+
+  const getStatusClass = (status: string) =>
+    statusClassMap[(status || '').toUpperCase()] || 'bg-gray-100 text-gray-800'
+
+  const getStatusLabel = (status: string) => {
+    switch ((status || '').toUpperCase()) {
+      case 'PENDING':
+        return t('pending')
+      case 'ACTIVE':
+        return t('active')
+      case 'COMPLETED':
+        return t('completed')
+      case 'EXPIRED':
+        return t('expired')
+      case 'CANCELLED':
+        return t('cancelled')
+      default:
+        return status
+    }
+  }
+
   useEffect(() => {
     loadData()
   }, [])
@@ -414,18 +442,12 @@ export default function PackagePurchasesPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      purchase.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                      purchase.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                      purchase.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                      purchase.status === 'EXPIRED' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {purchase.status}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(purchase.status)}`}>
+                      {getStatusLabel(purchase.status)}
                     </span>
                     {purchase.paymentStatus === 'PENDING' && (
                       <div className="text-xs text-orange-600 mt-1">
-                        Payment Pending
+                        {t('paymentPending')}
                       </div>
                     )}
                   </td>

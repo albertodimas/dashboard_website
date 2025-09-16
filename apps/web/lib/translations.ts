@@ -25,7 +25,7 @@ export const translations = {
     appointmentsToday: 'Appointments Today',
     newCustomers: 'New Customers',
     avgRating: 'Avg. Rating',
-    pendingConfirmation: 'pending confirmation',
+    pendingConfirmation: 'Pending confirmation',
     thisWeek: 'this week',
     fromLastMonth: 'from last month',
     fromReviews: 'From reviews',
@@ -649,6 +649,8 @@ export const translations = {
     staffModuleDisabledSuccess: 'Staff module disabled successfully',
     packagesModuleEnabledSuccess: 'Packages module enabled successfully',
     packagesModuleDisabledSuccess: 'Packages module disabled successfully',
+    disablePackages: 'Disable Packages',
+    enablePackages: 'Enable Packages',
     restoreAccessQuestionSuffix: 'and restore access?',
 
     // Categories Admin
@@ -727,7 +729,7 @@ export const translations = {
     appointmentsToday: 'Citas Hoy',
     newCustomers: 'Nuevos Clientes',
     avgRating: 'Calificación Prom.',
-    pendingConfirmation: 'pendientes de confirmación',
+    pendingConfirmation: 'Pendientes de confirmación',
     thisWeek: 'esta semana',
     fromLastMonth: 'desde el mes pasado',
     fromReviews: 'De reseñas',
@@ -1351,6 +1353,8 @@ export const translations = {
     staffModuleDisabledSuccess: 'Módulo de staff deshabilitado exitosamente',
     packagesModuleEnabledSuccess: 'Módulo de paquetes habilitado exitosamente',
     packagesModuleDisabledSuccess: 'Módulo de paquetes deshabilitado exitosamente',
+    disablePackages: 'Desactivar Paquetes',
+    enablePackages: 'Activar Paquetes',
     restoreAccessQuestionSuffix: 'y restaurar acceso?',
 
     // Categories Admin

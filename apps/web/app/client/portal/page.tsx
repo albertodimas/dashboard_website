@@ -15,10 +15,12 @@ import {
   Activity,
   ChevronRight
 } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import Link from 'next/link'
 
 export default function ClientPortal() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [data, setData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('packages')
@@ -51,34 +53,50 @@ export default function ClientPortal() {
     router.push('/client/login')
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (status: string, context: 'package' | 'appointment' = 'package') => {
+    const normalized = (status || '').toUpperCase()
+
+    switch (normalized) {
       case 'ACTIVE':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Active
+            {t('active')}
+          </span>
+        )
+      case 'CONFIRMED':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            {t('confirmed')}
           </span>
         )
       case 'PENDING':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <AlertCircle className="w-3 h-3 mr-1" />
-            Pending Payment
+            {context === 'package' ? (t('paymentPending') || t('pending')) : t('pending')}
+          </span>
+        )
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            {t('cancelled')}
           </span>
         )
       case 'EXPIRED':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-3 h-3 mr-1" />
-            Expired
+            {t('expired')}
           </span>
         )
       case 'COMPLETED':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
+            {t('completed')}
           </span>
         )
       default:
@@ -369,7 +387,7 @@ export default function ClientPortal() {
                               <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
                               <div>
                                 <p className="text-sm font-medium text-yellow-800">
-                                  {pendingPurchases.length} Purchase{pendingPurchases.length > 1 ? 's' : ''} Pending Payment
+                                  {pendingPurchases.length} Purchase{pendingPurchases.length > 1 ? 's' : ''} {t('paymentPending') || 'Pending Payment'}
                                 </p>
                                 <p className="text-sm text-yellow-700 mt-1">
                                   Please complete your payment to activate. 
@@ -421,7 +439,7 @@ export default function ClientPortal() {
                             {apt.time}
                           </div>
                         </div>
-                        {getStatusBadge(apt.status)}
+                        {getStatusBadge(apt.status, 'appointment')}
                       </div>
                     </div>
                   ))
