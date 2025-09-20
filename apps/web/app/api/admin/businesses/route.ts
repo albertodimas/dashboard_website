@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import type { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
@@ -30,22 +29,49 @@ const businessInclude = {
   }
 } as const
 
-type BusinessWithRelations = Prisma.BusinessGetPayload<{
-  include: typeof businessInclude
-}> & {
-  businessCategory?: string | null
-}
-
 // GET all businesses (admin only)
 export async function GET() {
   try {
-    const businesses: BusinessWithRelations[] = await prisma.business.findMany({
+    const businesses = await prisma.business.findMany({
       include: businessInclude,
       orderBy: { createdAt: 'desc' }
     })
 
     // Format businesses with additional info
-    const formattedBusinesses = businesses.map(formatBusinessWithRelations)
+    const formattedBusinesses = businesses.map(business => {
+      const businessCategory =
+        (business as { businessCategory?: string | null }).businessCategory ??
+        business.category?.name ??
+        null
+
+      return {
+        id: business.id,
+        name: business.name,
+        slug: business.slug,
+        email: business.email,
+        phone: business.phone,
+        city: business.city,
+        state: business.state,
+        isActive: business.isActive,
+        isPremium: business.isPremium,
+        isBlocked: business.isBlocked,
+        blockedReason: business.blockedReason,
+        blockedAt: business.blockedAt,
+        businessCategory,
+        categoryId: business.categoryId,
+        category: business.category,
+        enableStaffModule: business.enableStaffModule,
+        enablePackagesModule: business.enablePackagesModule,
+        tenantName: business.tenant.name,
+        tenantEmail: business.tenant.email,
+        subdomain: business.tenant.subdomain,
+        appointmentsCount: business._count.appointments,
+        servicesCount: business._count.services,
+        staffCount: business._count.staff,
+        createdAt: business.createdAt,
+        updatedAt: business.updatedAt
+      }
+    })
 
     return NextResponse.json(formattedBusinesses)
   } catch (error) {
@@ -57,37 +83,6 @@ export async function GET() {
   }
 }
 
-function formatBusinessWithRelations(business: BusinessWithRelations) {
-  const businessCategory = business.businessCategory ?? business.category?.name ?? null
-
-  return {
-    id: business.id,
-    name: business.name,
-    slug: business.slug,
-    email: business.email,
-    phone: business.phone,
-    city: business.city,
-    state: business.state,
-    isActive: business.isActive,
-    isPremium: business.isPremium,
-    isBlocked: business.isBlocked,
-    blockedReason: business.blockedReason,
-    blockedAt: business.blockedAt,
-    businessCategory,
-    categoryId: business.categoryId,
-    category: business.category,
-    enableStaffModule: business.enableStaffModule,
-    enablePackagesModule: business.enablePackagesModule,
-    tenantName: business.tenant.name,
-    tenantEmail: business.tenant.email,
-    subdomain: business.tenant.subdomain,
-    appointmentsCount: business._count.appointments,
-    servicesCount: business._count.services,
-    staffCount: business._count.staff,
-    createdAt: business.createdAt,
-    updatedAt: business.updatedAt
-  }
-}
 
 // PUT update business status (activate/deactivate)
 export async function PUT(request: NextRequest) {
