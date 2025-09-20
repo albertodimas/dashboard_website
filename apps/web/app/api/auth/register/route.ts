@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@dashboard/db'
-import { Prisma } from '@prisma/client'
 import { verifyCode, clearCode } from '@/lib/verification-redis'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
@@ -12,6 +11,15 @@ export const dynamic = 'force-dynamic'
 type RegisterTransactionResult = {
   tenant: { id: string }
   user: { id: string; email: string; name: string }
+}
+
+function isUniqueConstraintError(error: unknown): error is { code: string; meta?: { target?: string | string[] } } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'P2002'
+  )
 }
 
 export async function POST(request: NextRequest) {
@@ -183,7 +191,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // Log error with minimal PII
     logger.error('Registration error:', (error as any)?.message || error)
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (isUniqueConstraintError(error)) {
       // Handle Prisma unique constraint violations robustly
       const rawTarget = (error as any)?.meta?.target
       let targetFields: string[] = []
