@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from '../src/index'
 
 type CustomerLite = {
@@ -69,7 +68,7 @@ async function mergeBusinessCustomers(fromId: string, toId: string, dryRun: bool
           totalVisits: existing.totalVisits + (r.totalVisits || 0),
           totalSpent: existing.totalSpent + (r.totalSpent || 0),
           isActive: existing.isActive || r.isActive,
-          metadata: (existing.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+          metadata: existing.metadata as any,
         }
       })
       await prisma.businessCustomer.delete({ where: { id: r.id } })
@@ -116,7 +115,7 @@ async function enrichCanonical(canonicalId: string, sources: string[], dryRun: b
     if (!canonical.postalCode && s.postalCode) data.postalCode = s.postalCode
     if (!canonical.country && s.country) data.country = s.country
     data.tags = Array.from(new Set([...(canonical.tags || []), ...(s.tags || [])]))
-    data.metadata = mergeJson(canonical.metadata, s.metadata)
+    data.metadata = mergeJson(canonical.metadata, s.metadata) as any
   }
   if (Object.keys(data).length && !dryRun) {
     await prisma.customer.update({ where: { id: canonicalId }, data })
@@ -161,4 +160,3 @@ main().then(() => prisma.$disconnect()).catch(async (e) => {
   await prisma.$disconnect()
   process.exit(1)
 })
-

@@ -573,7 +573,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   }, [business.id, selectedDate, selectedPackage, selectedService, selectedStaff])
 
   // Buscar paquetes activos del cliente cuando ingresa su email
-  const fetchCustomerPackages = async () => {
+  const fetchCustomerPackages = useCallback(async () => {
     // Si el usuario está autenticado, ya tenemos sus paquetes
     if (isAuthenticated) {
       setHasSearchedPackages(true)
@@ -609,7 +609,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
     } finally {
       setIsLoadingPackages(false)
     }
-  }
+  }, [bookingData.customerEmail, bookingType, business.id, isAuthenticated, selectedService])
 
   useEffect(() => {
     if (selectedDate && (selectedService || selectedPackage)) {

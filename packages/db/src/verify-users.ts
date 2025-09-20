@@ -1,27 +1,39 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
-type UserWithRelations = Prisma.UserGetPayload<{
-  include: {
-    tenant: true
-    memberships: {
-      include: {
-        business: true
-      }
-    }
+type MembershipWithBusiness = {
+  role: string
+  business: {
+    id: string
+    name: string
+    slug: string | null
+    customSlug: string | null
   }
-}>
+}
+
+type UserWithRelations = {
+  id: string
+  email: string
+  name: string | null
+  isAdmin: boolean
+  isActive: boolean
+  tenant: { name: string; subdomain: string } | null
+  memberships: MembershipWithBusiness[]
+}
 
 function describeUser(user: UserWithRelations) {
   console.log(`User: ${user.name ?? 'N/A'} <${user.email}>`)
-  console.log(`  Tenant: ${user.tenant ? `${user.tenant.name} (${user.tenant.subdomain})` : '—'}`)
+  console.log(`  Tenant: ${user.tenant ? `${user.tenant.name} (${user.tenant.subdomain})` : '-'}`)
   console.log(`  Admin: ${user.isAdmin ? 'yes' : 'no'} | Active: ${user.isActive ? 'yes' : 'no'}`)
   if (user.memberships.length) {
     console.log('  Memberships:')
     for (const membership of user.memberships) {
-      const businessIdentifier = membership.business.slug ?? membership.business.customSlug ?? membership.business.id
+      const businessIdentifier =
+        membership.business.slug ??
+        membership.business.customSlug ??
+        membership.business.id
       console.log(`    - ${membership.role} @ ${membership.business.name} (${businessIdentifier})`)
     }
   }
@@ -111,17 +123,29 @@ async function verifyUsers() {
 
     const users = await prisma.user.findMany({
       include: {
-        tenant: true,
+        tenant: {
+          select: {
+            name: true,
+            subdomain: true,
+          },
+        },
         memberships: {
           include: {
-            business: true,
+            business: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                customSlug: true,
+              },
+            },
           },
         },
       },
       orderBy: { createdAt: 'asc' },
     })
 
-    for (const user of users) {
+    for (const user of users as UserWithRelations[]) {
       describeUser(user)
     }
 

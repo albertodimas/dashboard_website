@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -20,7 +21,7 @@ export async function setTenantId(tenantId: string) {
 }
 
 export async function withTenant<T>(tenantId: string, fn: () => Promise<T>): Promise<T> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`
     return await fn()
   })

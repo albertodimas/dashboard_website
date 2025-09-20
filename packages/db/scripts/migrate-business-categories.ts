@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function tableExists(table: string) {
-  const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT to_regclass('public.${table}')::text as reg`)
+  const rows = await prisma.$queryRawUnsafe(`SELECT to_regclass('public.${table}')::text as reg`) as Array<{ reg: string | null }>
   return rows?.[0]?.reg != null
 }
 
