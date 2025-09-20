@@ -3,6 +3,7 @@ import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanc
 import ProjectLanding from '@/components/project/ProjectLanding'
 import { getOperationMode } from '@/lib/operation-mode'
 import { getBusinessDataBySlug } from '@/lib/business-data'
+import { logger } from '@/lib/logger'
 
 interface BusinessPageProps {
   params: {
@@ -18,7 +19,7 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
   }
 
   // Debug log en el servidor
-  console.log('[SERVER] Business data for', params.slug, {
+  logger.info('[SERVER] Business data for', params.slug, {
     enablePackagesModule: business.enablePackagesModule,
     packagesCount: business.packages?.length || 0,
     packages: business.packages?.map((p: any) => ({ name: p.name, isActive: p.isActive }))
@@ -40,22 +41,28 @@ export async function generateMetadata({ params }: BusinessPageProps) {
     }
   }
 
+  const categoryName =
+    (business as { category?: string | null } | null)?.category ??
+    ((business as { categories?: Array<{ name?: string | null }> } | null)?.categories?.[0]?.name ?? 'Services')
+
+  const description = business.description || `Visit ${business.name} for premium services. Book your appointment today!`
+
   return {
-    title: `${business.name} - Professional ${business.category || 'Services'}`,
-    description: business.description || `Visit ${business.name} for premium services. Book your appointment today!`,
+    title: `${business.name} - Professional ${categoryName}`,
+    description,
     openGraph: {
       title: business.name,
-      description: business.description,
+      description,
       images: business.coverImage ? [business.coverImage] : [],
-      type: 'website'
+      type: 'website',
     },
     keywords: [
       business.name,
-      business.category,
+      categoryName,
       business.city,
       'appointment',
       'booking',
-      'services'
-    ].filter(Boolean)
+      'services',
+    ].filter(Boolean),
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Confirmation error:', error)
+    logger.error('Confirmation error:', error)
     return NextResponse.json(
       { error: 'Failed to confirm appointment' },
       { status: 500 }
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(confirmationUrl)
     
   } catch (error) {
-    console.error('Error confirming appointment:', error)
+    logger.error('Error confirming appointment:', error)
     return NextResponse.redirect(new URL('/confirmation-error', request.url))
   }
 }

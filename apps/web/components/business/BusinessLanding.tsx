@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { 
   Phone, 
@@ -31,7 +32,7 @@ interface BusinessLandingProps {
 
 export default function BusinessLanding({ business }: BusinessLandingProps) {
   // Debug log
-  console.log('[CLIENT BusinessLanding] Received business data:', {
+  logger.info('[CLIENT BusinessLanding] Received business data:', {
     hasReviews: !!business.reviews,
     reviewsLength: business.reviews?.length || 0,
     hasGalleryItems: !!business.galleryItems,
@@ -132,21 +133,20 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
 
   // Check for customer session on mount
   useEffect(() => {
-    checkCustomerSession()
-    // fetchReviews() - Reviews ya vienen con los datos del business
+    void checkCustomerSession()
     if (galleryCategories.length > 0) {
       setActiveGalleryTab(galleryCategories[0])
     }
-  }, [galleryCategories])
+  }, [checkCustomerSession, galleryCategories])
 
   // Fetch slots when date and service change
   useEffect(() => {
     if (selectedDate && selectedService) {
-      fetchAvailableSlots()
+      void fetchAvailableSlots()
     }
-  }, [selectedDate, selectedService, selectedStaff])
+  }, [fetchAvailableSlots, selectedDate, selectedService, selectedStaff])
 
-  const checkCustomerSession = async () => {
+  const checkCustomerSession = useCallback(async () => {
     try {
       const response = await fetch('/api/client/packages')
       if (response.ok) {
@@ -159,9 +159,9 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         setCustomerPackages(businessPackages)
       }
     } catch (error) {
-      console.error('Error checking customer session:', error)
+      logger.error('Error checking customer session:', error)
     }
-  }
+  }, [business.id])
 
   const fetchReviews = async () => {
     if (!business?.id) return
@@ -171,35 +171,35 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       const data = await response.json()
       setReviews(data || [])
     } catch (error) {
-      console.error('Error fetching reviews:', error)
+      logger.error('Error fetching reviews:', error)
       setReviews([])
     } finally {
       setIsLoadingReviews(false)
     }
   }
 
-  const fetchAvailableSlots = async () => {
+  const fetchAvailableSlots = useCallback(async () => {
     setIsLoadingSlots(true)
     try {
       const params = new URLSearchParams({
         businessId: business.id,
         serviceId: selectedService.id,
-        date: selectedDate
+        date: selectedDate,
       })
       if (selectedStaff) {
         params.append('staffId', selectedStaff.id)
       }
-      
+
       const response = await fetch(`/api/public/appointments/slots?${params.toString()}`)
       const data = await response.json()
       setAvailableSlots(data.availableSlots || [])
     } catch (error) {
-      console.error('Error fetching slots:', error)
+      logger.error('Error fetching slots:', error)
       setAvailableSlots([])
     } finally {
       setIsLoadingSlots(false)
     }
-  }
+  }, [business.id, selectedDate, selectedService, selectedStaff])
 
   const fetchStaffForService = async (serviceId: string) => {
     try {
@@ -212,7 +212,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         setAvailableStaff(data.staff || [])
       }
     } catch (error) {
-      console.error('Error fetching staff:', error)
+      logger.error('Error fetching staff:', error)
       setAvailableStaff([])
     }
   }
@@ -259,7 +259,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         toast(error.error || 'Failed to create booking', 'error')
       }
     } catch (error) {
-      console.error('Booking error:', error)
+      logger.error('Booking error:', error)
       toast('An error occurred. Please try again.', 'error')
     } finally {
       setIsSubmitting(false)
@@ -300,7 +300,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
         toast(error.error || 'Failed to reserve package', 'error')
       }
     } catch (error) {
-      console.error('Reservation error:', error)
+      logger.error('Reservation error:', error)
       toast('An error occurred. Please try again.', 'error')
     } finally {
       setIsSubmitting(false)

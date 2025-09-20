@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect } from 'react'
 import { AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -12,7 +13,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Application error:', error)
+    logger.error('Application error:', error)
   }, [error])
 
   return (

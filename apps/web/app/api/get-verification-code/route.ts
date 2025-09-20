@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCode } from '@/lib/verification-redis'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ code })
     
   } catch (error) {
-    console.error('Error getting verification code:', error)
+    logger.error('Error getting verification code:', error)
     return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
 }

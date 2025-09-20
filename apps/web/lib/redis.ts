@@ -1,18 +1,19 @@
-import Redis from 'ioredis'
+import IORedis from 'ioredis'
+
+type RedisClient = InstanceType<typeof IORedis>
 
 declare global {
   // eslint-disable-next-line no-var
-  var __redis__: Redis | undefined
+  var __redis__: RedisClient | undefined
 }
 
-export function getRedis(): Redis {
-  if (!global.__redis__) {
+export function getRedis(): RedisClient {
+  if (!globalThis.__redis__) {
     const url = process.env.REDIS_URL || 'redis://localhost:6379'
-    global.__redis__ = new Redis(url, {
+    globalThis.__redis__ = new IORedis(url, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
     })
   }
-  return global.__redis__
+  return globalThis.__redis__
 }
-

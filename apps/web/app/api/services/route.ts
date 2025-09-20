@@ -1,25 +1,35 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@dashboard/db';
+import { NextResponse } from 'next/server'
+import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
-    const services = await prisma.service.findMany();
+    const services = await prisma.service.findMany({
+      include: {
+        business: {
+          select: {
+            address: true,
+            phone: true,
+          },
+        },
+      },
+    })
 
-    const formattedServices = services.map(service => ({
+    const formattedServices = services.map((service) => ({
       id: service.id,
       name: service.name,
-      description: service.description || '',
-      category: service.type.toLowerCase().replace('_', '-'),
-      address: service.address || '',
-      phone: service.phone || '',
-      priceRange: '$$',
+      description: service.description ?? '',
+      category: (service.category ?? 'general').toLowerCase().replace(/_/g, '-'),
+      address: service.business?.address ?? '',
+      phone: service.business?.phone ?? '',
+      priceRange: service.price > 100 ? '$$$' : service.price > 50 ? '$$' : '$',
       rating: 4.5 + Math.random() * 0.5,
-      reviewCount: Math.floor(Math.random() * 500) + 50
-    }));
+      reviewCount: Math.floor(Math.random() * 500) + 50,
+    }))
 
-    return NextResponse.json(formattedServices);
+    return NextResponse.json(formattedServices)
   } catch (error) {
-    console.error('Error fetching services:', error);
-    return NextResponse.json([], { status: 200 });
+    logger.error('Error fetching services:', error)
+    return NextResponse.json([], { status: 200 })
   }
 }

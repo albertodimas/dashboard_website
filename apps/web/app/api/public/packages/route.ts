@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(packages)
   } catch (error) {
-    console.error('Error fetching packages:', error)
+    logger.error('Error fetching packages:', error)
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 })
   }
 }

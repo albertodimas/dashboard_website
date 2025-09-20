@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Search, Filter, Star, MapPin, Clock, ChevronRight, 
@@ -12,25 +13,25 @@ import Link from 'next/link'
 interface Business {
   id: string
   name: string
-  description?: string
-  logo?: string
-  address: string
-  city: string
-  state: string
+  description?: string | null
+  logo?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
   slug: string
-  customSlug?: string
-  businessCategory?: string
-  serviceCount?: number
-  rating?: number
-  reviewCount?: number
-  isPremium?: boolean
+  customSlug?: string | null
+  businessCategory?: string | null
+  serviceCount?: number | null
+  rating?: number | null
+  reviewCount?: number | null
+  isPremium?: boolean | null
   category?: {
     id: string
-    name: string
-    slug: string
-    icon?: string
-    color?: string
-  }
+    name?: string | null
+    slug?: string | null
+    icon?: string | null
+    color?: string | null
+  } | null
 }
 
 interface Category {
@@ -50,88 +51,71 @@ export default function ExploreBusinesses() {
   const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState<'rating' | 'services' | 'name'>('rating')
 
-  useEffect(() => {
-    const token = localStorage.getItem('clientToken')
-    if (!token) {
-      router.push('/cliente/login')
-      return
-    }
-    fetchBusinesses(token)
-  }, [])
-
-  useEffect(() => {
-    filterAndSortBusinesses()
-  }, [businesses, selectedCategory, searchTerm, sortBy])
-
-  const fetchBusinesses = async (token: string) => {
+  const fetchBusinesses = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/cliente/businesses', {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       if (response.ok) {
         const data = await response.json()
         setBusinesses(data.suggestedBusinesses || [])
-        
-        // Extract unique categories
+
         const uniqueCategories = new Map<string, Category>()
         data.suggestedBusinesses?.forEach((business: Business) => {
-          if (business.category) {
+          if (business.category?.id) {
             if (!uniqueCategories.has(business.category.id)) {
               uniqueCategories.set(business.category.id, {
                 id: business.category.id,
-                name: business.category.name,
-                slug: business.category.slug,
-                businessCount: 1
+                name: business.category.name ?? business.category.id,
+                slug: business.category.slug ?? business.category.id,
+                businessCount: 1,
               })
             } else {
               const cat = uniqueCategories.get(business.category.id)!
-              cat.businessCount++
+              cat.businessCount += 1
             }
           }
         })
         setCategories(Array.from(uniqueCategories.values()))
       }
     } catch (error) {
-      console.error('Error fetching businesses:', error)
+      logger.error('Error fetching businesses:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const filterAndSortBusinesses = () => {
+  const filterAndSortBusinesses = useCallback(() => {
     let filtered = [...businesses]
 
-    // Filter by category
     if (selectedCategory) {
-      filtered = filtered.filter(b => b.category?.id === selectedCategory)
+      filtered = filtered.filter((b) => b.category?.id === selectedCategory)
     }
 
-    // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(b => 
-        b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.city.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (b) =>
+          b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          b.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (b.city?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
       )
     }
 
-    // Sort
     switch (sortBy) {
       case 'rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       case 'services':
-        filtered.sort((a, b) => (b.serviceCount || 0) - (a.serviceCount || 0))
+        filtered.sort((a, b) => (b.serviceCount ?? 0) - (a.serviceCount ?? 0))
         break
       case 'name':
         filtered.sort((a, b) => a.name.localeCompare(b.name))
         break
     }
 
-    // Premium businesses first
     filtered.sort((a, b) => {
       if (a.isPremium && !b.isPremium) return -1
       if (!a.isPremium && b.isPremium) return 1
@@ -139,7 +123,21 @@ export default function ExploreBusinesses() {
     })
 
     setFilteredBusinesses(filtered)
-  }
+  }, [businesses, searchTerm, selectedCategory, sortBy])
+
+  useEffect(() => {
+    const token = localStorage.getItem('clientToken')
+    if (!token) {
+      router.push('/cliente/login')
+      return
+    }
+
+    void fetchBusinesses(token)
+  }, [fetchBusinesses, router])
+
+  useEffect(() => {
+    filterAndSortBusinesses()
+  }, [filterAndSortBusinesses])
 
   if (isLoading) {
     return (
@@ -320,25 +318,25 @@ export default function ExploreBusinesses() {
                   {/* Location */}
                   <div className="flex items-center text-sm text-gray-500 mb-3">
                     <MapPin size={14} className="mr-1" />
-                    {business.city}, {business.state}
+                    {[business.city, business.state].filter(Boolean).join(', ') || 'Ubicación no disponible'}
                   </div>
                   
                   {/* Stats */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                     <div className="flex items-center text-sm text-gray-600">
                       <Package size={14} className="mr-1" />
-                      {business.serviceCount || 0} servicios
+                      {business.serviceCount ?? 0} servicios
                     </div>
                     
-                    {business.rating > 0 && (
+                    {(business.rating ?? 0) > 0 && (
                       <div className="flex items-center bg-yellow-50 px-2 py-1 rounded">
                         <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
                         <span className="text-sm font-medium text-gray-700">
-                          {business.rating.toFixed(1)}
+                          {(business.rating ?? 0).toFixed(1)}
                         </span>
-                        {business.reviewCount > 0 && (
+                        {(business.reviewCount ?? 0) > 0 && (
                           <span className="text-xs text-gray-500 ml-1">
-                            ({business.reviewCount})
+                            ({business.reviewCount ?? 0})
                           </span>
                         )}
                       </div>

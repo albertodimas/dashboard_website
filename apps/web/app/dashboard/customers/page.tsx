@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -49,6 +50,7 @@ export default function CustomersPage() {
   const [showViewModal, setShowViewModal] = useState(false)
   const [showSessionsModal, setShowSessionsModal] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedCustomerPurchases, setSelectedCustomerPurchases] = useState<PackagePurchase[]>([])
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
@@ -59,7 +61,7 @@ export default function CustomersPage() {
   const confirm = useConfirm()
   const toast = useToast()
 
-  const loadCustomers = async (opts?: { page?: number; q?: string }) => {
+  const loadCustomers = useCallback(async (opts?: { page?: number; q?: string }) => {
     try {
       setLoading(true)
       setError(null)
@@ -90,24 +92,27 @@ export default function CustomersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, pageSize, searchTerm])
 
   useEffect(() => {
-    // Check authentication
+    // Check authentication once and set flag
     fetch('/api/auth/me')
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error('Not authenticated')
         return res.json()
       })
       .then(() => {
-        // Load customers from API
-        loadCustomers({ page: 1, q: searchTerm })
+        setIsAuthenticated(true)
       })
       .catch(() => {
         router.push('/login')
       })
   }, [router])
 
+  useEffect(() => {
+    if (!isAuthenticated) return
+    void loadCustomers({ page: 1, q: searchTerm })
+  }, [isAuthenticated, loadCustomers, searchTerm])
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -153,7 +158,7 @@ export default function CustomersPage() {
         setSelectedCustomerPurchases(data.purchases || [])
       }
     } catch (err) {
-      console.error('Failed to load package purchases:', err)
+      logger.error('Failed to load package purchases:', err)
       setSelectedCustomerPurchases([])
     }
   }
@@ -253,7 +258,9 @@ export default function CustomersPage() {
             <h3 className="text-lg font-medium text-red-800">Error Loading Customers</h3>
             <p className="text-red-600 mt-2">{error}</p>
             <button 
-              onClick={loadCustomers}
+              onClick={() => {
+                void loadCustomers()
+              }}
               className="mt-4 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
             >
               Try Again
@@ -334,7 +341,9 @@ export default function CustomersPage() {
           />
           <div className="mt-2 flex justify-end">
             <button
-              onClick={() => loadCustomers({ page: 1, q: searchTerm })}
+              onClick={() => {
+                void loadCustomers({ page: 1, q: searchTerm })
+              }}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               {t('view') || 'View'}
@@ -453,7 +462,11 @@ export default function CustomersPage() {
           <div className="mt-6 flex items-center justify-center gap-2">
             <button
               disabled={page <= 1}
-              onClick={() => { const p = page - 1; setPage(p); loadCustomers({ page: p, q: searchTerm }) }}
+              onClick={() => {
+                const p = page - 1
+                setPage(p)
+                void loadCustomers({ page: p, q: searchTerm })
+              }}
               className="px-3 py-1 border rounded disabled:opacity-50"
             >
               Prev
@@ -461,7 +474,11 @@ export default function CustomersPage() {
             <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
             <button
               disabled={page >= totalPages}
-              onClick={() => { const p = page + 1; setPage(p); loadCustomers({ page: p, q: searchTerm }) }}
+              onClick={() => {
+                const p = page + 1
+                setPage(p)
+                void loadCustomers({ page: p, q: searchTerm })
+              }}
               className="px-3 py-1 border rounded disabled:opacity-50"
             >
               Next

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,12 +106,12 @@ export async function POST(request: NextRequest) {
         text: `Hemos recibido tu solicitud en ${business.name}. Servicio: ${serviceType}. Nos contactaremos por ${preferredContact || 'WHATSAPP'} pronto.`
       })
     } catch (e) {
-      console.warn('No se pudo enviar confirmación al cliente:', (e as any)?.message || e)
+      logger.warn('No se pudo enviar confirmación al cliente:', (e as any)?.message || e)
     }
 
     return NextResponse.json({ success: true, request: { id: created.id } })
   } catch (e) {
-    console.error('Error creating project request:', e)
+    logger.error('Error creating project request:', e)
     return NextResponse.json({ error: 'Error creando solicitud' }, { status: 500 })
   }
 }

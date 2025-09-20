@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
 import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 // DELETE endpoint para eliminar paquetes pendientes
 export async function DELETE(
@@ -110,7 +111,7 @@ export async function DELETE(
         html: emailHtml
       })
     } catch (emailError) {
-      console.error('Error sending cancellation email:', emailError)
+      logger.error('Error sending cancellation email:', emailError)
       // Continue even if email fails
     }
 
@@ -120,7 +121,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Error deleting package purchase:', error)
+    logger.error('Error deleting package purchase:', error)
     return NextResponse.json(
       { error: 'Failed to delete package purchase' },
       { status: 500 }
@@ -268,7 +269,7 @@ export async function PATCH(
           html: emailHtml
         })
       } catch (emailError) {
-        console.error('Error sending activation email:', emailError)
+        logger.error('Error sending activation email:', emailError)
         // Continue even if email fails
       }
 
@@ -285,7 +286,7 @@ export async function PATCH(
     )
 
   } catch (error) {
-    console.error('Error updating package purchase:', error)
+    logger.error('Error updating package purchase:', error)
     return NextResponse.json(
       { error: 'Failed to update package purchase' },
       { status: 500 }

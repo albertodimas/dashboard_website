@@ -442,10 +442,7 @@ async function main() {
     
     await prisma.customer.upsert({
       where: {
-        tenantId_email: {
-          tenantId,
-          email,
-        }
+        email,
       },
       update: {
         name: `Customer ${i}`,

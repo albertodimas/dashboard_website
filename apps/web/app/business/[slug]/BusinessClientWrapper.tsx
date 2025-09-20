@@ -1,17 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
 
 export default function BusinessClientWrapper({ businessId, initialData }: any) {
   const [businessData, setBusinessData] = useState(initialData)
 
-  useEffect(() => {
-    // Fetch complete data on client side
-    fetchBusinessData()
-  }, [])
-
-  const fetchBusinessData = async () => {
+  const fetchBusinessData = useCallback(async () => {
     try {
       const response = await fetch(`/api/public/business/${businessId}`)
       if (response.ok) {
@@ -19,9 +15,13 @@ export default function BusinessClientWrapper({ businessId, initialData }: any) 
         setBusinessData(data)
       }
     } catch (error) {
-      console.error('Error fetching business data:', error)
+      logger.error('Error fetching business data:', error)
     }
-  }
+  }, [businessId])
+
+  useEffect(() => {
+    void fetchBusinessData()
+  }, [fetchBusinessData])
 
   if (!businessData) {
     return <div>Loading...</div>

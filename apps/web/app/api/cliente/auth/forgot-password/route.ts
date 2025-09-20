@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'
 import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,12 +55,12 @@ export async function POST(request: NextRequest) {
       })
     } catch (err) {
       // Do not reveal failures; log server-side only
-      console.error('Forgot password email send failed:', err)
+      logger.error('Forgot password email send failed:', err)
     }
 
     return NextResponse.json({ success: true, message: 'Si el email existe, recibiras un codigo de verificacion' })
   } catch (error) {
-    console.error('Forgot password error:', error)
+    logger.error('Forgot password error:', error)
     return NextResponse.json({ error: 'Error al procesar solicitud' }, { status: 500 })
   }
 }

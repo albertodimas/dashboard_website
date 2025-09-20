@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@dashboard/db'
 import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
+import { logger } from '@/lib/logger'
 
 // Config de seguridad básica para el endpoint
 const WINDOW_MINUTES = 15
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       user: { id: user.id, email: user.email, name: user.name, role: 'admin' }
     })
   } catch (error) {
-    console.error('Admin login error:', error)
+    logger.error('Admin login error:', error)
     return NextResponse.json({ error: 'Login failed' }, { status: 500 })
   }
 }

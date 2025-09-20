@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Error consuming session:', error)
+    logger.error('Error consuming session:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to consume session' },
       { status: 400 }
@@ -187,7 +188,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Error restoring session:', error)
+    logger.error('Error restoring session:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to restore session' },
       { status: 400 }

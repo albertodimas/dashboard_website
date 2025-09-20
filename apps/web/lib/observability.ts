@@ -3,15 +3,53 @@ import { logger } from './logger'
 let sentry: any = null
 let sentryInited = false
 
+const dynamicRequire: NodeRequire | null = (() => {
+  try {
+    return (Function('return typeof require !== "undefined" ? require : null') as () => NodeRequire | null)()
+  } catch (error) {
+    logger.debug('Dynamic require unavailable for Sentry', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
+  }
+})()
+
+function resolveSentryModule(): any | null {
+  if (!dynamicRequire) {
+    return null
+  }
+
+  const candidates = ['@sentry/nextjs', '@sentry/node']
+  for (const name of candidates) {
+    try {
+      return dynamicRequire(name)
+    } catch (error) {
+      logger.debug('Sentry module not found', {
+        module: name,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  return null
+}
+
 export function initObservability() {
   if (sentryInited) return
   sentryInited = true
   const dsn = process.env.SENTRY_DSN
-  if (!dsn) return
+  if (!dsn) {
+    logger.debug('Skipping Sentry init - missing DSN')
+    return
+  }
+
+  const mod = resolveSentryModule()
+  if (!mod || typeof mod.init !== 'function') {
+    logger.warn('Sentry SDK not installed, continuing without it')
+    return
+  }
+
   try {
-    // Prefer @sentry/nextjs if present, fallback to @sentry/node
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = (require as any)('@sentry/nextjs') || (require as any)('@sentry/node')
     mod.init({
       dsn,
       environment: process.env.SENTRY_ENV || process.env.NODE_ENV || 'development',
@@ -20,8 +58,10 @@ export function initObservability() {
     })
     sentry = mod
     logger.info('Sentry initialized')
-  } catch (e) {
-    logger.warn('Sentry not available, continuing without it')
+  } catch (error) {
+    logger.warn('Sentry initialization failed', {
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 }
 
@@ -31,8 +71,10 @@ export function trackError(error: unknown, context?: Record<string, unknown>) {
   if (sentry && typeof sentry.captureException === 'function') {
     try {
       sentry.captureException(error, { extra: context })
-    } catch (e) {
-      // swallow
+    } catch (captureError) {
+      logger.debug('Sentry capture failed', {
+        error: captureError instanceof Error ? captureError.message : String(captureError),
+      })
     }
   }
 }

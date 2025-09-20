@@ -1,3 +1,4 @@
+import { logger } from './logger'
 // SECURITY TODO: Replace in-memory store with persistent storage
 // Current implementation uses in-memory storage which is:
 // - Lost on server restart
@@ -19,19 +20,18 @@ interface VerificationData {
   formData?: any
 }
 
-// Use global variable to persist store across Next.js hot reloads
-declare global {
-  var verificationStore: VerificationStore | undefined
+const globalStore = globalThis as typeof globalThis & {
+  verificationStore?: VerificationStore
 }
 
 class VerificationStore {
   private store: Map<string, VerificationData>
   private cleanupInterval: NodeJS.Timeout | null = null
-  
+
   constructor() {
     // Reuse existing store if it exists (for hot reload)
-    if (global.verificationStore?.store) {
-      this.store = global.verificationStore.store
+    if (globalStore.verificationStore?.store) {
+      this.store = globalStore.verificationStore.store
     } else {
       this.store = new Map()
       // Start cleanup interval to remove expired codes
@@ -55,7 +55,7 @@ class VerificationStore {
         toDelete.forEach(email => this.store.delete(email))
         
         if (process.env.NODE_ENV === 'development' && toDelete.length > 0) {
-          console.log(`[STORE] Cleaned up ${toDelete.length} expired codes`)
+          logger.info(`[STORE] Cleaned up ${toDelete.length} expired codes`)
         }
       }, 5 * 60 * 1000) // 5 minutes
     }
@@ -73,7 +73,7 @@ class VerificationStore {
     })
     // Log without exposing sensitive data
     if (process.env.NODE_ENV === 'development') {
-      console.log('[STORE] Saved verification code, Total stored:', this.store.size)
+      logger.info('[STORE] Saved verification code, Total stored:', this.store.size)
     }
   }
   
@@ -82,14 +82,14 @@ class VerificationStore {
     const data = this.store.get(email)
     // Log without exposing sensitive data
     if (process.env.NODE_ENV === 'development') {
-      console.log('[STORE] Retrieving verification code, Total stored:', this.store.size)
+      logger.info('[STORE] Retrieving verification code, Total stored:', this.store.size)
     }
     if (!data) return null
     
     // Check if expired
     if (data.expiresAt < new Date()) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[STORE] Verification code expired')
+        logger.info('[STORE] Verification code expired')
       }
       this.store.delete(email)
       return null
@@ -103,14 +103,14 @@ class VerificationStore {
     const data = this.get(email)
     if (!data) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[STORE] No verification data found')
+        logger.info('[STORE] No verification data found')
       }
       return false
     }
     
     const result = data.code === code
     if (process.env.NODE_ENV === 'development') {
-      console.log('[STORE] Verification result:', result)
+      logger.info('[STORE] Verification result:', result)
     }
     return result
   }
@@ -118,7 +118,7 @@ class VerificationStore {
   // Clear a verification code
   clear(email: string): void {
     if (process.env.NODE_ENV === 'development') {
-      console.log('[STORE] Clearing verification code')
+      logger.info('[STORE] Clearing verification code')
     }
     this.store.delete(email)
   }
@@ -140,4 +140,9 @@ class VerificationStore {
 }
 
 // Create a singleton instance with global persistence
-export const verificationStore = global.verificationStore = new VerificationStore()
+const verificationStoreInstance = globalStore.verificationStore ?? new VerificationStore()
+if (!globalStore.verificationStore) {
+  globalStore.verificationStore = verificationStoreInstance
+}
+
+export const verificationStore = verificationStoreInstance

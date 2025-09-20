@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -127,10 +128,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   const owner = business.tenant?.users?.[0]
   
   // Debug logging
-  console.log('Owner data:', owner)
-  console.log('Owner avatar:', owner?.avatar)
-  console.log('Staff module enabled:', business.enableStaffModule)
-  console.log('Staff length:', displayStaff.length)
+  logger.info('Owner data:', owner)
+  logger.info('Owner avatar:', owner?.avatar)
+  logger.info('Staff module enabled:', business.enableStaffModule)
+  logger.info('Staff length:', displayStaff.length)
   
   // Si no hay módulo de staff habilitado, mostrar el owner como único trabajador
   if (!business.enableStaffModule) {
@@ -373,7 +374,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         setMyAppointments(data.appointments || [])
       }
     } catch (error) {
-      console.error('Error loading customer data:', error)
+      logger.error('Error loading customer data:', error)
     }
   }
 
@@ -487,7 +488,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
       }
       
     } catch (error) {
-      console.error('Login error:', error)
+      logger.error('Login error:', error)
       setLoginError('Error de conexión')
     } finally {
       setIsLoggingIn(false)
@@ -528,7 +529,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         toast(msg, 'error')
       }
     } catch (e) {
-      console.error('Error canceling appointment:', e)
+      logger.error('Error canceling appointment:', e)
       toast('Error al cancelar la cita', 'error')
     } finally {
       setIsCancelling(false)
@@ -546,31 +547,30 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   }, [galleryItems.length])
 
   // Fetch available slots
-  const fetchAvailableSlots = async () => {
+  const fetchAvailableSlots = useCallback(async () => {
     if (!selectedDate || (!selectedService && !selectedPackage)) return
-    
+
     setIsLoadingSlots(true)
     try {
       const params = new URLSearchParams({
         businessId: business.id,
         serviceId: selectedService?.id || selectedPackage?.services[0]?.service?.id,
-        date: selectedDate
+        date: selectedDate,
       })
-      // Solo agregar staffId si hay un staff seleccionado
       if (selectedStaff) {
         params.append('staffId', selectedStaff.id)
       }
-      
+
       const response = await fetch(`/api/public/appointments?${params}`)
       const data = await response.json()
       setAvailableSlots(data.availableSlots || [])
     } catch (error) {
-      console.error('Error fetching slots:', error)
+      logger.error('Error fetching slots:', error)
       setAvailableSlots([])
     } finally {
       setIsLoadingSlots(false)
     }
-  }
+  }, [business.id, selectedDate, selectedPackage, selectedService, selectedStaff])
 
   // Buscar paquetes activos del cliente cuando ingresa su email
   const fetchCustomerPackages = async () => {
@@ -605,7 +605,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         }
       }
     } catch (error) {
-      console.error('Error fetching customer packages:', error)
+      logger.error('Error fetching customer packages:', error)
     } finally {
       setIsLoadingPackages(false)
     }
@@ -613,9 +613,9 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
 
   useEffect(() => {
     if (selectedDate && (selectedService || selectedPackage)) {
-      fetchAvailableSlots()
+      void fetchAvailableSlots()
     }
-  }, [selectedDate, selectedService, selectedPackage, selectedStaff])
+  }, [fetchAvailableSlots, selectedDate, selectedService, selectedPackage, selectedStaff])
 
   // Fetch staff when service is selected
   useEffect(() => {
@@ -633,7 +633,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
           setStaffModuleEnabled(data.moduleEnabled || false)
         }
       } catch (error) {
-        console.error('Error fetching staff:', error)
+        logger.error('Error fetching staff:', error)
         setStaff([])
         setStaffModuleEnabled(false)
       }
@@ -655,7 +655,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
             setHasSearchedPackages(true)
           }
         } catch (error) {
-          console.error('Error fetching authenticated customer packages:', error)
+          logger.error('Error fetching authenticated customer packages:', error)
         } finally {
           setIsLoadingPackages(false)
         }
@@ -735,7 +735,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
         toast(errorMsg, 'error')
       }
     } catch (error) {
-      console.error('Booking error:', error)
+      logger.error('Booking error:', error)
       toast('Ocurrió un error. Por favor intenta nuevamente.', 'error')
     }
   }
@@ -2009,7 +2009,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                     </span>
                   </div>
                   
-                  <p className="text-gray-700 mb-4 italic">"{review.comment}"</p>
+                  <p className="text-gray-700 mb-4 italic">&quot;{review.comment}&quot;</p>
                   
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-sm font-bold">
@@ -2257,7 +2257,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 }
                               }
                             } catch (error) {
-                              console.error('Error loading packages:', error)
+                              logger.error('Error loading packages:', error)
                             } finally {
                               setIsLoadingPackages(false)
                             }
@@ -2567,7 +2567,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                                 onClick={() => {
                                   // Buscar el servicio completo en la lista de servicios
                                   const fullService = business.services?.find((s: any) => s.id === pkgService.service.id || s.id === pkgService.serviceId)
-                                  console.log('Buscando servicio:', {
+                                  logger.info('Buscando servicio:', {
                                     pkgServiceId: pkgService.service?.id || pkgService.serviceId,
                                     availableServices: business.services?.map((s: any) => ({ id: s.id, name: s.name })) || [],
                                     found: fullService

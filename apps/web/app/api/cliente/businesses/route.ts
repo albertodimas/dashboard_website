@@ -1,28 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { verifyClientToken } from '@/lib/client-auth'
+import { logger } from '@/lib/logger'
 
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 [businesses API] Request received')
+    logger.info('🚀 [businesses API] Request received')
     
     // Obtener el negocio referente desde la cookie
     const referringBusinessId = request.cookies.get('referring-business')?.value
     
     // Verificar token desde cookies
     const token = request.cookies.get('client-token')?.value
-    console.log('🔑 [businesses API] Cookie token:', token ? 'Present' : 'Missing')
+    logger.info('🔑 [businesses API] Cookie token:', token ? 'Present' : 'Missing')
     
     if (!token) {
-      console.error('❌ [businesses API] No valid token cookie found')
+      logger.error('❌ [businesses API] No valid token cookie found')
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       )
     }
 
-    console.log('🔐 [businesses API] Token recibido:', token.substring(0, 20) + '...')
+    logger.info('🔐 [businesses API] Token recibido:', token.substring(0, 20) + '...')
     
         const decoded = await verifyClientToken(token)
     if (!decoded) {
@@ -40,20 +41,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Primero obtener un customer para tener la contraseña de referencia
-    console.log('🔍 [businesses API] Buscando customer con ID:', decoded.customerId)
+    logger.info('🔍 [businesses API] Buscando customer con ID:', decoded.customerId)
     const referenceCustomer = await prisma.customer.findUnique({
       where: { id: decoded.customerId }
     })
     
     if (!referenceCustomer) {
-      console.error('❌ [businesses API] Cliente no encontrado con ID:', decoded.customerId)
+      logger.error('❌ [businesses API] Cliente no encontrado con ID:', decoded.customerId)
       return NextResponse.json(
         { error: 'Cliente no encontrado' },
         { status: 404 }
       )
     }
     
-    console.log('✅ [businesses API] Reference customer encontrado:', {
+    logger.info('✅ [businesses API] Reference customer encontrado:', {
       id: referenceCustomer.id,
       email: referenceCustomer.email,
       hasPassword: !!referenceCustomer.password
@@ -71,12 +72,12 @@ export async function GET(request: NextRequest) {
           data: { metadata: { ...customerMetadata, unregisteredBusinesses: updated } }
         })
         unregisteredBusinesses = updated
-        console.log('🔄 [businesses API] Removido referringBusiness de unregisteredBusinesses')
+        logger.info('🔄 [businesses API] Removido referringBusiness de unregisteredBusinesses')
       } catch (e) {
-        console.warn('⚠️ [businesses API] No se pudo actualizar metadata para remover referringBusiness', e)
+        logger.warn('⚠️ [businesses API] No se pudo actualizar metadata para remover referringBusiness', e)
       }
     }
-    console.log('🚫 [businesses API] Negocios desregistrados:', unregisteredBusinesses)
+    logger.info('🚫 [businesses API] Negocios desregistrados:', unregisteredBusinesses)
     
     // Buscar TODOS los customers con el mismo email y contraseña
     const whereClause: any = {
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log('📊 [businesses API] Customers encontrados con mismo email:', allCustomersWithSameEmail.length)
+    logger.info('📊 [businesses API] Customers encontrados con mismo email:', allCustomersWithSameEmail.length)
     
     // Combinar los negocios donde el cliente está registrado
     const myBusinessesPromises = allCustomersWithSameEmail.flatMap(customer => 
@@ -177,9 +178,9 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    console.log('🎯 [businesses API] Total de negocios encontrados (después de filtrar desregistrados):', myBusinesses.length)
+    logger.info('🎯 [businesses API] Total de negocios encontrados (después de filtrar desregistrados):', myBusinesses.length)
     if (myBusinesses.length > 0) {
-      console.log('🏢 [businesses API] Negocios:', myBusinesses.map(b => ({ 
+      logger.info('🏢 [businesses API] Negocios:', myBusinesses.map(b => ({ 
         name: b.name, 
         slug: b.customSlug || b.slug,
         customerId: b.customerId 
@@ -278,15 +279,15 @@ export async function GET(request: NextRequest) {
       suggestedBusinesses: suggestedWithRating
     }
     
-    console.log('✅ [businesses API] Respuesta exitosa:', {
+    logger.info('✅ [businesses API] Respuesta exitosa:', {
       myBusinessesCount: myBusinesses.length,
       suggestedBusinessesCount: suggestedWithRating.length
     })
     
     return NextResponse.json(response)
   } catch (error) {
-    console.error('❌ [businesses API] Error completo:', error)
-    console.error('❌ [businesses API] Stack trace:', error instanceof Error ? error.stack : 'No stack')
+    logger.error('❌ [businesses API] Error completo:', error)
+    logger.error('❌ [businesses API] Stack trace:', error instanceof Error ? error.stack : 'No stack')
     return NextResponse.json(
       { error: 'Error al obtener negocios' },
       { status: 500 }

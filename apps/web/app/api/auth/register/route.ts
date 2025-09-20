@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client'
 import { verifyCode, clearCode } from '@/lib/verification-redis'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,11 +35,11 @@ export async function POST(request: NextRequest) {
     // Validate verification code
     // Log without exposing sensitive data
     if (process.env.NODE_ENV === 'development') {
-      console.log('[REGISTER] Verifying code for user')
+      logger.info('[REGISTER] Verifying code for user')
     }
     const isValidCode = await verifyCode(email, verificationCode)
     if (process.env.NODE_ENV === 'development') {
-      console.log('[REGISTER] Code validation result:', isValidCode)
+      logger.info('[REGISTER] Code validation result:', isValidCode)
     }
     
     if (!isValidCode) {
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
     // Create tenant and user
     const tenantSubdomain = subdomain || email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
     
-    console.log('[REGISTER] Creating tenant with data:', {
+    logger.info('[REGISTER] Creating tenant with data:', {
       name: tenantName || name + "'s Business",
       subdomain: tenantSubdomain,
       email: email,
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
         const unknownLastName = typeof msg === 'string' && msg.includes('Unknown argument') && msg.includes('lastName')
         if (!unknownLastName) throw e
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[REGISTER] Prisma client seems outdated (no lastName). Falling back without lastName.')
+          logger.warn('[REGISTER] Prisma client seems outdated (no lastName). Falling back without lastName.')
         }
         const user = await tx.user.create({
           data: {
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     // Note: Business and Membership models will be created when those tables are added to the schema
     if (process.env.NODE_ENV === 'development') {
-      console.log('[REGISTER] Created tenant and user:', { tenantId: tenant.id, userId: user.id })
+      logger.info('[REGISTER] Created tenant and user:', { tenantId: tenant.id, userId: user.id })
     }
 
     // Clear the verification code after successful registration (best-effort)
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
       await clearCode(email)
     } catch (e) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('[REGISTER] Failed to clear verification code (non-fatal):', (e as any)?.message || e)
+        logger.warn('[REGISTER] Failed to clear verification code (non-fatal):', (e as any)?.message || e)
       }
     }
 
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     // Log error with minimal PII
-    console.error('Registration error:', (error as any)?.message || error)
+    logger.error('Registration error:', (error as any)?.message || error)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       // Handle Prisma unique constraint violations robustly
       const rawTarget = (error as any)?.meta?.target

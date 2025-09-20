@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 // GET reviews for a specific staff member
 export async function GET(
@@ -79,7 +80,7 @@ export async function GET(
       }
     })
   } catch (error) {
-    console.error('Error fetching staff reviews:', error)
+    logger.error('Error fetching staff reviews:', error)
     return NextResponse.json(
       { error: 'Failed to fetch reviews' },
       { status: 500 }
@@ -137,7 +138,7 @@ export async function POST(
 
     return NextResponse.json(updatedReview)
   } catch (error) {
-    console.error('Error responding to review:', error)
+    logger.error('Error responding to review:', error)
     return NextResponse.json(
       { error: 'Failed to respond to review' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getAuthFromCookie } from '@/lib/jwt-auth'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Auth error:', error)
+    logger.error('Auth error:', error)
     return NextResponse.json(
       { error: 'Invalid session' },
       { status: 401 }

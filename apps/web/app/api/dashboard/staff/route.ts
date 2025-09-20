@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const staffSchema = z.object({
   name: z.string().min(2),
@@ -40,7 +41,7 @@ export async function GET() {
 
     return NextResponse.json(staff)
   } catch (error) {
-    console.error('Error fetching staff:', error)
+    logger.error('Error fetching staff:', error)
     return NextResponse.json(
       { error: 'Failed to fetch staff' },
       { status: 500 }
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(staff, { status: 201 })
   } catch (error) {
-    console.error('Error creating staff:', error)
+    logger.error('Error creating staff:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -146,7 +147,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(staff)
   } catch (error) {
-    console.error('Error updating staff:', error)
+    logger.error('Error updating staff:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -214,7 +215,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting staff:', error)
+    logger.error('Error deleting staff:', error)
     return NextResponse.json(
       { error: 'Failed to delete staff member' },
       { status: 500 }

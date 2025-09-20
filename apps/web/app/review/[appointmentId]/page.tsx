@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Star, Check, AlertCircle } from 'lucide-react'
 
@@ -19,10 +20,10 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchAppointmentDetails()
-  }, [appointmentId])
+    void fetchAppointmentDetails()
+  }, [fetchAppointmentDetails])
 
-  const fetchAppointmentDetails = async () => {
+  const fetchAppointmentDetails = useCallback(async () => {
     try {
       const response = await fetch(`/api/review/appointment/${appointmentId}`)
       if (response.ok) {
@@ -39,12 +40,12 @@ export default function ReviewPage() {
         setError('Invalid or expired review link')
       }
     } catch (error) {
-      console.error('Error fetching appointment:', error)
+      logger.error('Error fetching appointment:', error)
       setError('Failed to load appointment details')
     } finally {
       setLoading(false)
     }
-  }
+  }, [appointmentId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,7 +76,7 @@ export default function ReviewPage() {
         setError(data.error || 'Failed to submit review')
       }
     } catch (error) {
-      console.error('Error submitting review:', error)
+      logger.error('Error submitting review:', error)
       setError('Failed to submit review. Please try again.')
     } finally {
       setIsSubmitting(false)
@@ -137,7 +138,7 @@ export default function ReviewPage() {
                 ))}
               </div>
               {comment && (
-                <p className="text-gray-700 italic mt-3">"{comment}"</p>
+                <p className="text-gray-700 italic mt-3">&quot;{comment}&quot;</p>
               )}
             </div>
 
@@ -163,7 +164,7 @@ export default function ReviewPage() {
               How was your experience?
             </h1>
             <p className="text-gray-600">
-              We'd love to hear about your visit to {appointment?.business?.name}
+              We&apos;d love to hear about your visit to {appointment?.business?.name}
             </p>
           </div>
 

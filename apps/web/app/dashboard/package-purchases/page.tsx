@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
@@ -87,7 +88,7 @@ export default function PackagePurchasesPage() {
         setPurchases(Array.isArray(purchData) ? purchData : [])
       }
     } catch (error) {
-      console.error('Error loading data:', error)
+      logger.error('Error loading data:', error)
     }
     setLoading(false)
   }
@@ -483,7 +484,7 @@ export default function PackagePurchasesPage() {
                       </>
                     )}
                     <button
-                      onClick={() => console.log('View details', purchase.id)}
+                      onClick={() => logger.info('View details', purchase.id)}
                       className="text-blue-600 hover:text-blue-900"
                     >
                       {t('details')}

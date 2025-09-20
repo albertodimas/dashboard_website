@@ -89,15 +89,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Get business hours settings
-    const scheduleSettings = business.settings?.scheduleSettings as any || {
-      startTime: '09:00',
-      endTime: '17:00',
-      slotDuration: 30
+    const scheduleSettingsSource = business.settings as {
+      scheduleSettings?: {
+        startTime?: string | null
+        endTime?: string | null
+        slotDuration?: number | null
+      }
+    } | null | undefined
+
+    const scheduleSettings = {
+      startTime: scheduleSettingsSource?.scheduleSettings?.startTime ?? '09:00',
+      endTime: scheduleSettingsSource?.scheduleSettings?.endTime ?? '17:00',
+      slotDuration: scheduleSettingsSource?.scheduleSettings?.slotDuration ?? 30,
     }
 
-    const startTime = workingHour.startTime || scheduleSettings.startTime || '09:00'
-    const endTime = workingHour.endTime || scheduleSettings.endTime || '17:00'
-    const slotDuration = scheduleSettings.slotDuration || 30
+    const startTime = workingHour.startTime || scheduleSettings.startTime
+    const endTime = workingHour.endTime || scheduleSettings.endTime
+    const slotDuration = scheduleSettings.slotDuration
 
     // Generate all possible slots
     const availableSlots: string[] = []

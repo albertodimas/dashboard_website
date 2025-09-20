@@ -1,3 +1,4 @@
+import { logger } from './logger'
 // Utilidades de upload para el servidor (con módulos de Node.js)
 import sharp from 'sharp'
 import { mkdir, rm } from 'fs/promises'
@@ -43,7 +44,7 @@ export async function processAndSaveImage(
       ? Buffer.from(file.replace(/^data:image\/\w+;base64,/, ''), 'base64')
       : file
 
-    console.log('Buffer size:', buffer.length)
+    logger.info('Buffer size:', buffer.length)
 
     // Obtener configuración según el tipo
     const sizes = IMAGE_SIZES[safeType]
@@ -64,7 +65,7 @@ export async function processAndSaveImage(
     }
     
     if (!existsSync(publicDir)) {
-      console.log('Creating directory:', publicDir)
+      logger.info('Creating directory:', publicDir)
       await mkdir(publicDir, { recursive: true })
     }
 
@@ -73,7 +74,7 @@ export async function processAndSaveImage(
       const filename = `${safeId}_${size}.webp`
       const filepath = path.join(publicDir, filename)
       
-      console.log('Processing size:', size, 'to file:', filepath)
+      logger.info('Processing size:', size, 'to file:', filepath)
       
       await sharp(buffer)
         .resize(size, size, {
@@ -84,7 +85,7 @@ export async function processAndSaveImage(
         .webp({ quality })
         .toFile(filepath)
       
-      console.log('Successfully created:', filepath)
+      logger.info('Successfully created:', filepath)
     })
 
     // También guardar el original optimizado
@@ -100,7 +101,7 @@ export async function processAndSaveImage(
     // Retornar solo el ID (sin extensión)
     return safeId
   } catch (error) {
-    console.error('Error processing image:', error)
+    logger.error('Error processing image:', error)
     throw new Error('Failed to process image')
   }
 }

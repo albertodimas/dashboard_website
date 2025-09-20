@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -19,7 +20,7 @@ export default function ConfirmPage() {
         setAppointmentDetails(bookingData)
         setStatus('success')
       } catch (error) {
-        console.error('Error parsing booking data:', error)
+        logger.error('Error parsing booking data:', error)
         setStatus('error')
       }
       return

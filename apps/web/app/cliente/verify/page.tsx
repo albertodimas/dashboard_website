@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, ArrowRight, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -17,16 +18,11 @@ export default function VerifyEmailPage() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  useEffect(() => {
-    // Verificar si el usuario tiene una sesión activa
-    checkAuthStatus()
-  }, [])
-
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       // Obtener el ID temporal de la cookie de verificación
       const response = await fetch('/api/cliente/auth/check-verification-pending', {
-        credentials: 'include'
+        credentials: 'include',
       })
       if (response.ok) {
         const data = await response.json()
@@ -36,12 +32,17 @@ export default function VerifyEmailPage() {
         router.push('/cliente/login')
       }
     } catch (error) {
-      console.error('Error checking verification status:', error)
+      logger.error('Error checking verification status:', error)
       router.push('/cliente/login')
     } finally {
       setCheckingAuth(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    // Verificar si el usuario tiene una sesión activa
+    void checkAuthStatus()
+  }, [checkAuthStatus])
 
   useEffect(() => {
     // Cooldown timer para reenviar código

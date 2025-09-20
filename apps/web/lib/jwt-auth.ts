@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
+import { logger } from './logger'
 
 // Require JWT_SECRET to be set - no fallback for security
 if (!process.env.JWT_SECRET) {
@@ -34,7 +35,7 @@ export async function verifyJWT(token: string): Promise<AppJWTPayload | null> {
     const { payload } = await jwtVerify(token, JWT_SECRET)
     return payload as unknown as AppJWTPayload
   } catch (error) {
-    console.error('JWT verification failed:', error)
+    logger.error('JWT verification failed:', error)
     return null
   }
 }
@@ -56,12 +57,12 @@ export async function setAuthCookie(payload: AppJWTPayload) {
 export async function getAuthFromCookie(): Promise<AppJWTPayload | null> {
   const cookieStore = cookies()
   const token = cookieStore.get('auth-token')
-  
+
   if (!token?.value) {
     return null
   }
-  
-  return await verifyJWT(token.value)
+
+  return verifyJWT(token.value)
 }
 
 export async function clearAuthCookie() {

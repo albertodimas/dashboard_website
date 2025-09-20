@@ -28,7 +28,7 @@ export default function DatePicker({ value, onChange, placeholder, className = '
         parent.setAttribute('lang', locale)
       }
     }
-  }, [language])
+  }, [locale])
 
   return (
     <input

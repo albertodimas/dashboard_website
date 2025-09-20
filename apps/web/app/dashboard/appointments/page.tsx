@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -80,7 +81,7 @@ export default function AppointmentsPage() {
       // Filter only active services
       setServices(Array.isArray(data) ? data.filter((s: Service) => s.isActive) : [])
     } catch (err) {
-      console.error('Failed to load services:', err)
+      logger.error('Failed to load services:', err)
     }
   }
 
@@ -102,7 +103,7 @@ export default function AppointmentsPage() {
           .then(data => {
             setStaffModuleEnabled(data.enableStaffModule || false)
           })
-          .catch(err => console.error('Failed to load business settings:', err))
+          .catch(err => logger.error('Failed to load business settings:', err))
       })
       .catch(() => {
         router.push('/login')

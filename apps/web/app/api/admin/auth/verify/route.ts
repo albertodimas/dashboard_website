@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { cookies } from 'next/headers'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Session verification error:', error)
+    logger.error('Session verification error:', error)
     return NextResponse.json(
       { error: 'Verification failed' },
       { status: 401 }
@@ -83,7 +84,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Logout error:', error)
+    logger.error('Logout error:', error)
     return NextResponse.json(
       { error: 'Logout failed' },
       { status: 500 }

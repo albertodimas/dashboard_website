@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { SignJWT } from 'jose'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 // Unify client token secret with middleware/lib behavior
 const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('[Cliente Login] Attempt')
+    logger.info('[Cliente Login] Attempt')
 
     if (!email || !password) {
       return NextResponse.json(
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (recentFailedAttempts >= 5) {
-      console.log('[Cliente Login] Rate limit excedido')
+      logger.info('[Cliente Login] Rate limit excedido')
       return NextResponse.json(
         { 
           error: 'Demasiados intentos fallidos. Por favor, espera 15 minutos antes de intentar nuevamente.',
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       })
       if (business) {
         tenantId = business.tenantId
-        console.log('[Cliente Login] Business context resolved')
+        logger.info('[Cliente Login] Business context resolved')
       }
     }
 
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('[Cliente Login] Customer lookup complete')
+    logger.info('[Cliente Login] Customer lookup complete')
     
     // Si no encontramos el cliente en este tenant pero existe en otro tenant con la misma contraseña,
     // podemos verificar si es el mismo cliente
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
       const best = pool.reduce((a, b) => (score(b) > score(a) ? b : a), pool[0])
       if (!customer || customer.id !== best.id) {
         customer = best as any
-        console.log('[Cliente Login] Seleccionado mejor candidato por email/contraseña:', customer.id)
+        logger.info('[Cliente Login] Seleccionado mejor candidato por email/contraseña:', customer?.id)
       }
     }
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
           }
         })
         customer = updated
-        console.log('[Cliente Login] Perfil completado con datos de otro tenant')
+        logger.info('[Cliente Login] Perfil completado con datos de otro tenant')
       }
     }
 
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
         const best = candidates.reduce((a, b) => (score(b) > score(a) ? b : a), candidates[0])
         if (!customer || best.id !== customer.id) {
           customer = best
-          console.log('[Cliente Login] Seleccionado registro más completo por email (sin tenant)')
+          logger.info('[Cliente Login] Seleccionado registro más completo por email (sin tenant)')
         }
       }
     }
@@ -259,7 +260,7 @@ export async function POST(request: NextRequest) {
       
       if (business) {
         referringBusinessId = business.id
-        console.log('[Cliente Login] Accediendo desde el negocio:', business.name)
+        logger.info('[Cliente Login] Accediendo desde el negocio:', business.name)
         
         // Verificar si ya existe la relación con este negocio
         const existingRelation = await prisma.businessCustomer.findUnique({
@@ -281,7 +282,7 @@ export async function POST(request: NextRequest) {
               totalVisits: 1
             }
           })
-          console.log('[Cliente Login] Auto-registro: Cliente registrado en negocio', business.name)
+          logger.info('[Cliente Login] Auto-registro: Cliente registrado en negocio', business.name)
         } else {
           // Actualizar última visita y contador
           await prisma.businessCustomer.update({
@@ -310,10 +311,10 @@ export async function POST(request: NextRequest) {
               where: { id: customer.id },
               data: { metadata: { ...meta, unregisteredBusinesses: updated } }
             })
-            console.log('[Cliente Login] Removido negocio de unregisteredBusinesses para el cliente')
+            logger.info('[Cliente Login] Removido negocio de unregisteredBusinesses para el cliente')
           }
         } catch (e) {
-          console.warn('[Cliente Login] No se pudo sincronizar metadata.unregisteredBusinesses:', e)
+          logger.warn('[Cliente Login] No se pudo sincronizar metadata.unregisteredBusinesses:', e)
         }
       }
     }
@@ -429,7 +430,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Login error:', error)
+    logger.error('Login error:', error)
     return NextResponse.json(
       { error: 'Error al iniciar sesión' },
       { status: 500 }

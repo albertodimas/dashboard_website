@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ success: true, messageId: (result as any).data?.messageId })
   } catch (error: any) {
-    console.error('Internal email API error:', error)
+    logger.error('Internal email API error:', error)
     return NextResponse.json(
       { error: 'Failed to send email', details: error.message },
       { status: 500 }

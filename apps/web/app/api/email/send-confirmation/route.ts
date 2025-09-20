@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 interface AppointmentDetails {
   id: string
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, messageId: (res as any).data?.messageId })
   } catch (error) {
-    console.error('Error sending email:', error)
+    logger.error('Error sending email:', error)
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
   }
 }

@@ -6,6 +6,7 @@ import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis } from '@/li
 import { setAuthCookie } from '@/lib/jwt-auth'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`Processing reset password for ${userType}`)
+    logger.info(`Processing reset password for ${userType}`)
 
     // Buscar usuario o cliente según el tipo
     let user: any = null
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
         name: updatedCustomer.name
       })
 
-      console.log('✅ Password reset successful for customer:', updatedCustomer.email)
+      logger.info('✅ Password reset successful for customer:', updatedCustomer.email)
 
       return NextResponse.json({
         success: true,
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
       const ok = await verifyCodeRedis(email, code)
       
       if (!ok) {
-        console.error('❌ Invalid verification code for system user')
+        logger.error('❌ Invalid verification code for system user')
         return NextResponse.json(
           { error: 'Código de verificación inválido o expirado' },
           { status: 400 }
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
         role: 'OWNER'
       })
 
-      console.log('✅ Password reset successful for user:', updatedUser.email)
+      logger.info('✅ Password reset successful for user:', updatedUser.email)
 
       return NextResponse.json({
         success: true,
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Reset password error:', error)
+    logger.error('Reset password error:', error)
     
     return NextResponse.json(
       { error: 'Error al restablecer contraseña' },

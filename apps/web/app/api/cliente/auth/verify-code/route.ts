@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis, getData as getCodeData } from '@/lib/verification-redis'
 import { generateClientToken } from '@/lib/client-auth'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (e) {
-      console.warn('[verify-code] No se pudo upsert relación referida:', e)
+      logger.warn('[verify-code] No se pudo upsert relación referida:', e)
     }
 
     const response = NextResponse.json({
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('Verify code error:', error)
+    logger.error('Verify code error:', error)
     return NextResponse.json({ error: 'Error al verificar codigo' }, { status: 500 })
   }
 }

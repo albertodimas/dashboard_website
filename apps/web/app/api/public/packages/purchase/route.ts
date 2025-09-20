@@ -4,6 +4,7 @@ import { trackError } from '@/lib/observability'
 import { z } from 'zod'
 import { sendEmail } from '@/lib/email'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 const packagePurchaseSchema = z.object({
   businessId: z.string().uuid(),
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const body = await request.json()
-    console.log('Received package purchase data:', body)
+    logger.info('Received package purchase data:', body)
     const validated = packagePurchaseSchema.parse(body)
 
     // Get package details
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
     // No bloqueamos la compra - los clientes pueden comprar múltiples paquetes
     // para acumular sesiones o aprovechar promociones
     if (existingPurchases.length > 0) {
-      console.log(`Cliente ${customer.email} comprando paquete adicional. Ya tiene ${existingPurchases.length} paquete(s) activo(s)`)
+      logger.info(`Cliente ${customer.email} comprando paquete adicional. Ya tiene ${existingPurchases.length} paquete(s) activo(s)`)
     }
 
     // Calculate expiry date if validity days are set
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
         html: emailHtml
       })
     } catch (emailError) {
-      console.error('Error sending confirmation email:', emailError)
+      logger.error('Error sending confirmation email:', emailError)
       // Continue even if email fails
     }
 

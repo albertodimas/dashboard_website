@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma, PurchaseStatus } from '@dashboard/db'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,8 +28,13 @@ export async function GET(request: NextRequest) {
     const customer = await prisma.customer.findFirst({
       where: {
         email: email.toLowerCase(),
-        businessId: businessId
-      }
+        businesses: {
+          some: {
+            businessId,
+            isActive: true,
+          },
+        },
+      },
     })
 
     if (!customer) {
@@ -43,7 +49,7 @@ export async function GET(request: NextRequest) {
       where: {
         customerId: customer.id,
         businessId: businessId,
-        status: 'ACTIVE',
+        status: PurchaseStatus.ACTIVE,
         remainingSessions: { gt: 0 },
         OR: [
           { expiryDate: null },
@@ -76,7 +82,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching customer packages:', error)
+    logger.error('Error fetching customer packages:', error)
     return NextResponse.json(
       { error: 'Failed to fetch customer packages' },
       { status: 500 }

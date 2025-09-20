@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     
     // Log without exposing sensitive data
     if (process.env.NODE_ENV === 'development') {
-      console.log('[VERIFICATION] Code generated successfully')
+      logger.info('[VERIFICATION] Code generated successfully')
     }
 
     // Store code in Redis with TTL
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     
     // Silent dev log
     if (process.env.NODE_ENV === 'development') {
-      console.log('[VERIFICATION] Code stored (Redis)')
+      logger.info('[VERIFICATION] Code stored (Redis)')
     }
 
     // Send verification email
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
         `
       })
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError)
+      logger.error('Failed to send verification email:', emailError)
       return NextResponse.json(
         { error: 'Failed to send verification email. Please try again.' },
         { status: 500 }
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
       message: 'Verification code sent to your email'
     })
   } catch (error) {
-    console.error('Send verification error:', error)
+    logger.error('Send verification error:', error)
     return NextResponse.json(
       { error: 'Failed to send verification code' },
       { status: 500 }

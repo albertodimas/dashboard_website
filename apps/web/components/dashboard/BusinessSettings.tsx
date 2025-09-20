@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -245,10 +246,10 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     // Validate slug before saving
     const cleanedSlug = customSlug.trim().replace(/^\/+|\/+$/g, '')
     
-    console.log('Saving with cleanedSlug:', cleanedSlug)
+    logger.info('Saving with cleanedSlug:', cleanedSlug)
     
     if (cleanedSlug && !validateSlug(cleanedSlug)) {
-      console.log('Validation failed for slug:', cleanedSlug)
+      logger.info('Validation failed for slug:', cleanedSlug)
       return
     }
     
@@ -286,7 +287,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         }
       }
       
-      console.log('Sending request with body:', requestBody)
+      logger.info('Sending request with body:', requestBody)
       
       const response = await fetch(`/api/dashboard/business`, {
         method: 'PATCH',
@@ -295,7 +296,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
       })
 
       const data = await response.json()
-      console.log('Response:', { status: response.status, data })
+      logger.info('Response:', { status: response.status, data })
 
       if (response.ok) {
         onUpdate({ 
@@ -334,7 +335,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         setCustomSlug(data.customSlug || '')
         toast('✅ Settings saved successfully!', 'success')
       } else {
-        console.error('Server error:', data)
+        logger.error('Server error:', data)
         if (data.message?.includes('Unique constraint') || data.error?.includes('already taken')) {
           setSlugError('This URL is already taken by another business')
         } else {
@@ -343,7 +344,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         }
       }
     } catch (error) {
-      console.error('Network error saving settings:', error)
+      logger.error('Network error saving settings:', error)
       setSlugError('Network error occurred')
       toast('❌ Network error occurred', 'error')
     } finally {

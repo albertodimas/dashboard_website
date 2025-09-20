@@ -3,6 +3,7 @@ import { processAndSaveImage, generateImageId, ImageType } from '@/lib/upload-ut
 import { getAuthFromCookie } from '@/lib/jwt-auth'
 import { verifyClientToken } from '@/lib/client-auth'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       url: `/${type === 'avatar' ? 'avatars' : type}/${savedId}_` + defaultSize + `.webp`
     })
   } catch (error) {
-    console.error('Upload error:', error)
+    logger.error('Upload error:', error)
     return NextResponse.json(
       { error: 'Failed to upload image' },
       { status: 500 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -99,7 +100,7 @@ export default function BookingPage() {
   useEffect(() => {
     const loadBusinessInfo = async () => {
       try {
-        console.log('Loading business info for:', businessId)
+        logger.info('Loading business info for:', businessId)
         const response = await fetch(`/api/public/business/${businessId}`)
         if (response.ok) {
           const data = await response.json()
@@ -114,12 +115,12 @@ export default function BookingPage() {
             website: data.website,
             description: data.description
           })
-          
+
           // Check if staff module is enabled for this business
-          console.log('Business data:', data)
-          console.log('Staff module enabled from API:', data.enableStaffModule)
+          logger.info('Business data:', data)
+          logger.info('Staff module enabled from API:', data.enableStaffModule)
           setStaffModuleEnabled(data.enableStaffModule === true)
-          
+
           // Load schedule settings from business settings
           if (data.settings?.scheduleSettings) {
             setScheduleSettings(data.settings.scheduleSettings)
@@ -130,25 +131,25 @@ export default function BookingPage() {
           router.push('/')
         }
       } catch (error) {
-        console.error('Error loading business info:', error)
+        logger.error('Error loading business info:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    loadBusinessInfo()
-  }, [businessId, router, t])
+    void loadBusinessInfo()
+  }, [businessId, router, t, toast])
 
   // Load services from API
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     try {
       const response = await fetch(`/api/public/services/${businessId}`)
       if (response.ok) {
         const data = await response.json()
-        console.log('Services loaded from API:', data)
+        logger.info('Services loaded from API:', data)
         const activeServices = Array.isArray(data) ? data.filter((s: Service) => s.isActive) : []
         setServices(activeServices)
-        
+
         // If there's a serviceId from URL, pre-select it
         if (urlServiceId && activeServices.length > 0) {
           const preSelectedService = activeServices.find((s: Service) => s.id === urlServiceId)
@@ -165,7 +166,7 @@ export default function BookingPage() {
                   setStep(2)
                 }
               } catch (error) {
-                console.error('Error loading staff:', error)
+                logger.error('Error loading staff:', error)
               }
             } else {
               // Move directly to date/time selection
@@ -175,13 +176,13 @@ export default function BookingPage() {
         }
       }
     } catch (error) {
-      console.error('Error loading services:', error)
+      logger.error('Error loading services:', error)
     }
-  }
+  }, [businessId, staffModuleEnabled, urlServiceId])
 
   // Debug state changes
   useEffect(() => {
-    console.log('=== STATE UPDATE ===', {
+    logger.info('=== STATE UPDATE ===', {
       step,
       staffModuleEnabled,
       selectedService: selectedService?.name,
@@ -191,122 +192,115 @@ export default function BookingPage() {
   }, [step, staffModuleEnabled, selectedService, availableStaff, selectedStaff])
 
   useEffect(() => {
-    loadServices()
+    void loadServices()
 
     // Set minimum date to today or next working day
     const today = new Date()
-    let initialDate = today
-    
+    const initialDate = new Date(today)
+
     // Check if today is a working day, if not find next working day
     while (!scheduleSettings.workingDays.includes(initialDate.getDay())) {
       initialDate.setDate(initialDate.getDate() + 1)
     }
-    
+
     setSelectedDate(initialDate.toISOString().split('T')[0])
-  }, [scheduleSettings.workingDays, urlServiceId, staffModuleEnabled])
+  }, [loadServices, scheduleSettings.workingDays])
 
   // Reload services when entering step 1 (service selection)
   useEffect(() => {
     if (step === 1) {
-      loadServices()
+      void loadServices()
     }
-  }, [step])
-
-  // Function to load occupied slots from API
-  const loadOccupiedSlots = async (staffId?: string) => {
-    if (selectedDate && selectedService) {
-      try {
-        // Use the public appointments API to get available slots
-        const params = new URLSearchParams({
-          businessId: businessId,
-          serviceId: selectedService.id,
-          date: selectedDate
-        })
-        
-        // Add staffId if available
-        if (staffId) {
-          params.append('staffId', staffId)
-        }
-        
-        const response = await fetch(`/api/public/appointments?${params}`)
-        if (response.ok) {
-          const data = await response.json()
-          // The API returns available slots, so we need to invert this
-          // to get occupied slots for our time slot display
-          const allSlots = generateTimeSlots()
-          const availableSlots = data.availableSlots || []
-          const occupied = allSlots.filter(slot => !availableSlots.includes(slot))
-          setOccupiedSlots(occupied)
-        }
-      } catch (error) {
-        console.error('Error loading appointments:', error)
-        setOccupiedSlots([])
-      }
-    }
-  }
-
-  // Load occupied time slots when date or service changes
-  useEffect(() => {
-    if (selectedService) {
-      loadOccupiedSlots(selectedStaff?.id)
-    }
-  }, [selectedDate, selectedStaff, selectedService])
-
-  // Reload occupied slots when entering appropriate step
-  useEffect(() => {
-    if (((step === 2 && !staffModuleEnabled) || (step === 3 && staffModuleEnabled)) && selectedService) {
-      loadOccupiedSlots(selectedStaff?.id)
-    }
-  }, [step, selectedDate, selectedStaff, staffModuleEnabled, selectedService])
+  }, [step, loadServices])
 
   // Generate available time slots based on schedule settings or staff schedule
-  const generateTimeSlots = () => {
-    const slots = []
-    // Usar horarios del trabajador si están disponibles, sino usar los del negocio
+  const generateTimeSlots = useCallback(() => {
+    const slots: string[] = []
     const schedule = staffSchedule || scheduleSettings
-    
-    // Si hay horarios específicos por día, usar los del día seleccionado
+
     if (staffSchedule?.workingHours && selectedDate) {
       const date = new Date(selectedDate)
       const dayOfWeek = date.getDay()
-      const daySchedule = staffSchedule.workingHours.find((wh: any) => wh.dayOfWeek === dayOfWeek)
-      
+      const daySchedule = staffSchedule.workingHours.find((wh: { dayOfWeek: number; startTime: string; endTime: string }) => wh.dayOfWeek === dayOfWeek)
+
       if (daySchedule) {
         const [startHour, startMinute] = daySchedule.startTime.split(':').map(Number)
         const [endHour, endMinute] = daySchedule.endTime.split(':').map(Number)
-        
+
         const startMinutes = startHour * 60 + startMinute
         const endMinutes = endHour * 60 + endMinute
-        
+
         for (let minutes = startMinutes; minutes < endMinutes; minutes += scheduleSettings.timeInterval) {
           const hour = Math.floor(minutes / 60)
           const minute = minutes % 60
           const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
           slots.push(timeString)
         }
-        
+
         return slots
       }
     }
-    
-    // Usar horarios generales
+
     const [startHour, startMinute] = schedule.startTime.split(':').map(Number)
     const [endHour, endMinute] = schedule.endTime.split(':').map(Number)
-    
+
     const startMinutes = startHour * 60 + startMinute
     const endMinutes = endHour * 60 + endMinute
-    
+
     for (let minutes = startMinutes; minutes < endMinutes; minutes += scheduleSettings.timeInterval) {
       const hour = Math.floor(minutes / 60)
       const minute = minutes % 60
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
       slots.push(timeString)
     }
-    
+
     return slots
-  }
-  
-  const availableTimes = generateTimeSlots()
+  }, [scheduleSettings, selectedDate, staffSchedule])
+
+  const availableTimes = useMemo(() => generateTimeSlots(), [generateTimeSlots])
+
+  // Function to load occupied slots from API
+  const loadOccupiedSlots = useCallback(async (staffId?: string) => {
+    if (selectedDate && selectedService) {
+      try {
+        const params = new URLSearchParams({
+          businessId,
+          serviceId: selectedService.id,
+          date: selectedDate,
+        })
+
+        if (staffId) {
+          params.append('staffId', staffId)
+        }
+
+        const response = await fetch(`/api/public/appointments?${params}`)
+        if (response.ok) {
+          const data = await response.json()
+          const allSlots = generateTimeSlots()
+          const availableSlots = data.availableSlots || []
+          const occupied = allSlots.filter((slot) => !availableSlots.includes(slot))
+          setOccupiedSlots(occupied)
+        }
+      } catch (error) {
+        logger.error('Error loading appointments:', error)
+        setOccupiedSlots([])
+      }
+    }
+  }, [businessId, generateTimeSlots, selectedDate, selectedService])
+
+  // Load occupied time slots when date or service changes
+  useEffect(() => {
+    if (selectedService) {
+      void loadOccupiedSlots(selectedStaff?.id)
+    }
+  }, [loadOccupiedSlots, selectedDate, selectedService, selectedStaff])
+
+  // Reload occupied slots when entering appropriate step
+  useEffect(() => {
+    if (((step === 2 && !staffModuleEnabled) || (step === 3 && staffModuleEnabled)) && selectedService) {
+      void loadOccupiedSlots(selectedStaff?.id)
+    }
+  }, [loadOccupiedSlots, selectedDate, selectedService, selectedStaff, staffModuleEnabled, step])
 
   // Check if a date is a working day
   const isWorkingDay = (dateString: string) => {
@@ -341,7 +335,7 @@ export default function BookingPage() {
       toast(message, 'error')
       
       // Find next working day
-      let nextDate = new Date(newDate)
+      const nextDate = new Date(newDate)
       const workingDays = staffSchedule?.workingDays || scheduleSettings.workingDays
       while (!workingDays.includes(nextDate.getDay())) {
         nextDate.setDate(nextDate.getDate() + 1)
@@ -422,13 +416,13 @@ export default function BookingPage() {
         })
         
         if (!emailResponse.ok) {
-          console.error('Email send failed:', await emailResponse.text())
+          logger.error('Email send failed:', await emailResponse.text())
         } else {
           const result = await emailResponse.json()
-          console.log('Email sent successfully:', result)
+          logger.info('Email sent successfully:', result)
         }
       } catch (emailError) {
-        console.error('Error sending confirmation email:', emailError)
+        logger.error('Error sending confirmation email:', emailError)
       }
 
       // Navigate to confirmation page
@@ -447,7 +441,7 @@ export default function BookingPage() {
       
       router.push(`/confirm?data=${encodeURIComponent(JSON.stringify(confirmationData))}`)
     } catch (error) {
-      console.error('Error creating appointment:', error)
+      logger.error('Error creating appointment:', error)
       toast(t('failedToBookAppointment'), 'error')
     }
   }
@@ -651,31 +645,31 @@ export default function BookingPage() {
               <button
                 onClick={async () => {
                   if (selectedService) {
-                    console.log('Selected service:', selectedService)
-                    console.log('Staff module enabled:', staffModuleEnabled)
-                    console.log('Service has assigned staff:', selectedService.assignedStaff)
+                    logger.info('Selected service:', selectedService)
+                    logger.info('Staff module enabled:', staffModuleEnabled)
+                    logger.info('Service has assigned staff:', selectedService.assignedStaff)
                     
                     if (staffModuleEnabled) {
                       // Load staff for the selected service
                       try {
-                        console.log('Loading staff for service:', selectedService.id)
+                        logger.info('Loading staff for service:', selectedService.id)
                         const response = await fetch(`/api/public/staff/${businessId}?serviceId=${selectedService.id}`)
                         if (response.ok) {
                           const data = await response.json()
-                          console.log('Staff data received:', data)
+                          logger.info('Staff data received:', data)
                           setAvailableStaff(data.staff || [])
                           if (data.staff && data.staff.length === 1) {
                             setSelectedStaff(data.staff[0])
                           }
                         } else {
-                          console.error('Failed to load staff, status:', response.status)
+                          logger.error('Failed to load staff, status:', response.status)
                         }
                       } catch (error) {
-                        console.error('Error loading staff:', error)
+                        logger.error('Error loading staff:', error)
                       }
                       setStep(2) // Go to staff selection
                     } else {
-                      console.log('Staff module not enabled, skipping to date/time selection')
+                      logger.info('Staff module not enabled, skipping to date/time selection')
                       setStep(2) // Go to date/time selection
                     }
                   }

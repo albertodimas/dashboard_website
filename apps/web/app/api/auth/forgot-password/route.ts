@@ -4,6 +4,7 @@ import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } fro
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,12 +67,12 @@ export async function POST(request: NextRequest) {
       })
     } catch (err) {
       // Log only; do not reveal failures to caller
-      console.error('System forgot-password email send failed:', err)
+      logger.error('System forgot-password email send failed:', err)
     }
 
     return NextResponse.json({ success: true, message: 'If the email exists, a code will be sent' })
   } catch (error) {
-    console.error('Forgot password error:', error)
+    logger.error('Forgot password error:', error)
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 })
   }
 }

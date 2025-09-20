@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X } from 'lucide-react'
 import Link from 'next/link'
@@ -40,23 +41,23 @@ export default function CategoriesPage() {
   })
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/categories')
       if (!response.ok) throw new Error('Failed to fetch categories')
       const data = await response.json()
       setCategories(data)
     } catch (error) {
-      console.error('Error fetching categories:', error)
+      logger.error('Error fetching categories:', error)
       setError(t('failedToFetchCategories') || 'Failed to fetch categories')
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    void fetchCategories()
+  }, [fetchCategories])
 
   const generateSlug = (name: string) => {
     return name
@@ -104,7 +105,7 @@ export default function CategoriesPage() {
       setEditForm({})
       setError('')
     } catch (error) {
-      console.error('Error updating category:', error)
+      logger.error('Error updating category:', error)
       setError(error instanceof Error ? error.message : (t('failedToUpdateCategory') || 'Failed to update category'))
     }
   }
@@ -132,7 +133,7 @@ export default function CategoriesPage() {
       setError('')
       toast(t('deleted') || 'Deleted', 'success')
     } catch (error) {
-      console.error('Error deleting category:', error)
+      logger.error('Error deleting category:', error)
       setError(error instanceof Error ? error.message : (t('failedToDeleteCategory') || 'Failed to delete category'))
       toast(t('failedToDeleteCategory') || 'Failed to delete category', 'error')
     }
@@ -163,7 +164,7 @@ export default function CategoriesPage() {
       })
       setError('')
     } catch (error) {
-      console.error('Error creating category:', error)
+      logger.error('Error creating category:', error)
       setError(error instanceof Error ? error.message : (t('failedToCreateCategory') || 'Failed to create category'))
     }
   }
@@ -182,7 +183,7 @@ export default function CategoriesPage() {
       if (!response.ok) throw new Error('Failed to update order')
       await fetchCategories()
     } catch (error) {
-      console.error('Error updating order:', error)
+      logger.error('Error updating order:', error)
     }
   }
 

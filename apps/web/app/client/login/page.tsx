@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mail, Phone, ArrowLeft, Package } from 'lucide-react'
@@ -34,7 +35,7 @@ export default function ClientLogin() {
         setError(data.error || 'Login failed')
       }
     } catch (error) {
-      console.error('Login error:', error)
+      logger.error('Login error:', error)
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -102,7 +103,7 @@ export default function ClientLogin() {
 
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-center text-sm text-gray-600">
-            Don't have any packages yet?
+            Don&apos;t have any packages yet?
           </p>
           <p className="text-center text-sm text-gray-600 mt-2">
             Contact your service provider to get started

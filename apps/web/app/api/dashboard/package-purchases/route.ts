@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(purchases)
 
   } catch (error) {
-    console.error('Error fetching package purchases:', error)
+    logger.error('Error fetching package purchases:', error)
     return NextResponse.json(
       { error: 'Failed to fetch package purchases' },
       { status: 500 }

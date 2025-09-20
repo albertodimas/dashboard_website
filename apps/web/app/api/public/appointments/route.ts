@@ -5,6 +5,7 @@ import { addMinutes, parseISO } from 'date-fns'
 import { sendEmail } from '@/lib/email'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { getAppointmentConfirmationEmailTemplate } from '@/lib/email-templates'
+import { logger } from '@/lib/logger'
 
 const appointmentSchema = z.object({
   businessId: z.string().uuid(),
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
     step = 'parse-input'
     const body = await request.json()
-    console.log('Received booking data:', body)
+    logger.info('Received booking data:', body)
     const validated = appointmentSchema.parse(body)
 
     // Get service details for duration
@@ -329,9 +330,9 @@ export async function POST(request: NextRequest) {
         text: emailTemplate.text
       })
 
-      console.log('Confirmation email sent to:', validated.customerEmail)
+      logger.info('Confirmation email sent to:', validated.customerEmail)
     } catch (emailError) {
-      console.error('Failed to send confirmation email:', emailError)
+      logger.error('Failed to send confirmation email:', emailError)
       // Don't fail the appointment creation if email fails
     }
 
@@ -362,7 +363,7 @@ export async function POST(request: NextRequest) {
           })
         })
       } catch (sessionError) {
-        console.error('Failed to consume session:', sessionError)
+        logger.error('Failed to consume session:', sessionError)
         // Consider whether to rollback the appointment or not
       }
     }
@@ -385,7 +386,7 @@ export async function POST(request: NextRequest) {
         : 'Appointment booked successfully!'
     })
   } catch (error) {
-    console.error('Error creating appointment at step:', step, error)
+    logger.error('Error creating appointment at step:', step, error)
     
     if (error instanceof z.ZodError) {
       // Provide more user-friendly error messages
@@ -462,7 +463,7 @@ export async function GET(request: NextRequest) {
     
     // If no settings exist, return empty (business must configure first)
     if (!settings || !settings.scheduleSettings) {
-      console.log('No schedule settings found for business:', businessId)
+      logger.info('No schedule settings found for business:', businessId)
       return NextResponse.json({ availableSlots: [] })
     }
     
@@ -510,7 +511,7 @@ export async function GET(request: NextRequest) {
     
     // If no business hours configured, return empty
     if (!businessStartTime || !businessEndTime) {
-      console.log('No business hours configured for business:', businessId)
+      logger.info('No business hours configured for business:', businessId)
       return NextResponse.json({ availableSlots: [] })
     }
     
@@ -615,7 +616,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ availableSlots: slots })
   } catch (error) {
-    console.error('Error fetching available slots:', error)
+    logger.error('Error fetching available slots:', error)
     return NextResponse.json(
       { error: 'Failed to fetch available slots' },
       { status: 500 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { fail } from '@/lib/api-utils'
+import { logger } from '@/lib/logger'
 
 // GET all services for the business
 export async function GET(request: NextRequest) {
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(formattedServices)
   } catch (error) {
-    console.error('Error fetching services:', error)
+    logger.error('Error fetching services:', error)
     return createAuthResponse('Failed to fetch services', 500)
   }
 }
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(service)
   } catch (error: any) {
-    console.error('Error creating service:', error)
+    logger.error('Error creating service:', error)
     if (error?.code === 'P2002') {
       return fail('A service with this name already exists', 409)
     }
@@ -199,7 +200,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(service)
   } catch (error: any) {
-    console.error('Error updating service:', error)
+    logger.error('Error updating service:', error)
     if (error?.code === 'P2002') {
       return fail('A service with this name already exists', 409)
     }
@@ -241,7 +242,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting service:', error)
+    logger.error('Error deleting service:', error)
     return fail('Failed to delete service', 500)
   }
 }

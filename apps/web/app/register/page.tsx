@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -129,7 +130,7 @@ export default function RegisterPage() {
       })
 
       const data = await response.json()
-      console.log('Registration response:', response.status, data)
+      logger.info('Registration response:', response.status, data)
 
       if (!response.ok) {
         // Handle backend conflict (409) by returning to the form and marking the field
@@ -154,7 +155,7 @@ export default function RegisterPage() {
       // Registration successful, redirect to login
       router.push('/login?registered=true')
     } catch (err) {
-      console.error('Registration error:', err)
+      logger.error('Registration error:', err)
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)
     }
@@ -408,7 +409,7 @@ export default function RegisterPage() {
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Verify your email</h3>
             <p className="text-sm text-gray-600 mb-4">
-              We've sent a verification code to <strong>{formData.email}</strong>
+              We&apos;ve sent a verification code to <strong>{formData.email}</strong>
             </p>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">

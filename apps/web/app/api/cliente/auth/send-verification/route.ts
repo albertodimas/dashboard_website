@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'
 import { sendEmail, getVerificationEmailTemplate } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Send verification error:', error)
+    logger.error('Send verification error:', error)
     return NextResponse.json(
       { error: 'Error al enviar código de verificación' },
       { status: 500 }

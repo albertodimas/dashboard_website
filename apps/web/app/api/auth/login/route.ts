@@ -4,6 +4,7 @@ import { prisma } from '@dashboard/db'
 import { setAuthCookie } from '@/lib/jwt-auth'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Login error:', error instanceof Error ? error.message : 'Unknown error')
+    logger.error('Login error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { error: 'Login failed' },
       { status: 500 }

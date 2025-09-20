@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -49,7 +50,7 @@ export default function DashboardNav() {
           setIsProjectMode(mode === 'PROYECTO')
         }
       } catch (error) {
-        console.error('Error loading business name:', error)
+        logger.error('Error loading business name:', error)
       }
     }
     loadBusinessName()

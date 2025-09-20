@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness } from '@/lib/auth-utils'
 import * as XLSX from 'xlsx'
-import { format } from 'date-fns'
+import { format as formatDate } from 'date-fns'
+import { logger } from '@/lib/logger'
 
 // Export reports as Excel or CSV
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const format = searchParams.get('format') || 'excel' // excel or csv
+    const outputFormat = searchParams.get('format') || 'excel' // excel or csv
     const period = searchParams.get('period') || 'monthly'
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
@@ -18,6 +19,12 @@ export async function GET(request: NextRequest) {
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+
+    const businessSettings = business.settings as { enableStaffModule?: boolean } | null | undefined
+    const businessFeatures = business.features as { enableStaffModule?: boolean } | null | undefined
+    const staffModuleEnabled = Boolean(
+      businessSettings?.enableStaffModule ?? businessFeatures?.enableStaffModule
+    )
 
     // Calculate date range
     let start: Date
@@ -66,8 +73,8 @@ export async function GET(request: NextRequest) {
     // Prepare data for export
     const summaryData = [
       ['Business Report', business.name],
-      ['Period', `${format(start, 'yyyy-MM-dd')} to ${format(end, 'yyyy-MM-dd')}`],
-      ['Generated', format(now, 'yyyy-MM-dd HH:mm')],
+      ['Period', `${formatDate(start, 'yyyy-MM-dd')} to ${formatDate(end, 'yyyy-MM-dd')}`],
+      ['Generated', formatDate(now, 'yyyy-MM-dd HH:mm')],
       [],
       ['Summary'],
       ['Total Revenue', appointments.reduce((sum, apt) => apt.status !== 'CANCELLED' ? sum + (apt.totalAmount || 0) : sum, 0)],
@@ -82,8 +89,8 @@ export async function GET(request: NextRequest) {
       ['Appointments Detail'],
       ['Date', 'Time', 'Customer', 'Service', 'Staff', 'Status', 'Amount', 'Phone', 'Email'],
       ...appointments.map(apt => [
-        format(apt.startTime, 'yyyy-MM-dd'),
-        format(apt.startTime, 'HH:mm'),
+        formatDate(apt.startTime, 'yyyy-MM-dd'),
+        formatDate(apt.startTime, 'HH:mm'),
         apt.customer?.name || 'N/A',
         apt.service?.name || 'N/A',
         apt.staff?.name || tenant?.users[0]?.name || 'Owner',
@@ -96,8 +103,8 @@ export async function GET(request: NextRequest) {
 
     // Calculate staff reports if enabled
     let staffData: any[] = []
-    if (business.enableStaffModule) {
-      const staffMembers = await prisma.staffMember.findMany({
+    if (staffModuleEnabled) {
+      const staffMembers = await prisma.staff.findMany({
         where: { businessId: business.id }
       })
 
@@ -207,23 +214,23 @@ export async function GET(request: NextRequest) {
 
     // Generate buffer
     const buffer = XLSX.write(wb, { 
-      bookType: format === 'csv' ? 'csv' : 'xlsx', 
+      bookType: outputFormat === 'csv' ? 'csv' : 'xlsx', 
       type: 'buffer' 
     })
 
     // Return file
-    const filename = `${business.name.replace(/[^a-z0-9]/gi, '_')}_report_${format(now, 'yyyyMMdd')}.${format === 'csv' ? 'csv' : 'xlsx'}`
+    const filename = `${business.name.replace(/[^a-z0-9]/gi, '_')}_report_${formatDate(now, 'yyyyMMdd')}.${outputFormat === 'csv' ? 'csv' : 'xlsx'}`
     
     return new NextResponse(buffer, {
       headers: {
-        'Content-Type': format === 'csv' 
+        'Content-Type': outputFormat === 'csv' 
           ? 'text/csv' 
           : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
   } catch (error) {
-    console.error('Error exporting reports:', error)
+    logger.error('Error exporting reports:', error)
     return NextResponse.json(
       { error: 'Failed to export reports' },
       { status: 500 }

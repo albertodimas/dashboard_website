@@ -5,6 +5,7 @@ import { generateClientToken } from '@/lib/client-auth'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis } from '@/lib/verification-redis'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       message: 'Contrasena actualizada exitosamente'
     })
   } catch (error) {
-    console.error('Reset password error:', error)
+    logger.error('Reset password error:', error)
     return NextResponse.json({ error: 'Error al restablecer contrasena' }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { verifyClientToken } from '@/lib/client-auth'
+import { logger } from '@/lib/logger'
 
 // POST - Desregistrar cliente de un negocio
 export async function POST(request: NextRequest) {
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Opcional: Registrar esta acción para análisis
-    console.log(`Cliente ${decoded.customerId} se desregistró del negocio ${businessId}`)
+    logger.info(`Cliente ${decoded.customerId} se desregistró del negocio ${businessId}`)
 
     return NextResponse.json({
       success: true,
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error al desregistrar del negocio:', error)
+    logger.error('Error al desregistrar del negocio:', error)
     return NextResponse.json(
       { error: 'Error al procesar la solicitud' },
       { status: 500 }
@@ -193,7 +194,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.log('[Re-register] Cliente:', decoded.customerId, 'Negocio:', businessId)
+    logger.info('[Re-register] Cliente:', decoded.customerId, 'Negocio:', businessId)
 
     // Buscar el business
     const business = await prisma.business.findUnique({
@@ -283,7 +284,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error al re-registrar:', error)
+    logger.error('Error al re-registrar:', error)
     return NextResponse.json(
       { error: 'Error al procesar la solicitud' },
       { status: 500 }

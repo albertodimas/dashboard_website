@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(packages)
   } catch (error) {
-    console.error('Error fetching packages:', error)
+    logger.error('Error fetching packages:', error)
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 })
   }
 }
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newPackage)
   } catch (error: any) {
-    console.error('Error creating package:', error)
+    logger.error('Error creating package:', error)
     if (error?.code === 'P2002') {
       return NextResponse.json({ error: 'A package with this name already exists' }, { status: 409 })
     }
@@ -189,7 +190,7 @@ export async function PUT(request: NextRequest) {
       })
 
       // Actualizar paquete con nuevos servicios
-      return await tx.package.update({
+      return tx.package.update({
         where: { id: packageId },
         data: {
           ...packageData,
@@ -216,7 +217,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(updatedPackage)
   } catch (error: any) {
-    console.error('Error updating package:', error)
+    logger.error('Error updating package:', error)
     if (error?.code === 'P2002') {
       return NextResponse.json({ error: 'A package with this name already exists' }, { status: 409 })
     }
@@ -256,7 +257,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting package:', error)
+    logger.error('Error deleting package:', error)
     return NextResponse.json({ error: 'Failed to delete package' }, { status: 500 })
   }
 }

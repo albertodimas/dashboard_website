@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Check verification pending error:', error)
+    logger.error('Check verification pending error:', error)
     return NextResponse.json(
       { error: 'Error al verificar estado' },
       { status: 500 }

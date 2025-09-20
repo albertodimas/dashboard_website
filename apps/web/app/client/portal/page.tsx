@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Package, 
@@ -26,27 +27,27 @@ export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState('packages')
   const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const response = await fetch('/api/client/packages')
-      
+
       if (response.status === 401) {
         router.push('/client/login')
         return
       }
 
-      const data = await response.json()
-      setData(data)
+      const responseData = await response.json()
+      setData(responseData)
     } catch (error) {
-      console.error('Error fetching data:', error)
+      logger.error('Error fetching data:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    void fetchData()
+  }, [fetchData])
 
   const handleLogout = () => {
     document.cookie = 'customer_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'

@@ -3,6 +3,7 @@ import { prisma } from '@dashboard/db'
 import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Codigo de verificacion reenviado' })
   } catch (error) {
-    console.error('Resend verification error:', error)
+    logger.error('Resend verification error:', error)
     return NextResponse.json({ error: 'Error al reenviar codigo' }, { status: 500 })
   }
 }

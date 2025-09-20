@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 // GET all businesses (admin only)
 export async function GET() {
@@ -63,7 +64,7 @@ export async function GET() {
 
     return NextResponse.json(formattedBusinesses)
   } catch (error) {
-    console.error('Error fetching businesses:', error)
+    logger.error('Error fetching businesses:', error)
     return NextResponse.json(
       { error: 'Failed to fetch businesses' },
       { status: 500 }
@@ -76,7 +77,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     
-    console.log('PUT request body:', body)
+    logger.info('PUT request body:', body)
     
     if (!body.id) {
       return NextResponse.json(
@@ -93,7 +94,7 @@ export async function PUT(request: NextRequest) {
     if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
     if (body.enableStaffModule !== undefined) updateData.enableStaffModule = body.enableStaffModule
     if (body.enablePackagesModule !== undefined) {
-      console.log('Setting enablePackagesModule to:', body.enablePackagesModule)
+      logger.info('Setting enablePackagesModule to:', body.enablePackagesModule)
       updateData.enablePackagesModule = body.enablePackagesModule
     }
     if (body.isBlocked !== undefined) {
@@ -109,8 +110,8 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    console.log('Update data:', updateData)
-    console.log('Business ID:', body.id)
+    logger.info('Update data:', updateData)
+    logger.info('Business ID:', body.id)
     
     const business = await prisma.business.update({
       where: { id: body.id },
@@ -122,8 +123,8 @@ export async function PUT(request: NextRequest) {
       business 
     })
   } catch (error) {
-    console.error('Error updating business:', error)
-    console.error('Error details:', {
+    logger.error('Error updating business:', error)
+    logger.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     })
@@ -157,7 +158,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Business and all related data deleted successfully'
     })
   } catch (error) {
-    console.error('Error deleting business:', error)
+    logger.error('Error deleting business:', error)
     return NextResponse.json(
       { error: 'Failed to delete business' },
       { status: 500 }

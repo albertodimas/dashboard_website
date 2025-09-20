@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 // GET public business information by slug
 export async function GET(
@@ -121,7 +122,7 @@ export async function GET(
       }
     })
   } catch (error) {
-    console.error('Error fetching business:', error)
+    logger.error('Error fetching business:', error)
     return NextResponse.json(
       { error: 'Failed to fetch business information' },
       { status: 500 }

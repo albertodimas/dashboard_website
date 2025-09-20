@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -45,7 +46,7 @@ export default function DirectoryPage() {
           setBusinesses(Array.isArray(data) ? data : [])
         }
       } catch (error) {
-        console.error('Error loading businesses:', error)
+        logger.error('Error loading businesses:', error)
       } finally {
         setLoading(false)
       }

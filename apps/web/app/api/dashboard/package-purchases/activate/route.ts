@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error activating package purchase:', error)
+    logger.error('Error activating package purchase:', error)
     return NextResponse.json(
       { error: 'Failed to activate package purchase' },
       { status: 500 }

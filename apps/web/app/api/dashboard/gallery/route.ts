@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { fail, ok } from '@/lib/api-utils'
+import { logger } from '@/lib/logger'
 
 // GET all gallery items for the business (from gallery_items table)
 export async function GET() {
@@ -15,7 +16,7 @@ export async function GET() {
     })
     return NextResponse.json(items)
   } catch (error) {
-    console.error('Error fetching gallery:', error)
+    logger.error('Error fetching gallery:', error)
     return NextResponse.json([], { status: 200 })
   }
 }
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     })
     return ok(item)
   } catch (error) {
-    console.error('Error creating gallery item:', error)
+    logger.error('Error creating gallery item:', error)
     return NextResponse.json({ error: 'Failed to create gallery item' }, { status: 500 })
   }
 }
@@ -86,7 +87,7 @@ export async function PUT(request: NextRequest) {
     })
     return ok(item)
   } catch (error) {
-    console.error('Error updating gallery item:', error)
+    logger.error('Error updating gallery item:', error)
     return NextResponse.json({ error: 'Failed to update gallery item' }, { status: 500 })
   }
 }
@@ -108,7 +109,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.galleryItem.delete({ where: { id } })
     return ok()
   } catch (error) {
-    console.error('Error deleting gallery item:', error)
+    logger.error('Error deleting gallery item:', error)
     return fail('Failed to delete gallery item', 500)
   }
 }

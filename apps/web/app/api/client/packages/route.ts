@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[DEBUG] Customer Session:', {
+    logger.info('[DEBUG] Customer Session:', {
       customerId: session.customerId,
       customerEmail: session.customerEmail,
       customerName: session.customerName
@@ -87,8 +88,8 @@ export async function GET(request: NextRequest) {
       take: 10 // Last 10 appointments
     })
 
-    console.log('[DEBUG] Packages found:', packages.length)
-    console.log('[DEBUG] Appointments found:', appointments.length)
+    logger.info('[DEBUG] Packages found:', packages.length)
+    logger.info('[DEBUG] Appointments found:', appointments.length)
     
     // Calculate stats
     const stats = {
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
       ).length
     }
 
-    console.log('[DEBUG] Stats:', stats)
+    logger.info('[DEBUG] Stats:', stats)
 
     return NextResponse.json({
       packages,
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching customer packages:', error)
+    logger.error('Error fetching customer packages:', error)
     return NextResponse.json(
       { error: 'Failed to fetch packages' },
       { status: 500 }

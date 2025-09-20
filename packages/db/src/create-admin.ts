@@ -10,7 +10,6 @@ async function createAdmin() {
       create: {
         id: '00000000-0000-0000-0000-000000000000',
         name: 'System',
-        slug: 'system',
         subdomain: 'admin',
         email: 'admin@dashboard.com',
         settings: {

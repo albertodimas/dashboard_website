@@ -1,4 +1,5 @@
 import { prisma } from '@dashboard/db'
+import { logger } from './logger'
 
 export async function getBusinessDataBySlug(slug: string) {
   try {
@@ -111,7 +112,7 @@ export async function getBusinessDataBySlug(slug: string) {
       }
     }
   } catch (error) {
-    console.error('Error fetching business by slug:', error)
+    logger.error('Error fetching business by slug:', error)
     return null
   }
 }
@@ -227,7 +228,7 @@ export async function getBusinessDataByCustomSlug(customSlug: string) {
       }
     }
   } catch (error) {
-    console.error('Error fetching business by custom slug:', error)
+    logger.error('Error fetching business by custom slug:', error)
     return null
   }
 }

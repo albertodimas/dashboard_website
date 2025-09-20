@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentUser, createAuthResponse } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const profileSchema = z.object({
   name: z.string().min(2).max(100),
@@ -24,14 +25,14 @@ export async function GET() {
     return NextResponse.json({
       id: user.id,
       name: user.name,
-      lastName: (user as any).lastName || null,
+      lastName: user.lastName || null,
       email: user.email,
       phone: user.phone,
       language: user.language || 'en',
       avatar: user.avatar
     })
   } catch (error) {
-    console.error('Error fetching profile:', error)
+    logger.error('Error fetching profile:', error)
     return NextResponse.json(
       { error: 'Failed to fetch profile' },
       { status: 500 }
@@ -129,7 +130,7 @@ export async function PUT(request: NextRequest) {
       avatar: updatedUser.avatar
     })
   } catch (error) {
-    console.error('Error updating profile:', error)
+    logger.error('Error updating profile:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

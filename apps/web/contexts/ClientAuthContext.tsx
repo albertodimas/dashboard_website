@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -80,7 +81,7 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include'
       })
     } catch (error) {
-      console.error('Error during logout:', error)
+      logger.error('Error during logout:', error)
     }
     
     // Limpiar estado local

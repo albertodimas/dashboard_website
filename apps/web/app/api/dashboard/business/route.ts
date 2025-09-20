@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentUser, getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 // Lista de rutas reservadas del sistema que no pueden ser usadas como slugs
 const RESERVED_ROUTES = [
@@ -70,7 +71,7 @@ export async function GET() {
       enablePackagesModule: business.enablePackagesModule
     })
   } catch (error) {
-    console.error('Error fetching business:', error)
+    logger.error('Error fetching business:', error)
     return createAuthResponse('Failed to fetch business information', 500)
   }
 }
@@ -80,7 +81,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     
-    console.log('Received PUT request body:', JSON.stringify(body, null, 2))
+    logger.info('Received PUT request body:', JSON.stringify(body, null, 2))
     
     const business = await getCurrentBusiness()
 
@@ -193,7 +194,7 @@ export async function PUT(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error updating business:', error)
+    logger.error('Error updating business:', error)
     return createAuthResponse('Failed to update business information', 500)
   }
 }
@@ -283,7 +284,7 @@ export async function PATCH(request: NextRequest) {
       enableStaffModule: updatedBusiness.enableStaffModule
     })
   } catch (error) {
-    console.error('Error updating business customSlug:', error)
+    logger.error('Error updating business customSlug:', error)
     return createAuthResponse('Failed to update business settings', 500)
   }
 }

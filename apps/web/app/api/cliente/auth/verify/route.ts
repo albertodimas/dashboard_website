@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { z } from 'zod'
 import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis } from '@/lib/verification-redis'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     response.cookies.delete('verification-pending')
     return response
   } catch (error) {
-    console.error('Verification error:', error)
+    logger.error('Verification error:', error)
     return NextResponse.json({ error: 'Error al verificar codigo' }, { status: 500 })
   }
 }

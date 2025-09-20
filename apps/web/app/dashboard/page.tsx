@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -57,7 +58,7 @@ export default function DashboardPage() {
             }
           }
         } catch (error) {
-          console.error('Error loading business name:', error)
+          logger.error('Error loading business name:', error)
         }
         
         setLoading(false)
@@ -115,7 +116,7 @@ export default function DashboardPage() {
           }))
         }
       } catch (error) {
-        console.error('Error loading dashboard data:', error)
+        logger.error('Error loading dashboard data:', error)
       }
     }
     

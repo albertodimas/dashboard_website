@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { prisma } from '@dashboard/db'
+import { prisma, PackagePaymentStatus, PurchaseStatus } from '@dashboard/db'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,8 +23,8 @@ export async function POST(request: NextRequest) {
       packageId: z.string().uuid(),
       customerId: z.string().uuid(),
       paymentMethod: z.enum(['CASH', 'TRANSFER']).optional().default('CASH'),
-      paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED']).optional().default('PENDING'),
-      status: z.enum(['PENDING', 'ACTIVE', 'COMPLETED', 'EXPIRED']).optional().default('PENDING'),
+      paymentStatus: z.nativeEnum(PackagePaymentStatus).optional().default(PackagePaymentStatus.PENDING),
+      status: z.nativeEnum(PurchaseStatus).optional().default(PurchaseStatus.PENDING),
     })
     const parsed = bodySchema.safeParse(await request.json())
     if (!parsed.success) {
@@ -47,12 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Only check for existing active purchases if we're creating an active one
-    if (status === 'ACTIVE') {
+    if (status === PurchaseStatus.ACTIVE) {
       const existingPurchase = await prisma.packagePurchase.findFirst({
         where: {
           packageId,
           customerId,
-          status: 'ACTIVE',
+          status: PurchaseStatus.ACTIVE,
           remainingSessions: { gt: 0 }
         }
       })
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate expiry date if validity days are set and package is active
     let expiryDate = null
-    if (packageDetails.validityDays && status === 'ACTIVE') {
+    if (packageDetails.validityDays && status === PurchaseStatus.ACTIVE) {
       expiryDate = new Date()
       expiryDate.setDate(expiryDate.getDate() + packageDetails.validityDays)
     }
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creating package purchase:', error)
+    logger.error('Error creating package purchase:', error)
     return NextResponse.json(
       { error: 'Failed to create package purchase' },
       { status: 500 }
@@ -133,17 +134,10 @@ export async function GET(request: NextRequest) {
     }
     const { customerId, businessId } = parsed.data
 
-    const whereClause: {
-      customerId: string;
-      status: string;
-      businessId?: string;
-    } = {
+    const whereClause = {
       customerId,
-      status: 'ACTIVE'
-    }
-
-    if (businessId) {
-      whereClause.businessId = businessId
+      status: PurchaseStatus.ACTIVE,
+      ...(businessId ? { businessId } : {}),
     }
 
     const purchases = await prisma.packagePurchase.findMany({
@@ -181,7 +175,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching package purchases:', error)
+    logger.error('Error fetching package purchases:', error)
     return NextResponse.json(
       { error: 'Failed to fetch package purchases' },
       { status: 500 }

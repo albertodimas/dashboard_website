@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -56,7 +57,7 @@ export default function CategoriesPage() {
         setCategories(Array.isArray(data) ? data : [])
       }
     } catch (error) {
-      console.error('Error loading categories:', error)
+      logger.error('Error loading categories:', error)
       setCategories([])
     } finally {
       setLoading(false)
@@ -91,7 +92,7 @@ export default function CategoriesPage() {
         }
       }
     } catch (error) {
-      console.error('Error checking services:', error)
+      logger.error('Error checking services:', error)
     }
 
     const ok = await confirm({
@@ -113,7 +114,7 @@ export default function CategoriesPage() {
           toast(t('deleted') || 'Deleted', 'success')
         }
       } catch (error) {
-        console.error('Error deleting category:', error)
+        logger.error('Error deleting category:', error)
         toast(t('failedToDeleteCategory') || 'Failed to delete category', 'error')
       } finally {
         setSaving(false)
@@ -172,7 +173,7 @@ export default function CategoriesPage() {
       
       setFormData({ name: '', order: 0 })
     } catch (error) {
-      console.error('Error saving category:', error)
+      logger.error('Error saving category:', error)
       toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
     } finally {
       setSaving(false)
@@ -211,7 +212,7 @@ export default function CategoriesPage() {
         })
       }
     } catch (error) {
-      console.error('Error updating category order:', error)
+      logger.error('Error updating category order:', error)
       await loadCategories() // Reload on error
     } finally {
       setSaving(false)

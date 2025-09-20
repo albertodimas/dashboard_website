@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'
 import { setCode } from '@/lib/verification-redis'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Register error:', error)
+    logger.error('Register error:', error)
     return NextResponse.json(
       { error: 'Error al crear cuenta' },
       { status: 500 }

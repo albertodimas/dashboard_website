@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Clock, MapPin, User, ArrowLeft, X, Check } from 'lucide-react'
@@ -42,21 +43,12 @@ export default function ClientAppointmentsPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming')
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
 
-  useEffect(() => {
-    const token = localStorage.getItem('clientToken')
-    if (!token) {
-      router.push('/cliente/login')
-      return
-    }
-    fetchAppointments(token)
-  }, [])
-
-  const fetchAppointments = async (token: string) => {
+  const fetchAppointments = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/cliente/appointments', {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       if (!response.ok) {
@@ -66,11 +58,21 @@ export default function ClientAppointmentsPage() {
       const data = await response.json()
       setAppointments(data.appointments || [])
     } catch (error) {
-      console.error('Error fetching appointments:', error)
+      logger.error('Error fetching appointments:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('clientToken')
+    if (!token) {
+      router.push('/cliente/login')
+      return
+    }
+
+    void fetchAppointments(token)
+  }, [fetchAppointments, router])
 
   const handleCancelAppointment = async (appointmentId: string) => {
     const ok = await confirm({
@@ -100,7 +102,7 @@ export default function ClientAppointmentsPage() {
         toast('No se pudo cancelar la cita', 'error')
       }
     } catch (error) {
-      console.error('Error canceling appointment:', error)
+      logger.error('Error canceling appointment:', error)
     }
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { ok, fail } from '@/lib/api-utils'
+import { logger } from '@/lib/logger'
 
 // GET all gallery categories for the business
 export async function GET() {
@@ -26,7 +27,7 @@ export async function GET() {
     const categories = settings.galleryCategories || []
     return NextResponse.json(categories)
   } catch (error) {
-    console.error('Error fetching gallery categories:', error)
+    logger.error('Error fetching gallery categories:', error)
     return NextResponse.json([], { status: 200 })
   }
 }
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       return ok(newCategory)
     }
   } catch (error) {
-    console.error('Error creating gallery category:', error)
+    logger.error('Error creating gallery category:', error)
     return fail('Failed to create gallery category', 500)
   }
 }
@@ -110,7 +111,7 @@ export async function PUT(request: NextRequest) {
     await prisma.business.update({ where: { id: business.id }, data: { settings: { ...settings, galleryCategories: categories } } })
     return ok()
   } catch (error) {
-    console.error('Error updating gallery category:', error)
+    logger.error('Error updating gallery category:', error)
     return fail('Failed to update gallery category', 500)
   }
 }
@@ -135,7 +136,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.business.update({ where: { id: business.id }, data: { settings: { ...settings, galleryCategories: categories } } })
     return ok()
   } catch (error) {
-    console.error('Error deleting gallery category:', error)
+    logger.error('Error deleting gallery category:', error)
     return fail('Failed to delete gallery category', 500)
   }
 }

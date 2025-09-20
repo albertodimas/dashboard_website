@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../src/index'
 
 type CustomerLite = {
@@ -68,7 +69,7 @@ async function mergeBusinessCustomers(fromId: string, toId: string, dryRun: bool
           totalVisits: existing.totalVisits + (r.totalVisits || 0),
           totalSpent: existing.totalSpent + (r.totalSpent || 0),
           isActive: existing.isActive || r.isActive,
-          metadata: existing.metadata,
+          metadata: (existing.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
         }
       })
       await prisma.businessCustomer.delete({ where: { id: r.id } })

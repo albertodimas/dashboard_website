@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format } from 'date-fns'
+import { logger } from '@/lib/logger'
 
 // GET business metrics and reports
 export async function GET(request: NextRequest) {
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest) {
     if (!business) {
       return createAuthResponse('Business not found', 404)
     }
+
+    const businessSettings = business.settings as { enableStaffModule?: boolean } | null | undefined
+    const businessFeatures = business.features as { enableStaffModule?: boolean } | null | undefined
+    const staffModuleEnabled = Boolean(
+      businessSettings?.enableStaffModule ?? businessFeatures?.enableStaffModule
+    )
 
     // Calculate date ranges based on period
     let start: Date
@@ -321,9 +328,9 @@ export async function GET(request: NextRequest) {
 
     // Get staff reports if staff module is enabled
     let staffReports = null
-    if (business.enableStaffModule) {
+    if (staffModuleEnabled) {
       // Get all staff members
-      const staffMembers = await prisma.staffMember.findMany({
+      const staffMembers = await prisma.staff.findMany({
         where: {
           businessId: business.id
         }
@@ -487,7 +494,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error fetching reports:', error)
+    logger.error('Error fetching reports:', error)
     return NextResponse.json(
       { error: 'Failed to fetch reports' },
       { status: 500 }

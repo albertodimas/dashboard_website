@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -215,7 +216,7 @@ export async function GET() {
       }
     })
   } catch (error) {
-    console.error('Init error:', error)
+    logger.error('Init error:', error)
     return NextResponse.json(
       { error: 'Failed to initialize system' },
       { status: 500 }

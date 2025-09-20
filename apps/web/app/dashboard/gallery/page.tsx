@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -71,7 +72,7 @@ export default function GalleryManagementPage() {
         setGalleryItems(Array.isArray(data) ? data : [])
       }
     } catch (error) {
-      console.error('Error loading gallery:', error)
+      logger.error('Error loading gallery:', error)
       setGalleryItems([])
     } finally {
       setLoading(false)
@@ -90,7 +91,7 @@ export default function GalleryManagementPage() {
         }
       }
     } catch (error) {
-      console.error('Error loading categories:', error)
+      logger.error('Error loading categories:', error)
       setAvailableCategories([])
     }
   }
@@ -144,7 +145,7 @@ export default function GalleryManagementPage() {
         toast(data.error || (t('failedToSaveGalleryItem') || 'Failed to save gallery item'), 'error')
       }
     } catch (error) {
-      console.error('Error saving gallery item:', error)
+      logger.error('Error saving gallery item:', error)
       toast(t('failedToSaveGalleryItem') || 'Failed to save gallery item', 'error')
     } finally {
       setSaving(false)
@@ -178,7 +179,7 @@ export default function GalleryManagementPage() {
       setFormData((prev) => ({ ...prev, url: data.url }))
       toast(t('uploaded') || 'Uploaded', 'success')
     } catch (e) {
-      console.error('Upload error:', e)
+      logger.error('Upload error:', e)
       toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
     } finally {
       setUploading(false)
@@ -204,7 +205,7 @@ export default function GalleryManagementPage() {
           toast(t('deleted') || 'Deleted', 'success')
         }
       } catch (error) {
-        console.error('Error deleting gallery item:', error)
+        logger.error('Error deleting gallery item:', error)
         toast(t('failedToDeleteGalleryItem') || 'Failed to delete gallery item', 'error')
       } finally {
         setSaving(false)
@@ -423,7 +424,7 @@ export default function GalleryManagementPage() {
                                     toast(t('uploaded') || 'Imported', 'success')
                                   }
                                 } catch (e) {
-                                  console.error('Import error:', e)
+                                  logger.error('Import error:', e)
                                   toast(t('failedToUploadImage') || 'Failed to import image', 'error')
                                 } finally {
                                   setImporting(false)
@@ -517,7 +518,7 @@ export default function GalleryManagementPage() {
                                     setNewCategory('')
                                   }
                                 } catch (err) {
-                                  console.error('Error creating category:', err)
+                                  logger.error('Error creating category:', err)
                                   toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
                                 } finally {
                                   setShowNewCategory(false)

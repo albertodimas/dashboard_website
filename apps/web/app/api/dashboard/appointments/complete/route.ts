@@ -3,6 +3,7 @@ import { prisma } from '@dashboard/db'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { getReviewRequestEmailTemplate } from '@/lib/email-templates'
 import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       text: emailData.text
     })
 
-    console.log('Review link generated:', reviewLink)
+    logger.info('Review link generated:', reviewLink)
 
     return NextResponse.json({
       success: true,
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
         : 'Email not sent (service not configured). Review link available above.'
     })
   } catch (error) {
-    console.error('Error completing appointment:', error)
+    logger.error('Error completing appointment:', error)
     return NextResponse.json(
       { error: 'Failed to complete appointment' },
       { status: 500 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 
 export interface LightboxItem {
@@ -27,8 +27,8 @@ export default function Lightbox({ items, index = 0, onClose }: LightboxProps) {
 
   const total = items?.length || 0
 
-  const goPrev = () => setCurrent((c) => (c - 1 + total) % total)
-  const goNext = () => setCurrent((c) => (c + 1) % total)
+  const goPrev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total])
+  const goNext = useCallback(() => setCurrent((c) => (c + 1) % total), [total])
 
   // Keyboard navigation
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function Lightbox({ items, index = 0, onClose }: LightboxProps) {
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  }, [goNext, goPrev, onClose])
 
   // Prevent body scroll while open
   useEffect(() => {

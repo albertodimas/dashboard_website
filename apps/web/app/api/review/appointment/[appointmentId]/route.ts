@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -59,7 +60,7 @@ export async function GET(
       } : null
     })
   } catch (error) {
-    console.error('Error fetching appointment:', error)
+    logger.error('Error fetching appointment:', error)
     return NextResponse.json(
       { error: 'Failed to fetch appointment details' },
       { status: 500 }

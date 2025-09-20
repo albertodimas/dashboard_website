@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyClientToken } from '@/lib/client-auth'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Error checking auth:', error)
+    logger.error('Error checking auth:', error)
     return NextResponse.json({ 
       authenticated: false,
       customer: null 

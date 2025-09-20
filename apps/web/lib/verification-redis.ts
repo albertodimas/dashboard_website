@@ -39,7 +39,7 @@ export async function setCode(email: string, code: string, ttlSeconds: number = 
 export async function getCode(email: string): Promise<string | null> {
   const redis = getRedis()
   const key = CODE_PREFIX + email.toLowerCase()
-  return await redis.get(key)
+  return redis.get(key)
 }
 
 export async function getData<T = any>(email: string): Promise<T | null> {

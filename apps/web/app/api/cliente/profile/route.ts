@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { jwtVerify, SignJWT } from 'jose'
+import { logger } from '@/lib/logger'
 
 // Use same client token secret as other cliente endpoints
 const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error al obtener perfil:', error)
+    logger.error('Error al obtener perfil:', error)
     return NextResponse.json(
       { error: 'Error al obtener el perfil' },
       { status: 500 }
@@ -205,7 +206,7 @@ export async function PUT(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Error al actualizar perfil:', error)
+    logger.error('Error al actualizar perfil:', error)
     return NextResponse.json(
       { error: 'Error al actualizar el perfil' },
       { status: 500 }

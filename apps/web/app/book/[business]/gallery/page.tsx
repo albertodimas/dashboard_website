@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -53,7 +54,7 @@ export default function GalleryPage() {
           setGalleryItems([])
         }
       } catch (error) {
-        console.error('Error loading business info or gallery:', error)
+        logger.error('Error loading business info or gallery:', error)
         setGalleryItems([])
       } finally {
         setLoading(false)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 // GET all active businesses for public directory
 export async function GET() {
@@ -66,7 +67,7 @@ export async function GET() {
 
     return NextResponse.json(formattedBusinesses)
   } catch (error) {
-    console.error('Error fetching businesses:', error)
+    logger.error('Error fetching businesses:', error)
     return NextResponse.json(
       { error: 'Failed to fetch businesses' },
       { status: 500 }

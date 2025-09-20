@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import DashboardNav from '@/components/DashboardNav'
 
@@ -24,7 +24,7 @@ export default function ProjectRequestsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -38,9 +38,9 @@ export default function ProjectRequestsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
-  useEffect(() => { load() }, [statusFilter])
+  useEffect(() => { void load() }, [load])
 
   const changeStatus = async (id: string, status: string) => {
     try {

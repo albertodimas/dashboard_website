@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -50,7 +51,7 @@ export default function GalleryCategoriesPage() {
         setCategories(Array.isArray(data) ? data : [])
       }
     } catch (error) {
-      console.error('Error loading gallery categories:', error)
+      logger.error('Error loading gallery categories:', error)
       setCategories([])
     } finally {
       setLoading(false)
@@ -86,7 +87,7 @@ export default function GalleryCategoriesPage() {
         }
       }
     } catch (err) {
-      console.error('Error checking gallery items:', err)
+      logger.error('Error checking gallery items:', err)
     }
 
     const ok = await confirm({
@@ -107,7 +108,7 @@ export default function GalleryCategoriesPage() {
           toast((data && data.error) || (t('failedToDeleteCategory') || 'Failed to delete category'), 'error')
         }
       } catch (error) {
-        console.error('Error deleting gallery category:', error)
+        logger.error('Error deleting gallery category:', error)
         toast(t('failedToDeleteCategory') || 'Failed to delete category', 'error')
       } finally {
         setSaving(false)
@@ -160,7 +161,7 @@ export default function GalleryCategoriesPage() {
       }
       setFormData({ name: '', order: 0 })
     } catch (error) {
-      console.error('Error saving gallery category:', error)
+      logger.error('Error saving gallery category:', error)
       toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
     } finally {
       setSaving(false)
@@ -189,7 +190,7 @@ export default function GalleryCategoriesPage() {
         })
       }
     } catch (error) {
-      console.error('Error updating gallery category order:', error)
+      logger.error('Error updating gallery category order:', error)
       await loadCategories()
     } finally {
       setSaving(false)
@@ -265,7 +266,7 @@ export default function GalleryCategoriesPage() {
                       toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
                     }
                   } catch (err) {
-                    console.error('Error in bulk reassign:', err)
+                    logger.error('Error in bulk reassign:', err)
                     toast(t('failedToSaveCategory') || 'Failed to save category', 'error')
                   } finally {
                     setSaving(false)

@@ -1,3 +1,4 @@
+import { logger } from './logger'
 /**
  * Utilidades para redimensionar y comprimir imágenes en el cliente
  * antes de subirlas al servidor
@@ -126,7 +127,7 @@ export async function compressImage(
       
       attempts++
     } catch (error) {
-      console.error('Error compressing image:', error)
+      logger.error('Error compressing image:', error)
       break
     }
   }
@@ -141,7 +142,7 @@ export async function compressImage(
         0.7   // Calidad más baja
       )
     } catch (error) {
-      console.error('Error in aggressive compression:', error)
+      logger.error('Error in aggressive compression:', error)
     }
   }
   

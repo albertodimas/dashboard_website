@@ -10,15 +10,8 @@ async function tableExists(table: string) {
 async function main() {
   // Ensure tables exist
   await prisma.$executeRawUnsafe(`SELECT 1`)
-  const ensure = await import('./create-business-categories-tables.js').catch(() => null)
-  if (ensure?.default) {
-    // noop
-  }
-  // Using direct call since tsx entrypoint will compile both
-  await (async () => {
-    const create = await import('./create-business-categories-tables')
-    return create
-  })()
+  // Ensure helper exists if compiled output is available
+  await import('./create-business-categories-tables.js').catch(() => null)
 
   const hasSvc = await tableExists('business_service_categories')
   const hasGal = await tableExists('business_gallery_categories')

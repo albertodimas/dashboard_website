@@ -1,3 +1,4 @@
+import { logger } from './logger'
 // Solo importar sharp en el servidor
 let sharp: any
 if (typeof window === 'undefined') {
@@ -88,7 +89,7 @@ export async function processAndSaveImage(
     // Retornar solo el ID (sin extensión)
     return id
   } catch (error) {
-    console.error('Error processing image:', error)
+    logger.error('Error processing image:', error)
     throw new Error('Failed to process image')
   }
 }

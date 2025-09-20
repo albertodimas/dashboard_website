@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import jwt from 'jsonwebtoken'
+import { logger } from '@/lib/logger'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
@@ -100,7 +101,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Cancel appointment error:', error)
+    logger.error('Cancel appointment error:', error)
     return NextResponse.json(
       { error: 'Error al cancelar la cita' },
       { status: 500 }

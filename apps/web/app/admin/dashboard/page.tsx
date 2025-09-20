@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -101,7 +102,7 @@ export default function AdminDashboardPage() {
         setCategories(data.filter((cat: Category) => cat.isActive))
       }
     } catch (error) {
-      console.error('Error loading categories:', error)
+      logger.error('Error loading categories:', error)
     }
   }
 
@@ -115,7 +116,7 @@ export default function AdminDashboardPage() {
       const data = await response.json()
       setBusinesses(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Error loading businesses:', error)
+      logger.error('Error loading businesses:', error)
     } finally {
       setLoading(false)
     }
@@ -149,7 +150,7 @@ export default function AdminDashboardPage() {
       setSelectedBusiness(null)
       await loadBusinesses()
     } catch (error) {
-      console.error('Error blocking business:', error)
+      logger.error('Error blocking business:', error)
       toast(t('failedToBlockBusiness') || 'Failed to block business', 'error')
     } finally {
       setSaving(false)
@@ -185,7 +186,7 @@ export default function AdminDashboardPage() {
         await loadBusinesses()
         toast(language.trim() === 'en' ? 'Business unblocked' : 'Negocio desbloqueado', 'success')
       } catch (error) {
-        console.error('Error unblocking business:', error)
+        logger.error('Error unblocking business:', error)
         toast(t('failedToUnblockBusiness') || 'Failed to unblock business', 'error')
       } finally {
         setSaving(false)
@@ -216,7 +217,7 @@ export default function AdminDashboardPage() {
         await loadBusinesses()
         toast(language.trim() === 'en' ? 'Business deleted' : 'Negocio eliminado', 'success')
       } catch (error) {
-        console.error('Error deleting business:', error)
+        logger.error('Error deleting business:', error)
         toast(t('failedToDeleteBusiness') || 'Failed to delete business', 'error')
       } finally {
         setSaving(false)
@@ -241,7 +242,7 @@ export default function AdminDashboardPage() {
       }
       await loadBusinesses()
     } catch (error) {
-      console.error('Error updating category:', error)
+      logger.error('Error updating category:', error)
       toast(language.trim() === 'en' 
         ? 'Failed to update category' 
         : 'Error al actualizar la categoría', 'error')
@@ -524,7 +525,7 @@ export default function AdminDashboardPage() {
                                     : (t('staffModuleDisabledSuccess') || 'Staff module disabled successfully'), 'success'
                                   )
                                 } catch (error) {
-                                  console.error('Error toggling staff module:', error)
+                                  logger.error('Error toggling staff module:', error)
                                   toast(t('failedToggleStaffModule') || 'Failed to toggle staff module', 'error')
                                 } finally {
                                   setSaving(false)
@@ -563,7 +564,7 @@ export default function AdminDashboardPage() {
                                     : (t('packagesModuleDisabledSuccess') || 'Packages module disabled successfully'), 'success'
                                   )
                                 } catch (error) {
-                                  console.error('Error toggling packages module:', error)
+                                  logger.error('Error toggling packages module:', error)
                                   toast(t('failedTogglePackagesModule') || 'Failed to toggle packages module', 'error')
                                 } finally {
                                   setSaving(false)

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Package, Calendar, Clock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'
@@ -34,21 +35,12 @@ export default function ClientPackagesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active')
 
-  useEffect(() => {
-    const token = localStorage.getItem('clientToken')
-    if (!token) {
-      router.push('/cliente/login')
-      return
-    }
-    fetchPackages(token)
-  }, [])
-
-  const fetchPackages = async (token: string) => {
+  const fetchPackages = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/cliente/packages', {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       if (!response.ok) {
@@ -58,11 +50,21 @@ export default function ClientPackagesPage() {
       const data = await response.json()
       setPackages(data.packages || [])
     } catch (error) {
-      console.error('Error fetching packages:', error)
+      logger.error('Error fetching packages:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('clientToken')
+    if (!token) {
+      router.push('/cliente/login')
+      return
+    }
+
+    void fetchPackages(token)
+  }, [fetchPackages, router])
 
   const activePackages = packages.filter(pkg => 
     pkg.status === 'ACTIVE' && 

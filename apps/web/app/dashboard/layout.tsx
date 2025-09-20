@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState } from 'react'
 import SupportButton from '@/components/dashboard/SupportButton'
 
@@ -27,7 +28,7 @@ export default function DashboardLayout({
         setUser(data.user)
       })
       .catch(err => {
-        console.error('Error loading user:', err)
+        logger.error('Error loading user:', err)
       })
 
     // Load business name
@@ -42,7 +43,7 @@ export default function DashboardLayout({
         }
       })
       .catch(err => {
-        console.error('Error loading business:', err)
+        logger.error('Error loading business:', err)
       })
   }, [])
 

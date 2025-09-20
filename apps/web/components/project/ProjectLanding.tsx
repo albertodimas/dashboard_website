@@ -29,7 +29,7 @@ export default function ProjectLanding({ business }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const reviews = business.reviews || []
+  const reviews = useMemo(() => business.reviews || [], [business.reviews])
   // Apply body text scale based on UI setting
   useEffect(() => {
     const ui = (business.settings?.ui as any) || {}

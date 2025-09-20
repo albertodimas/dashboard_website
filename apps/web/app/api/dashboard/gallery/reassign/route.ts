@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 // POST reassign gallery items from one category to another (gallery_items table)
 export async function POST(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, updated: result.count })
   } catch (error) {
-    console.error('Error reassigning gallery categories:', error)
+    logger.error('Error reassigning gallery categories:', error)
     return NextResponse.json({ error: 'Failed to reassign gallery item categories' }, { status: 500 })
   }
 }

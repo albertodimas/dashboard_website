@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { SignJWT, jwtVerify } from 'jose'
+import { logger } from '@/lib/logger'
 
 // Use same client token secret as login/middleware
 const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Token refresh error:', error)
+    logger.error('Token refresh error:', error)
     return NextResponse.json(
       { error: 'Error al actualizar token' },
       { status: 500 }

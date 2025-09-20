@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Package, Calendar, Clock, User, LogOut, ChevronRight, 
@@ -55,31 +56,31 @@ interface Appointment {
 interface Business {
   id: string
   name: string
-  description?: string
-  logo?: string
-  imageUrl?: string
-  address: string
-  city: string
-  state: string
+  description?: string | null
+  logo?: string | null
+  imageUrl?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
   slug: string
-  customSlug?: string
-  businessType?: string
-  appointmentCount?: number
-  serviceCount?: number
-  rating?: number
-  reviewCount?: number
-  isPremium?: boolean
+  customSlug?: string | null
+  businessType?: string | null
+  appointmentCount?: number | null
+  serviceCount?: number | null
+  rating?: number | null
+  reviewCount?: number | null
+  isPremium?: boolean | null
   category?: {
     id: string
-    name: string
-    slug: string
-    icon?: string
-    color?: string
-  }
-  customerId?: string
-  phone?: string
-  email?: string
-  zipCode?: string
+    name?: string | null
+    slug?: string | null
+    icon?: string | null
+    color?: string | null
+  } | null
+  customerId?: string | null
+  phone?: string | null
+  email?: string | null
+  zipCode?: string | null
 }
 
 // Componente de sección de perfil
@@ -393,7 +394,7 @@ export default function ClientDashboard() {
       const from = searchParams.get('from')
       if (from) {
         const decodedFrom = decodeURIComponent(from)
-        console.log('🔍 [dashboard] From parameter:', decodedFrom)
+        logger.info('🔍 [dashboard] From parameter:', decodedFrom)
         
         let businessSlugOrId = null
         
@@ -424,7 +425,7 @@ export default function ClientDashboard() {
         }
         
         if (businessSlugOrId) {
-          console.log('🎯 [dashboard] Preferred business detected:', businessSlugOrId)
+          logger.info('🎯 [dashboard] Preferred business detected:', businessSlugOrId)
           return businessSlugOrId
         }
       }
@@ -432,57 +433,9 @@ export default function ClientDashboard() {
     return null
   })
 
-  useEffect(() => {
-    // Obtener el preferredBusinessId de la URL
-    let businessIdFromUrl: string | null = null
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search)
-      const from = searchParams.get('from')
-      if (from) {
-        const decodedFrom = decodeURIComponent(from)
-        console.log('🔍 [useEffect] From parameter:', decodedFrom)
-        
-        let businessSlugOrId = null
-        
-        if (decodedFrom.includes('://')) {
-          const url = new URL(decodedFrom)
-          const path = url.pathname
-          const pathMatch = path.match(/^\/([^\/\?#]+)/)
-          if (pathMatch) {
-            businessSlugOrId = pathMatch[1]
-            if (businessSlugOrId === 'cliente') {
-              businessSlugOrId = null
-            }
-          }
-        } else if (decodedFrom.startsWith('/')) {
-          const businessMatch = decodedFrom.match(/\/(?:business|b)\/([^\/\?#]+)/)
-          const directMatch = decodedFrom.match(/^\/([^\/\?#]+)/)
-          
-          if (businessMatch) {
-            businessSlugOrId = businessMatch[1]
-          } else if (directMatch) {
-            businessSlugOrId = directMatch[1]
-            if (businessSlugOrId === 'cliente') {
-              businessSlugOrId = null
-            }
-          }
-        } else {
-          businessSlugOrId = decodedFrom
-        }
-        
-        if (businessSlugOrId) {
-          console.log('🎯 [useEffect] Preferred business detected:', businessSlugOrId)
-          businessIdFromUrl = businessSlugOrId
-        }
-      }
-    }
-    
-    fetchDashboardData(businessIdFromUrl)
-  }, [])
-
-  const fetchDashboardData = async (preferredBizId: string | null = null) => {
+  const fetchDashboardData = useCallback(async (preferredBizId: string | null = null) => {
     try {
-      console.log('🚀 [fetchDashboardData] Starting...')
+      logger.info('🚀 [fetchDashboardData] Starting...')
       // Primero intenta leer el perfil actual de forma directa
       try {
         const meRes = await fetch('/api/cliente/auth/me', { credentials: 'include' })
@@ -493,14 +446,14 @@ export default function ClientDashboard() {
       } catch {}
       
       // Fetch dashboard data
-      console.log('?? [fetchDashboardData] Fetching /api/cliente/dashboard')
+      logger.info('?? [fetchDashboardData] Fetching /api/cliente/dashboard')
       const qs = preferredBizId ? ('?from=' + encodeURIComponent(preferredBizId)) : ''
       const dashboardResponse = await fetch('/api/cliente/dashboard' + qs, { credentials: 'include' })
 
-      console.log('📦 [fetchDashboardData] Dashboard response status:', dashboardResponse.status)
+      logger.info('📦 [fetchDashboardData] Dashboard response status:', dashboardResponse.status)
       if (dashboardResponse.ok) {
         const data = await dashboardResponse.json()
-        console.log('✅ [fetchDashboardData] Dashboard data received:', {
+        logger.info('✅ [fetchDashboardData] Dashboard data received:', {
           packagesCount: data.packages?.length || 0,
           appointmentsCount: data.appointments?.length || 0,
           myBusinessesCount: data.myBusinesses?.length || 0,
@@ -561,13 +514,13 @@ export default function ClientDashboard() {
         
         // Handle businesses data
         if (data.myBusinesses && data.myBusinesses.length > 0) {
-          console.log('✅ [fetchDashboardData] Setting myBusinesses with data:', data.myBusinesses)
+          logger.info('✅ [fetchDashboardData] Setting myBusinesses with data:', data.myBusinesses)
           
           // Reordenar si hay un negocio preferido
           let orderedBusinesses = data.myBusinesses
           const bizIdToUse = preferredBizId || preferredBusinessId || data.referringBusinessId
           if (bizIdToUse) {
-            console.log('🔍 [fetchDashboardData] Aplicando orden con preferido:', bizIdToUse)
+            logger.info('🔍 [fetchDashboardData] Aplicando orden con preferido:', bizIdToUse)
             const preferredIndex = orderedBusinesses.findIndex((b: Business) => 
               b.id === bizIdToUse || 
               b.slug === bizIdToUse || 
@@ -582,13 +535,13 @@ export default function ClientDashboard() {
                 ...orderedBusinesses.slice(0, preferredIndex),
                 ...orderedBusinesses.slice(preferredIndex + 1)
               ]
-              console.log('🎯 [fetchDashboardData] Reordenado con', preferred.name, 'primero')
+              logger.info('🎯 [fetchDashboardData] Reordenado con', preferred.name, 'primero')
             }
           }
           
           setMyBusinesses(orderedBusinesses)
         } else {
-          console.warn('⚠️ [fetchDashboardData] No businesses found for user')
+          logger.warn('⚠️ [fetchDashboardData] No businesses found for user')
           setMyBusinesses([])
         }
         
@@ -596,19 +549,67 @@ export default function ClientDashboard() {
         setSuggestedBusinesses(data.businessesToExplore || [])
         
       } else if (dashboardResponse.status === 401) {
-        console.error('❌ [fetchDashboardData] Not authenticated, redirecting to login')
+        logger.error('❌ [fetchDashboardData] Not authenticated, redirecting to login')
         router.push('/cliente/login')
         return
       } else {
-        console.error('❌ [fetchDashboardData] Dashboard request failed:', dashboardResponse.status)
+        logger.error('❌ [fetchDashboardData] Dashboard request failed:', dashboardResponse.status)
       }
     } catch (error) {
-      console.error('❌ [fetchDashboardData] Error:', error)
+      logger.error('❌ [fetchDashboardData] Error:', error)
     } finally {
-      console.log('🏁 [fetchDashboardData] Finished loading')
+      logger.info('🏁 [fetchDashboardData] Finished loading')
       setIsLoading(false)
     }
-  }
+  }, [preferredBusinessId, router])
+
+  useEffect(() => {
+    // Obtener el preferredBusinessId de la URL
+    let businessIdFromUrl: string | null = null
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      const from = searchParams.get('from')
+      if (from) {
+        const decodedFrom = decodeURIComponent(from)
+        logger.info('🎯 [useEffect] From parameter:', decodedFrom)
+
+        let businessSlugOrId = null
+
+        if (decodedFrom.includes('://')) {
+          const url = new URL(decodedFrom)
+          const path = url.pathname
+          const pathMatch = path.match(/^\/([^\/\?#]+)/)
+          if (pathMatch) {
+            businessSlugOrId = pathMatch[1]
+            if (businessSlugOrId === 'cliente') {
+              businessSlugOrId = null
+            }
+          }
+        } else if (decodedFrom.startsWith('/')) {
+          const businessMatch = decodedFrom.match(/\/(?:business|b)\/([^\/\?#]+)/)
+          const directMatch = decodedFrom.match(/^\/([^\/\?#]+)/)
+
+          if (businessMatch) {
+            businessSlugOrId = businessMatch[1]
+          } else if (directMatch) {
+            businessSlugOrId = directMatch[1]
+            if (businessSlugOrId === 'cliente') {
+              businessSlugOrId = null
+            }
+          }
+        } else {
+          businessSlugOrId = decodedFrom
+        }
+
+        if (businessSlugOrId) {
+          logger.info('🎯 [useEffect] Preferred business detected:', businessSlugOrId)
+          businessIdFromUrl = businessSlugOrId
+        }
+      }
+    }
+
+    void fetchDashboardData(businessIdFromUrl)
+  }, [fetchDashboardData])
 
   const handleLogout = async () => {
     try {
@@ -626,7 +627,7 @@ export default function ClientDashboard() {
         router.push('/cliente/login')
       }
     } catch (error) {
-      console.error('Error durante logout:', error)
+      logger.error('Error durante logout:', error)
       // Incluso si hay error, redirigir
       router.push('/cliente/login')
     }
@@ -716,7 +717,7 @@ export default function ClientDashboard() {
       {/* Botón Flotante de Ver Servicios - Siempre Visible */}
       {myBusinesses.length === 1 && (
         <Link
-          href={`/${myBusinesses[0].customSlug || myBusinesses[0].slug}#services`}
+          href={`/${myBusinesses[0].customSlug ?? myBusinesses[0].slug}#services`}
           className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all flex items-center group"
         >
           <Calendar className="mr-0 group-hover:mr-2 transition-all" size={24} />
@@ -749,13 +750,13 @@ export default function ClientDashboard() {
                 {myBusinesses.map((business) => (
                   <Link
                     key={business.id}
-                    href={`/${business.customSlug || business.slug}#services`}
+                    href={`/${business.customSlug ?? business.slug}#services`}
                     className="flex items-center space-x-3 p-2 hover:bg-green-50 rounded-lg transition-colors"
                     onClick={() => setShowBusinessSelector(false)}
                   >
                     {(business.imageUrl || business.logo) && (
                       <img 
-                        src={business.imageUrl || business.logo} 
+                        src={(business.imageUrl ?? business.logo) ?? ''} 
                         alt={business.name}
                         className="w-10 h-10 rounded-lg object-cover"
                       />
@@ -987,7 +988,7 @@ export default function ClientDashboard() {
                           <div className="flex items-start space-x-3 mb-3">
                             {(business.imageUrl || business.logo) ? (
                               <img 
-                                src={business.imageUrl || business.logo} 
+                                src={(business.imageUrl ?? business.logo) ?? ''} 
                                 alt={business.name}
                                 className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-gray-200"
                               />
@@ -1001,9 +1002,9 @@ export default function ClientDashboard() {
                                 {business.name}
                               </h3>
                               <p className="text-xs text-gray-600">
-                                {business.city}, {business.state}
+                                {[business.city, business.state].filter(Boolean).join(', ') || 'Ubicación no disponible'}
                               </p>
-                              {business.category && (
+                              {business.category?.name && (
                                 <span className="inline-block px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded mt-1">
                                   {business.category.name}
                                 </span>
@@ -1013,10 +1014,10 @@ export default function ClientDashboard() {
                           
                           <div className="flex items-center justify-between">
                             <div className="text-xs text-gray-500">
-                              <span>{business.serviceCount || 0} servicios</span>
-                              {business.appointmentCount > 0 && (
+                              <span>{business.serviceCount ?? 0} servicios</span>
+                              {(business.appointmentCount ?? 0) > 0 && (
                                 <span className="text-blue-600 font-medium ml-2">
-                                  • {business.appointmentCount} citas
+                                  • {(business.appointmentCount ?? 0)} citas
                                 </span>
                               )}
                             </div>
@@ -1051,13 +1052,13 @@ export default function ClientDashboard() {
                           {suggestedBusinesses.slice(0, 3).map((business) => (
                             <Link
                               key={business.id}
-                              href={`/${business.customSlug || business.slug}`}
+                              href={`/${business.customSlug ?? business.slug}`}
                               className="bg-white/70 backdrop-blur rounded-lg p-3 hover:bg-white hover:shadow-md transition-all group border border-purple-100"
                             >
                               <div className="flex items-center space-x-2">
                                 {(business.imageUrl || business.logo) ? (
                                   <img 
-                                    src={business.imageUrl || business.logo} 
+                                    src={(business.imageUrl ?? business.logo) ?? ''} 
                                     alt={business.name}
                                     className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                                   />
@@ -1070,7 +1071,7 @@ export default function ClientDashboard() {
                                   <h4 className="text-sm font-medium text-gray-900 truncate group-hover:text-purple-600 transition-colors">
                                     {business.name}
                                   </h4>
-                                  {business.category && (
+                                  {business.category?.name && (
                                     <span className="text-xs text-purple-600">
                                       {business.category.name}
                                     </span>
@@ -1214,7 +1215,7 @@ export default function ClientDashboard() {
                 
                 return (
                   <Link
-                    href={`/${businessForNewAppointment.customSlug || businessForNewAppointment.slug}#services`}
+                    href={`/${businessForNewAppointment.customSlug ?? businessForNewAppointment.slug}#services`}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
                     title={`Agendar cita en ${businessForNewAppointment.name}`}
                   >
@@ -1250,7 +1251,7 @@ export default function ClientDashboard() {
                         
                         return (
                           <Link
-                            href={`/${businessToSuggest.customSlug || businessToSuggest.slug}#services`}
+                            href={`/${businessToSuggest.customSlug ?? businessToSuggest.slug}#services`}
                             className="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                           >
                             <Calendar className="mr-2" size={18} />
@@ -1377,7 +1378,7 @@ export default function ClientDashboard() {
                                           </span>
                                           <div className="flex flex-col gap-1.5">
                                             <Link
-                                              href={`/${apt.business.customSlug || apt.business.slug}`}
+                                              href={`/${apt.business.customSlug ?? apt.business.slug}`}
                                               className="px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center justify-center gap-1.5"
                                             >
                                               <ExternalLink size={14} />

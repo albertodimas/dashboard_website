@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Customer login error:', error)
+    logger.error('Customer login error:', error)
     return NextResponse.json(
       { error: 'Failed to login' },
       { status: 500 }

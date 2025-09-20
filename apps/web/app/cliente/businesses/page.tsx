@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, MapPin, Star, Clock, ArrowLeft, Filter } from 'lucide-react'
@@ -8,19 +9,19 @@ import { Search, MapPin, Star, Clock, ArrowLeft, Filter } from 'lucide-react'
 interface Business {
   id: string
   name: string
-  description: string
-  address: string
-  city: string
-  state: string
-  phone: string
-  email: string
+  description?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  phone?: string | null
+  email?: string | null
   slug: string
-  rating: number
-  reviews: number
-  servicesCount: number
-  isPremium: boolean
-  logo?: string
-  coverImage?: string
+  rating?: number | null
+  reviews?: number | null
+  servicesCount?: number | null
+  isPremium?: boolean | null
+  logo?: string | null
+  coverImage?: string | null
 }
 
 export default function ClientBusinessesPage() {
@@ -32,49 +33,56 @@ export default function ClientBusinessesPage() {
   const [selectedCity, setSelectedCity] = useState('')
   const [cities, setCities] = useState<string[]>([])
 
+  const fetchBusinesses = useCallback(async () => {
+    try {
+      const response = await fetch('/api/public/businesses')
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch businesses')
+      }
+
+      const businessList = (await response.json()) as Business[]
+      setBusinesses(businessList)
+      setFilteredBusinesses(businessList)
+
+      const uniqueCities = [
+        ...new Set(
+          businessList
+            .map((b) => b.city)
+            .filter((city): city is string => Boolean(city))
+        ),
+      ]
+      setCities(uniqueCities)
+    } catch (error) {
+      logger.error('Error fetching businesses:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     const token = localStorage.getItem('clientToken')
     if (!token) {
       router.push('/cliente/login')
       return
     }
-    fetchBusinesses()
-  }, [])
 
-  const fetchBusinesses = async () => {
-    try {
-      const response = await fetch('/api/public/businesses')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch businesses')
-      }
-
-      const businessList = await response.json()
-      setBusinesses(businessList)
-      setFilteredBusinesses(businessList)
-      
-      // Extract unique cities
-      const uniqueCities = [...new Set(businessList.map((b: Business) => b.city).filter(Boolean))]
-      setCities(uniqueCities)
-    } catch (error) {
-      console.error('Error fetching businesses:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    void fetchBusinesses()
+  }, [fetchBusinesses, router])
 
   useEffect(() => {
     let filtered = businesses
 
     if (searchTerm) {
-      filtered = filtered.filter(business =>
-        business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        business.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (business) =>
+          business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          business.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
     if (selectedCity) {
-      filtered = filtered.filter(business => business.city === selectedCity)
+      filtered = filtered.filter((business) => business.city === selectedCity)
     }
 
     setFilteredBusinesses(filtered)
@@ -123,8 +131,10 @@ export default function ClientBusinessesPage() {
                 onChange={(e) => setSelectedCity(e.target.value)}
               >
                 <option value="">Todas las ciudades</option>
-                {cities.map(city => (
-                  <option key={city} value={city}>{city}</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
                 ))}
               </select>
             </div>
@@ -148,7 +158,7 @@ export default function ClientBusinessesPage() {
               No se encontraron negocios
             </h3>
             <p className="text-gray-500">
-              {searchTerm || selectedCity 
+              {searchTerm || selectedCity
                 ? 'Intenta con otros términos de búsqueda o filtros'
                 : 'No hay negocios disponibles en este momento'}
             </p>
@@ -167,11 +177,11 @@ export default function ClientBusinessesPage() {
                       Premium
                     </div>
                   )}
-                  
+
                   <h3 className="font-semibold text-lg text-gray-900 mb-2">
                     {business.name}
                   </h3>
-                  
+
                   {business.description && (
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                       {business.description}
@@ -182,28 +192,31 @@ export default function ClientBusinessesPage() {
                     <div className="flex items-center text-sm text-gray-500">
                       <MapPin size={16} className="mr-2 flex-shrink-0" />
                       <span className="truncate">
-                        {business.address}
+                        {business.address ?? 'Dirección no disponible'}
                       </span>
                     </div>
-                    
-                    {business.rating > 0 && (
+
+                    {(business.rating ?? 0) > 0 && (
                       <div className="flex items-center text-sm">
                         <Star size={16} className="mr-1 text-yellow-500 fill-current" />
                         <span className="font-medium text-gray-900">
-                          {business.rating.toFixed(1)}
+                          {(business.rating ?? 0).toFixed(1)}
                         </span>
                         <span className="text-gray-500 ml-1">
-                          ({business.reviews} reseñas)
+                          ({business.reviews ?? 0} reseñas)
                         </span>
                       </div>
                     )}
                   </div>
 
                   {/* Services Count */}
-                  {business.servicesCount > 0 && (
+                  {(business.servicesCount ?? 0) > 0 && (
                     <div className="border-t pt-4">
                       <p className="text-sm text-gray-600">
-                        {business.servicesCount} {business.servicesCount === 1 ? 'servicio disponible' : 'servicios disponibles'}
+                        {business.servicesCount}{' '}
+                        {business.servicesCount === 1
+                          ? 'servicio disponible'
+                          : 'servicios disponibles'}
                       </p>
                     </div>
                   )}

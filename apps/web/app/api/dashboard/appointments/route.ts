@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 // GET all appointments
 export async function GET() {
@@ -41,7 +42,7 @@ export async function GET() {
 
     return NextResponse.json(formattedAppointments)
   } catch (error) {
-    console.error('Error fetching appointments:', error)
+    logger.error('Error fetching appointments:', error)
     return NextResponse.json(
       { error: 'Failed to fetch appointments' },
       { status: 500 }
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ appointment })
   } catch (error) {
-    console.error('Error creating appointment:', error)
+    logger.error('Error creating appointment:', error)
     return NextResponse.json(
       { error: 'Failed to create appointment' },
       { status: 500 }
@@ -294,7 +295,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(formattedAppointment)
   } catch (error) {
-    console.error('Error updating appointment:', error)
+    logger.error('Error updating appointment:', error)
     return NextResponse.json(
       { error: 'Failed to update appointment' },
       { status: 500 }
@@ -321,7 +322,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting appointment:', error)
+    logger.error('Error deleting appointment:', error)
     return NextResponse.json(
       { error: 'Failed to delete appointment' },
       { status: 500 }

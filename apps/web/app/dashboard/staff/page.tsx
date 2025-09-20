@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/DashboardLayout'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -96,10 +97,10 @@ export default function StaffPage() {
   })
 
   useEffect(() => {
-    checkAuthAndLoadData()
-  }, [])
+    void checkAuthAndLoadData()
+  }, [checkAuthAndLoadData])
 
-  const checkAuthAndLoadData = async () => {
+  const checkAuthAndLoadData = useCallback(async () => {
     try {
       const authRes = await fetch('/api/auth/me')
       if (!authRes.ok) {
@@ -119,26 +120,26 @@ export default function StaffPage() {
         }
       }
     } catch (error) {
-      console.error('Error loading data:', error)
+      logger.error('Error loading data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [loadStaff, router])
 
-  const loadStaff = async () => {
+  const loadStaff = useCallback(async () => {
     try {
       const response = await fetch('/api/dashboard/staff')
       if (response.ok) {
         const data = await response.json()
-        console.log('Staff data loaded:', data)
+        logger.info('Staff data loaded:', data)
         setStaff(data)
       } else {
-        console.error('Staff API response not OK:', response.status)
+        logger.error('Staff API response not OK:', response.status)
       }
     } catch (error) {
-      console.error('Error loading staff:', error)
+      logger.error('Error loading staff:', error)
     }
-  }
+  }, [])
 
   const handleAddSpecialty = () => {
     if (specialtyInput.trim() && !formData.specialties.includes(specialtyInput.trim())) {
@@ -227,7 +228,7 @@ export default function StaffPage() {
       // Limpiar mensaje después de 3 segundos
       setTimeout(() => setUploadProgress(''), 3000)
     } catch (error) {
-      console.error('Error uploading photo:', error)
+      logger.error('Error uploading photo:', error)
       toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
       setUploadProgress('')
     } finally {
@@ -274,7 +275,7 @@ export default function StaffPage() {
       setPhotoPreview(null)
       setUploadProgress('')
     } catch (error) {
-      console.error('Error saving staff:', error)
+      logger.error('Error saving staff:', error)
       toast(t('failedToSaveStaffMember') || 'Failed to save staff member', 'error')
     } finally {
       setSaving(false)
@@ -313,7 +314,7 @@ export default function StaffPage() {
     try {
       setSaving(true)
       
-      console.log('Saving schedule data:', scheduleData)
+      logger.info('Saving schedule data:', scheduleData)
       
       const response = await fetch(`/api/dashboard/staff/${selectedStaff.id}/working-hours`, {
         method: 'POST',
@@ -323,7 +324,7 @@ export default function StaffPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('API Error:', errorData)
+        logger.error('API Error:', errorData)
         throw new Error(errorData.error || 'Failed to save schedule')
       }
 
@@ -333,7 +334,7 @@ export default function StaffPage() {
       setShowScheduleModal(false)
       setSelectedStaff(null)
     } catch (error) {
-      console.error('Error saving schedule:', error)
+      logger.error('Error saving schedule:', error)
       toast(t('failedToSaveSchedule') || 'Failed to save schedule', 'error')
     } finally {
       setSaving(false)

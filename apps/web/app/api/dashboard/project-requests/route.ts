@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ requests })
   } catch (e) {
-    console.error('Error fetching project requests:', e)
+    logger.error('Error fetching project requests:', e)
     return createAuthResponse('Failed to fetch project requests', 500)
   }
 }
@@ -40,7 +41,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, request: updated })
   } catch (e) {
-    console.error('Error updating project request:', e)
+    logger.error('Error updating project request:', e)
     return createAuthResponse('Failed to update project request', 500)
   }
 }

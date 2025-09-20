@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
@@ -11,7 +12,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Global application error:', error)
+    logger.error('Global application error:', error)
   }, [error])
 
   return (

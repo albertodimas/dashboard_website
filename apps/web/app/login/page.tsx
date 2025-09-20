@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -38,8 +39,8 @@ export default function LoginPage() {
       }
 
       // Login successful, redirect to dashboard
-      console.log('Login successful:', data)
-      console.log('Redirecting to /dashboard...')
+      logger.info('Login successful:', data)
+      logger.info('Redirecting to /dashboard...')
       router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

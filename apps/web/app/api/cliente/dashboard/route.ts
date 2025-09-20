@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { verifyClientToken } from '@/lib/client-auth'
 import { SignJWT } from 'jose'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   let step = 'start'
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
     })
     
     const customerIds = allCustomers.map(c => c.id)
-    console.log('[Dashboard API] Found customers with same email:', customerIds.length)
+    logger.info('[Dashboard API] Found customers with same email:', customerIds.length)
 
     // Obtener paquetes activos de TODOS los customers con el mismo email
     step = 'fetch-packages'
@@ -133,8 +134,8 @@ export async function GET(request: NextRequest) {
     })
 
     // Debug: Log del customerId
-    console.log('[Dashboard API] CustomerId from token:', decoded.customerId)
-    console.log('[Dashboard API] Using customerIds:', customerIds)
+    logger.info('[Dashboard API] CustomerId from token:', decoded.customerId)
+    logger.info('[Dashboard API] Using customerIds:', customerIds)
     
     // Obtener citas de TODOS los customers con el mismo email (excluyendo las canceladas)
     step = 'fetch-appointments'
@@ -176,7 +177,7 @@ export async function GET(request: NextRequest) {
       }
     })
     
-    console.log('[Dashboard API] Appointments found:', appointments.length)
+    logger.info('[Dashboard API] Appointments found:', appointments.length)
 
     // Crear/activar relaciones BusinessCustomer a partir de actividad (paquetes/citas) si no existen
     try {
@@ -208,12 +209,12 @@ export async function GET(request: NextRequest) {
         )
       }
     } catch (e) {
-      console.warn('[Dashboard API] ensure via activity failed:', (e as any)?.message || e)
+      logger.warn('[Dashboard API] ensure via activity failed:', (e as any)?.message || e)
     }
 
     // Obtener datos del cliente
     step = 'fetch-customer'
-    console.log('[Dashboard API] Getting customer with ID:', decoded.customerId)
+    logger.info('[Dashboard API] Getting customer with ID:', decoded.customerId)
     let customer = await prisma.customer.findUnique({
       where: { id: decoded.customerId },
       select: {
@@ -230,14 +231,14 @@ export async function GET(request: NextRequest) {
         createdAt: true
       }
     })
-    console.log('[Dashboard API] Customer found:', customer ? 'Yes' : 'No')
+    logger.info('[Dashboard API] Customer found:', customer ? 'Yes' : 'No')
     if (customer) {
-      console.log('[Dashboard API] Customer name:', customer.name || 'NULL')
-      console.log('[Dashboard API] Customer lastName:', customer.lastName || 'NULL')
-      console.log('[Dashboard API] Customer email:', customer.email || 'NULL')
-      console.log('[Dashboard API] Customer phone:', customer.phone || 'NULL')
-      console.log('[Dashboard API] Customer address:', customer.address || 'NULL')
-      console.log('[Dashboard API] Customer tenantId:', customer.tenantId || 'NULL')
+      logger.info('[Dashboard API] Customer name:', customer.name || 'NULL')
+      logger.info('[Dashboard API] Customer lastName:', customer.lastName || 'NULL')
+      logger.info('[Dashboard API] Customer email:', customer.email || 'NULL')
+      logger.info('[Dashboard API] Customer phone:', customer.phone || 'NULL')
+      logger.info('[Dashboard API] Customer address:', customer.address || 'NULL')
+      logger.info('[Dashboard API] Customer tenantId:', customer.tenantId || 'NULL')
     }
 
     // Si el customer no existe o está incompleto, buscar el candidato más completo del mismo email
@@ -270,12 +271,12 @@ export async function GET(request: NextRequest) {
                 id: true, name: true, lastName: true, email: true, phone: true, address: true,
                 city: true, state: true, postalCode: true, tenantId: true, createdAt: true
               } })
-              console.log('[Dashboard API] Perfil completado desde otro registro por email')
+              logger.info('[Dashboard API] Perfil completado desde otro registro por email')
             }
           } else {
             // No existe el registro con el id del token (posible cambio reciente). Usar el más completo como fallback
             customer = best as any
-            console.warn('[Dashboard API] Usando cliente alternativo por email (id no encontrado)')
+            logger.warn('[Dashboard API] Usando cliente alternativo por email (id no encontrado)')
           }
           // Emitir nuevo token si el id final difiere del token recibido
           if (customer && decoded.customerId !== customer.id) {
@@ -311,7 +312,7 @@ export async function GET(request: NextRequest) {
           address: true, city: true, state: true, postalCode: true, tenantId: true, createdAt: true
         }
       })
-      console.warn('[Dashboard API] Fallback: usando primer customerId por email')
+      logger.warn('[Dashboard API] Fallback: usando primer customerId por email')
     }
 
     // Ensure BusinessCustomer link for referring business (if any) for this customer (respect unregistered)
@@ -339,7 +340,7 @@ export async function GET(request: NextRequest) {
           })
         }
       } catch (e) {
-        console.warn('[Dashboard API] ensure BusinessCustomer failed:', (e as any)?.message || e)
+        logger.warn('[Dashboard API] ensure BusinessCustomer failed:', (e as any)?.message || e)
       }
     }
  
@@ -485,7 +486,7 @@ export async function GET(request: NextRequest) {
       // Set updated access token to align future requests
       response.cookies.set('client-token', (await (async () => {
         const secretStr = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET!
-        return await new SignJWT({
+        return new SignJWT({
           customerId: customer!.id,
           email: customer!.email,
           name: customer!.name,
@@ -507,7 +508,7 @@ export async function GET(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Dashboard error at step:', step, error)
+    logger.error('Dashboard error at step:', step, error)
     return NextResponse.json(
       { error: 'Error al cargar el dashboard', ...(process.env.NODE_ENV !== 'production' ? { step, details: (error as any)?.message } : {}) },
       { status: 500 }

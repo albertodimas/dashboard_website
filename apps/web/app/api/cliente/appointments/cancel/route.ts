@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { sendEmail } from '@/lib/email'
 import { verifyClientToken } from '@/lib/client-auth'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     
     if (hoursBeforeAppointment < 24) {
       // Aún permitir cancelación pero con advertencia
-      console.log(`[Cliente Cancel] Cancelación tardía: ${hoursBeforeAppointment.toFixed(1)} horas antes`)
+      logger.info(`[Cliente Cancel] Cancelación tardía: ${hoursBeforeAppointment.toFixed(1)} horas antes`)
     }
 
     // Cancelar la cita
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
         })
       }
     } catch (e) {
-      console.warn('[Cliente Cancel] No se pudo enviar email al negocio:', (e as any)?.message || e)
+      logger.warn('[Cliente Cancel] No se pudo enviar email al negocio:', (e as any)?.message || e)
     }
     // Si la cita estaba asociada a un paquete, restaurar la sesión
     if (appointment.packagePurchaseId) {
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
           }
         }
       })
-      console.log(`[Cliente Cancel] Sesión restaurada al paquete ${appointment.packagePurchaseId}`)
+      logger.info(`[Cliente Cancel] Sesión restaurada al paquete ${appointment.packagePurchaseId}`)
     }
 
     return NextResponse.json({
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Cancel appointment error:', error)
+    logger.error('Cancel appointment error:', error)
     return NextResponse.json(
       { error: 'Error al cancelar la cita' },
       { status: 500 }

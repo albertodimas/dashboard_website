@@ -3,6 +3,7 @@ import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanc
 import ProjectLanding from '@/components/project/ProjectLanding'
 import { getOperationMode } from '@/lib/operation-mode'
 import { prisma } from '@dashboard/db'
+import { logger } from '@/lib/logger'
 
 interface CatchAllPageProps {
   params: {
@@ -120,7 +121,7 @@ async function getBusinessByCustomSlug(customSlug: string) {
       }
     }
   } catch (error) {
-    console.error('Error fetching business by custom slug:', error)
+    logger.error('Error fetching business by custom slug:', error)
     return null
   }
 }

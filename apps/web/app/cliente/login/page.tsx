@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { User, Lock, Mail, ArrowRight, UserPlus } from 'lucide-react'
@@ -99,7 +100,7 @@ export default function ClientLoginPage() {
       const from = searchParams.get('from')
       if (from) {
         const decodedFrom = decodeURIComponent(from)
-        console.log('[Cliente Login] From URL:', decodedFrom)
+        logger.info('[Cliente Login] From URL:', decodedFrom)
 
         const extractSlugFromPath = (path: string): string | undefined => {
           // Primero patrones /business/:slug o /b/:slug
@@ -125,7 +126,7 @@ export default function ClientLoginPage() {
         }
       }
       
-      console.log('[Cliente Login] Extracted businessSlug:', businessSlug)
+      logger.info('[Cliente Login] Extracted businessSlug:', businessSlug)
 
       const endpoint = isLogin ? '/api/cliente/auth/login' : '/api/cliente/auth/register'
       const response = await fetch(endpoint, {

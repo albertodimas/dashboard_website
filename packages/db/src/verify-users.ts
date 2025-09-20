@@ -1,132 +1,143 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { PrismaClient, Prisma } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
-async function verifyUsers() {
-  try {
-    console.log('Verificando usuarios en la base de datos...\n');
-    
-    const users = await prisma.user.findMany({
+type UserWithRelations = Prisma.UserGetPayload<{
+  include: {
+    tenant: true
+    memberships: {
       include: {
-        tenant: true
-      }
-    });
-    
-    console.log(`Total de usuarios encontrados: ${users.length}\n`);
-    
-    for (const user of users) {
-      console.log(`Usuario: ${user.name}`);
-      console.log(`  Email: ${user.email}`);
-      console.log(`  Role: ${user.role}`);
-      console.log(`  Tenant: ${user.tenant?.name || 'Sin tenant'}`);
-      console.log('---');
-    }
-    
-    const demoEmails = ['owner@luxurycuts.com', 'owner@glamournails.com'];
-    
-    for (const email of demoEmails) {
-      const user = await prisma.user.findFirst({
-        where: { email }
-      });
-      
-      if (!user) {
-        console.log(`\n⚠️ Usuario demo no encontrado: ${email}`);
-        console.log('Creando usuario demo...');
-        
-        const hashedPassword = await bcrypt.hash('password123', 10);
-        
-        if (email === 'owner@luxurycuts.com') {
-          const tenant = await prisma.tenant.create({
-            data: {
-              name: 'Luxury Cuts Barbershop',
-              domain: 'luxurycuts',
-              settings: {}
-            }
-          });
-          
-          await prisma.user.create({
-            data: {
-              email,
-              passwordHash: hashedPassword,
-              name: 'John Smith',
-              role: 'OWNER',
-              tenantId: tenant.id
-            }
-          });
-          
-          await prisma.service.create({
-            data: {
-              name: 'Luxury Cuts Barbershop',
-              type: 'BARBERSHOP',
-              description: 'Premium barbershop with expert stylists',
-              address: '123 Main St, New York, NY 10001',
-              phone: '(555) 123-4567',
-              tenantId: tenant.id,
-              ownerId: (await prisma.user.findFirst({ where: { email } }))!.id,
-              settings: {}
-            }
-          });
-          
-          console.log('✅ Usuario creado: owner@luxurycuts.com');
-        } else if (email === 'owner@glamournails.com') {
-          const tenant = await prisma.tenant.create({
-            data: {
-              name: 'Glamour Nails & Spa',
-              domain: 'glamournails',
-              settings: {}
-            }
-          });
-          
-          await prisma.user.create({
-            data: {
-              email,
-              passwordHash: hashedPassword,
-              name: 'Sarah Johnson',
-              role: 'OWNER',
-              tenantId: tenant.id
-            }
-          });
-          
-          await prisma.service.create({
-            data: {
-              name: 'Glamour Nails & Spa',
-              type: 'NAIL_SALON',
-              description: 'Full service nail salon and spa',
-              address: '456 Oak Ave, New York, NY 10002',
-              phone: '(555) 234-5678',
-              tenantId: tenant.id,
-              ownerId: (await prisma.user.findFirst({ where: { email } }))!.id,
-              settings: {}
-            }
-          });
-          
-          console.log('✅ Usuario creado: owner@glamournails.com');
-        }
-      } else {
-        console.log(`\n✅ Usuario demo encontrado: ${email}`);
-        const isValidPassword = await bcrypt.compare('password123', user.passwordHash);
-        console.log(`  Password válido: ${isValidPassword}`);
-        
-        if (!isValidPassword) {
-          console.log('  Actualizando password...');
-          const hashedPassword = await bcrypt.hash('password123', 10);
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { passwordHash: hashedPassword }
-          });
-          console.log('  ✅ Password actualizado');
-        }
+        business: true
       }
     }
-    
-    console.log('\n✅ Verificación completada');
-    
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    await prisma.$disconnect();
+  }
+}>
+
+function describeUser(user: UserWithRelations) {
+  console.log(`User: ${user.name ?? 'N/A'} <${user.email}>`)
+  console.log(`  Tenant: ${user.tenant ? `${user.tenant.name} (${user.tenant.subdomain})` : '—'}`)
+  console.log(`  Admin: ${user.isAdmin ? 'yes' : 'no'} | Active: ${user.isActive ? 'yes' : 'no'}`)
+  if (user.memberships.length) {
+    console.log('  Memberships:')
+    for (const membership of user.memberships) {
+      const businessIdentifier = membership.business.slug ?? membership.business.customSlug ?? membership.business.id
+      console.log(`    - ${membership.role} @ ${membership.business.name} (${businessIdentifier})`)
+    }
+  }
+  console.log('---')
+}
+
+async function ensureDemoUsers() {
+  const demoConfigs = [
+    {
+      tenant: {
+        name: 'Luxury Cuts Barbershop',
+        subdomain: 'luxurycuts',
+        email: 'admin@luxurycuts.com',
+        phone: '+1234567890',
+      },
+      user: {
+        email: 'owner@luxurycuts.com',
+        name: 'John Smith',
+        isAdmin: true,
+      },
+    },
+    {
+      tenant: {
+        name: 'Glamour Nails Studio',
+        subdomain: 'glamournails',
+        email: 'admin@glamournails.com',
+        phone: '+1234567891',
+      },
+      user: {
+        email: 'owner@glamournails.com',
+        name: 'Sarah Johnson',
+        isAdmin: true,
+      },
+    },
+  ] as const
+
+  const demoPassword = await bcrypt.hash('password123', 10)
+
+  for (const config of demoConfigs) {
+    const tenant = await prisma.tenant.upsert({
+      where: { subdomain: config.tenant.subdomain },
+      update: {
+        email: config.tenant.email,
+        phone: config.tenant.phone,
+      },
+      create: {
+        name: config.tenant.name,
+        subdomain: config.tenant.subdomain,
+        email: config.tenant.email,
+        phone: config.tenant.phone,
+        settings: {},
+      },
+    })
+
+    await prisma.user.upsert({
+      where: {
+        tenantId_email: {
+          tenantId: tenant.id,
+          email: config.user.email,
+        },
+      },
+      update: {
+        passwordHash: demoPassword,
+        isActive: true,
+        isAdmin: config.user.isAdmin,
+        name: config.user.name,
+      },
+      create: {
+        tenantId: tenant.id,
+        email: config.user.email,
+        passwordHash: demoPassword,
+        name: config.user.name,
+        isActive: true,
+        isAdmin: config.user.isAdmin,
+        emailVerified: new Date(),
+      },
+    })
   }
 }
 
-verifyUsers();
+async function verifyUsers() {
+  try {
+    console.log('Ensuring demo users are present...')
+    await ensureDemoUsers()
+
+    console.log('\nListing users:\n')
+
+    const users = await prisma.user.findMany({
+      include: {
+        tenant: true,
+        memberships: {
+          include: {
+            business: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    for (const user of users) {
+      describeUser(user)
+    }
+
+    console.log('\nVerification complete.')
+  } catch (error) {
+    console.error('Error during verification:', error)
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+verifyUsers()
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+  .then(() => {
+    process.exit(0)
+  })

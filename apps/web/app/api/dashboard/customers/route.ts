@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { fail } from '@/lib/api-utils'
+import { logger } from '@/lib/logger'
 
 // GET all customers
 export async function GET(request: NextRequest) {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     const customers = await prisma.customer.findMany({ where, orderBy: { createdAt: 'desc' } })
     return NextResponse.json(customers.map(projector))
   } catch (error) {
-    console.error('Error fetching customers:', error)
+    logger.error('Error fetching customers:', error)
     return fail('Failed to fetch customers', 500)
   }
 }
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       return fail('Failed to create customer', 500)
     }
   } catch (error) {
-    console.error('Error creating customer:', error)
+    logger.error('Error creating customer:', error)
     return fail('Failed to create customer', 500)
   }
 }
@@ -111,7 +112,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ customer })
   } catch (error) {
-    console.error('Error updating customer:', error)
+    logger.error('Error updating customer:', error)
     return fail('Failed to update customer', 500)
   }
 }
@@ -130,7 +131,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting customer:', error)
+    logger.error('Error deleting customer:', error)
     return fail('Failed to delete customer', 500)
   }
 }

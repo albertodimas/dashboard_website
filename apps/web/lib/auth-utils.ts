@@ -1,6 +1,7 @@
 import { prisma } from '@dashboard/db'
 import { NextResponse } from 'next/server'
 import { getAuthFromCookie } from './jwt-auth'
+import { logger } from './logger'
 
 export async function getCurrentUser() {
   const session = await getAuthFromCookie()
@@ -17,6 +18,8 @@ export async function getCurrentUser() {
         id: true,
         email: true,
         name: true,
+        lastName: true,
+        avatar: true,
         phone: true,
         language: true,
         tenantId: true,
@@ -31,7 +34,7 @@ export async function getCurrentUser() {
 
     return user
   } catch (error) {
-    console.error('Error getting current user:', error)
+    logger.error('Error getting current user:', error)
     return null
   }
 }

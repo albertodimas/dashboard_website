@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -31,6 +32,7 @@ export default function ServicesPage() {
   const { t, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [page, setPage] = useState(1)
   const [pageSize] = useState(12)
@@ -61,7 +63,7 @@ export default function ServicesPage() {
   const confirm = useConfirm()
   const toast = useToast()
 
-  const loadServices = async (opts?: { page?: number; category?: string }) => {
+  const loadServices = useCallback(async (opts?: { page?: number; category?: string }) => {
     try {
       setLoading(true)
       setError(null)
@@ -96,18 +98,16 @@ export default function ServicesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, pageSize, selectedCategory])
 
   useEffect(() => {
-    // Check authentication
     fetch('/api/auth/me')
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error('Not authenticated')
         return res.json()
       })
       .then(async () => {
-        // Load services from API
-        loadServices({ page: 1, category: selectedCategory })
+        setIsAuthenticated(true)
         
         // Check if staff module is enabled
         try {
@@ -126,7 +126,7 @@ export default function ServicesPage() {
             }
           }
         } catch (error) {
-          console.error('Error loading business data:', error)
+          logger.error('Error loading business data:', error)
         }
         
         // Load categories from API
@@ -142,7 +142,7 @@ export default function ServicesPage() {
             }
           }
         } catch (error) {
-          console.error('Error loading categories:', error)
+          logger.error('Error loading categories:', error)
           setAvailableCategories([])
         }
       })
@@ -150,6 +150,11 @@ export default function ServicesPage() {
         router.push('/login')
       })
   }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    void loadServices({ page: 1, category: selectedCategory })
+  }, [isAuthenticated, loadServices, selectedCategory])
 
 
   const handleAddService = () => {
@@ -262,7 +267,7 @@ export default function ServicesPage() {
       
       await loadServices() // Reload services after save
     } catch (err) {
-      console.error('Save service error:', err)
+      logger.error('Save service error:', err)
       toast(t('failedToSaveService') || 'Failed to save service', 'error')
     } finally {
       setSaving(false)
@@ -288,7 +293,7 @@ export default function ServicesPage() {
       
       await loadServices() // Reload services after update
     } catch (err) {
-      console.error('Update service status error:', err)
+      logger.error('Update service status error:', err)
       toast(t('failedToUpdateService') || 'Failed to update service', 'error')
     } finally {
       setSaving(false)
@@ -319,7 +324,9 @@ export default function ServicesPage() {
             <h3 className="text-lg font-medium text-red-800">Error Loading Services</h3>
             <p className="text-red-600 mt-2">{error}</p>
             <button 
-              onClick={loadServices}
+              onClick={() => {
+                void loadServices()
+              }}
               className="mt-4 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
             >
               Try Again

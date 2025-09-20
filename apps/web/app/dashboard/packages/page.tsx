@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardNav from '@/components/DashboardNav'
@@ -75,7 +76,7 @@ export default function PackagesPage() {
         setPackages(data)
       }
     } catch (error) {
-      console.error('Error fetching packages:', error)
+      logger.error('Error fetching packages:', error)
     } finally {
       setLoading(false)
     }
@@ -89,7 +90,7 @@ export default function PackagesPage() {
         setServices(data)
       }
     } catch (error) {
-      console.error('Error fetching services:', error)
+      logger.error('Error fetching services:', error)
     }
   }
 
@@ -142,7 +143,7 @@ export default function PackagesPage() {
         toast(data.error || (t('failedToSave') || 'Failed to save'), 'error')
       }
     } catch (error) {
-      console.error('Error saving package:', error)
+      logger.error('Error saving package:', error)
     }
   }
 
@@ -171,7 +172,7 @@ export default function PackagesPage() {
         toast(t('deleted') || 'Deleted', 'success')
       }
     } catch (error) {
-      console.error('Error deleting package:', error)
+      logger.error('Error deleting package:', error)
       toast(t('failedToDelete') || 'Failed to delete', 'error')
     }
   }
@@ -277,22 +278,22 @@ export default function PackagesPage() {
     }
   }
 
-  const calculateOriginalPrice = () => {
+  const calculateOriginalPrice = useCallback(() => {
     let total = 0
-    formData.services.forEach(ps => {
-      const service = services.find(s => s.id === ps.serviceId)
+    formData.services.forEach((ps) => {
+      const service = services.find((s) => s.id === ps.serviceId)
       if (service) {
         total += service.price * ps.quantity
       }
     })
     return total
-  }
+  }, [formData.services, services])
 
-  const calculateFinalPrice = () => {
+  const calculateFinalPrice = useCallback(() => {
     const originalPrice = calculateOriginalPrice()
     const discountAmount = (formData.discount / 100) * originalPrice
     return parseFloat((originalPrice - discountAmount).toFixed(2))
-  }
+  }, [calculateOriginalPrice, formData.discount])
 
   // Update price when discount changes
   const handleDiscountChange = (discount: number) => {
@@ -332,17 +333,17 @@ export default function PackagesPage() {
     if (formData.services.length > 0) {
       const originalPrice = calculateOriginalPrice()
       const newPrice = parseFloat((originalPrice * (1 - formData.discount / 100)).toFixed(2))
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        price: newPrice
+        price: newPrice,
       }))
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        price: 0
+        price: 0,
       }))
     }
-  }, [formData.services])
+  }, [calculateOriginalPrice, formData.discount, formData.services.length])
 
   if (loading) {
     return (
@@ -636,7 +637,7 @@ export default function PackagesPage() {
         {/* Lista de paquetes */}
         {editingPackage && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-yellow-800">{(t('currentlyEditing') || 'Currently Editing')}: "{editingPackage.name}"</p>
+            <p className="text-sm text-yellow-800">{(t('currentlyEditing') || 'Currently Editing')}: &quot;{editingPackage.name}&quot;</p>
           </div>
         )}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

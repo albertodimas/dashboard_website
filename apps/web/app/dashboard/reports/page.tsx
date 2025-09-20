@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
+import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/ToastProvider'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -79,10 +80,11 @@ export default function ReportsPage() {
   const [customDateRange, setCustomDateRange] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [staffReports, setStaffReports] = useState<StaffReport[]>([])
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     try {
       setLoading(true)
       let url = `/api/dashboard/reports?period=${period}`
@@ -103,26 +105,30 @@ export default function ReportsPage() {
       setPeakHours(data.peakHours || [])
       setStaffReports(data.staffReports || [])
     } catch (error) {
-      console.error('Error loading reports:', error)
+      logger.error('Error loading reports:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [customDateRange, endDate, period, startDate])
 
   useEffect(() => {
-    // Check authentication
     fetch('/api/auth/me')
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error('Not authenticated')
         return res.json()
       })
       .then(() => {
-        loadReports()
+        setIsAuthenticated(true)
       })
       .catch(() => {
         router.push('/login')
       })
-  }, [router, period, customDateRange, startDate, endDate])
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    void loadReports()
+  }, [customDateRange, endDate, isAuthenticated, loadReports, period, startDate])
 
   const formatCurrency = (value: number) => {
     const localeMap: Record<string, string> = { en: 'en-US', es: 'es-ES' }
@@ -667,7 +673,7 @@ export default function ReportsPage() {
                   document.body.removeChild(link)
                   window.URL.revokeObjectURL(downloadUrl)
                 } catch (error) {
-                  console.error('Export error:', error)
+                  logger.error('Export error:', error)
                   toast(t('failedToExportReport') || 'Failed to export report', 'error')
                 }
               }}
@@ -699,7 +705,7 @@ export default function ReportsPage() {
                   document.body.removeChild(link)
                   window.URL.revokeObjectURL(downloadUrl)
                 } catch (error) {
-                  console.error('Export error:', error)
+                  logger.error('Export error:', error)
                   toast(t('failedToExportReport') || 'Failed to export report', 'error')
                 }
               }}

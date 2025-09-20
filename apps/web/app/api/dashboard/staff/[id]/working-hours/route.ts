@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 export async function POST(
   request: NextRequest,
@@ -15,9 +16,9 @@ export async function POST(
     const staffId = params.id
     const scheduleData = await request.json()
     
-    console.log('Received schedule data:', scheduleData)
-    console.log('Staff ID:', staffId)
-    console.log('Business ID:', business.id)
+    logger.info('Received schedule data:', scheduleData)
+    logger.info('Staff ID:', staffId)
+    logger.info('Business ID:', business.id)
 
     // Verify the staff member belongs to the user's business
     const staff = await prisma.staff.findFirst({
@@ -77,7 +78,7 @@ export async function POST(
       message: 'Working hours updated successfully'
     })
   } catch (error) {
-    console.error('Error updating working hours:', error)
+    logger.error('Error updating working hours:', error)
     return NextResponse.json(
       { error: 'Failed to update working hours' },
       { status: 500 }
@@ -136,7 +137,7 @@ export async function GET(
       staff
     })
   } catch (error) {
-    console.error('Error fetching working hours:', error)
+    logger.error('Error fetching working hours:', error)
     return NextResponse.json(
       { error: 'Failed to fetch working hours' },
       { status: 500 }

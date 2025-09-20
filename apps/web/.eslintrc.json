@@ -5,7 +5,8 @@
     "eqeqeq": "error",
     "no-var": "error",
     "prefer-const": "error",
-    "no-return-await": "error"
+    "no-return-await": "error",
+    "@next/next/no-img-element": "off"
   }
 }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib/logger'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -326,7 +327,7 @@ export default function SettingsPage() {
             }
           }
         } catch (error) {
-          console.error('Error loading business info:', error)
+          logger.error('Error loading business info:', error)
         }
         setLoading(false)
       })
@@ -350,12 +351,12 @@ export default function SettingsPage() {
     try {
       // Show original file size
       const originalSize = formatFileSize(file.size)
-      console.log(`Original logo size: ${originalSize}`)
+      logger.info(`Original logo size: ${originalSize}`)
       
       // Compress image if needed (max 5MB after compression)
       const compressedFile = await compressImage(file, 5)
       const compressedSize = formatFileSize(compressedFile.size)
-      console.log(`Compressed logo size: ${compressedSize}`)
+      logger.info(`Compressed logo size: ${compressedSize}`)
       
       // Convert to base64
       const reader = new FileReader()
@@ -369,12 +370,12 @@ export default function SettingsPage() {
           const message = (t('logoUploadedCompressed') || 'Logo uploaded successfully! (Compressed from {a} to {b})')
             .replace('{a}', originalSize)
             .replace('{b}', compressedSize)
-          console.log(message)
+          logger.info(message)
         }
       }
       reader.readAsDataURL(compressedFile)
     } catch (error) {
-      console.error('Error uploading logo:', error)
+      logger.error('Error uploading logo:', error)
       toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
       setUploadingLogo(false)
     }
@@ -397,7 +398,7 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error('Failed to save mode')
       toast(t('operationModeSaved') || 'Operation mode saved!', 'success')
     } catch (e) {
-      console.error('Error saving operation mode:', e)
+      logger.error('Error saving operation mode:', e)
       toast(t('failedToSaveOperationMode') || 'Failed to save operation mode', 'error')
     } finally {
       setSaving(false)
@@ -419,12 +420,12 @@ export default function SettingsPage() {
     try {
       // Show original file size
       const originalSize = formatFileSize(file.size)
-      console.log(`Original avatar size: ${originalSize}`)
+      logger.info(`Original avatar size: ${originalSize}`)
       
       // Compress image if needed (max 5MB after compression)
       const compressedFile = await compressImage(file, 5)
       const compressedSize = formatFileSize(compressedFile.size)
-      console.log(`Compressed avatar size: ${compressedSize}`)
+      logger.info(`Compressed avatar size: ${compressedSize}`)
       
       // Convert to base64
       const reader = new FileReader()
@@ -438,12 +439,12 @@ export default function SettingsPage() {
           const message = (t('avatarUploadedCompressed') || 'Avatar uploaded successfully! (Compressed from {a} to {b})')
             .replace('{a}', originalSize)
             .replace('{b}', compressedSize)
-          console.log(message)
+          logger.info(message)
         }
       }
       reader.readAsDataURL(compressedFile)
     } catch (error) {
-      console.error('Error uploading avatar:', error)
+      logger.error('Error uploading avatar:', error)
       toast(t('failedToUploadImage') || 'Failed to upload image', 'error')
       setUploadingAvatar(false)
     }
@@ -467,7 +468,7 @@ export default function SettingsPage() {
 
       toast(t('profileSavedSuccessfully') || 'Profile saved successfully!', 'success')
     } catch (error) {
-      console.error('Error saving profile:', error)
+      logger.error('Error saving profile:', error)
       toast(t('failedToSaveProfile') || 'Failed to save profile', 'error')
     } finally {
       setSaving(false)
@@ -516,7 +517,7 @@ export default function SettingsPage() {
         }
       }
     } catch (error) {
-      console.error('Error saving business info:', error)
+      logger.error('Error saving business info:', error)
       toast(t('failedToSaveBusinessInfo') || 'Failed to save business information', 'error')
     } finally {
       setSaving(false)
@@ -553,7 +554,7 @@ export default function SettingsPage() {
       
       toast(t('notificationSettingsSaved') || 'Notification settings saved!', 'success')
     } catch (error) {
-      console.error('Error saving notifications:', error)
+      logger.error('Error saving notifications:', error)
       toast(t('failedToSaveNotificationSettings') || 'Failed to save notification settings', 'error')
     } finally {
       setSaving(false)
@@ -590,7 +591,7 @@ export default function SettingsPage() {
       
       toast(t('scheduleSettingsSaved') || 'Schedule settings saved!', 'success')
     } catch (error) {
-      console.error('Error saving schedule:', error)
+      logger.error('Error saving schedule:', error)
       toast(t('failedToSaveScheduleSettings') || 'Failed to save schedule settings', 'error')
     } finally {
       setSaving(false)
@@ -619,7 +620,7 @@ export default function SettingsPage() {
       toast(t('dataCleared') || 'All data has been cleared.', 'success')
       router.push('/dashboard')
     } catch (error) {
-      console.error('Error clearing data:', error)
+      logger.error('Error clearing data:', error)
       toast(t('failedToClearData') || 'Failed to clear data', 'error')
     }
   }
