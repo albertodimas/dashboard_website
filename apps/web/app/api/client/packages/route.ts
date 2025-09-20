@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get appointment history
-    const appointments = await prisma.appointment.findMany({
+    const appointments = (await prisma.appointment.findMany({
       where: {
         customerId: session.customerId
       },
@@ -88,18 +88,20 @@ export async function GET(request: NextRequest) {
         startTime: 'desc'
       },
       take: 10 // Last 10 appointments
-    })
+    })) as Array<{ startTime: Date | string; status: string } & Record<string, unknown>>
 
     logger.info('[DEBUG] Packages found:', packages.length)
     logger.info('[DEBUG] Appointments found:', appointments.length)
     
+    const typedPackages = packages as Array<{ status: string; remainingSessions: number } & Record<string, unknown>>
+
     // Calculate stats
     const stats = {
-      activePackages: packages.filter(p => p.status === 'ACTIVE').length,
-      pendingPackages: packages.filter(p => p.status === 'PENDING').length,
-      totalSessionsAvailable: packages
+      activePackages: typedPackages.filter(p => p.status === 'ACTIVE').length,
+      pendingPackages: typedPackages.filter(p => p.status === 'PENDING').length,
+      totalSessionsAvailable: typedPackages
         .filter(p => p.status === 'ACTIVE')
-        .reduce((acc, p) => acc + p.remainingSessions, 0),
+        .reduce((acc, p) => acc + (p.remainingSessions ?? 0), 0),
       upcomingAppointments: appointments.filter(a => 
         new Date(a.startTime) > new Date() && a.status !== 'CANCELLED'
       ).length
