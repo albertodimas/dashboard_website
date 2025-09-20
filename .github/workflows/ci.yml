@@ -21,7 +21,6 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 9.0.0
           run_install: false
 
       - name: Install dependencies
@@ -35,4 +34,3 @@ jobs:
 
       - name: Build
         run: pnpm build
-
