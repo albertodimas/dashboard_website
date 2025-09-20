@@ -1,66 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
+import type { Prisma } from '@dashboard/db'
 import { logger } from '@/lib/logger'
+
+const businessInclude = {
+  tenant: {
+    select: {
+      name: true,
+      email: true,
+      subdomain: true
+    }
+  },
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      icon: true
+    }
+  },
+  _count: {
+    select: {
+      appointments: true,
+      services: true,
+      staff: true
+    }
+  }
+} as const
+
+type BusinessWithRelations = Prisma.BusinessGetPayload<{
+  include: typeof businessInclude
+}> & {
+  businessCategory?: string | null
+}
 
 // GET all businesses (admin only)
 export async function GET() {
   try {
-    const businesses = await prisma.business.findMany({
-      include: {
-        tenant: {
-          select: {
-            name: true,
-            email: true,
-            subdomain: true
-          }
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            icon: true
-          }
-        },
-        _count: {
-          select: {
-            appointments: true,
-            services: true,
-            staff: true
-          }
-        }
-      },
+    const businesses: BusinessWithRelations[] = await prisma.business.findMany({
+      include: businessInclude,
       orderBy: { createdAt: 'desc' }
     })
 
     // Format businesses with additional info
-    const formattedBusinesses = businesses.map(business => ({
-      id: business.id,
-      name: business.name,
-      slug: business.slug,
-      email: business.email,
-      phone: business.phone,
-      city: business.city,
-      state: business.state,
-      isActive: business.isActive,
-      isPremium: business.isPremium,
-      isBlocked: business.isBlocked,
-      blockedReason: business.blockedReason,
-      blockedAt: business.blockedAt,
-      businessCategory: (business as any).businessCategory ?? (business as any).category?.name ?? null,
-      categoryId: business.categoryId,
-      category: business.category,
-      enableStaffModule: business.enableStaffModule,
-      enablePackagesModule: business.enablePackagesModule,
-      tenantName: business.tenant.name,
-      tenantEmail: business.tenant.email,
-      subdomain: business.tenant.subdomain,
-      appointmentsCount: business._count.appointments,
-      servicesCount: business._count.services,
-      staffCount: business._count.staff,
-      createdAt: business.createdAt,
-      updatedAt: business.updatedAt
-    }))
+    const formattedBusinesses = businesses.map(business => {
+      const businessCategory = business.businessCategory ?? business.category?.name ?? null
+
+      return {
+        id: business.id,
+        name: business.name,
+        slug: business.slug,
+        email: business.email,
+        phone: business.phone,
+        city: business.city,
+        state: business.state,
+        isActive: business.isActive,
+        isPremium: business.isPremium,
+        isBlocked: business.isBlocked,
+        blockedReason: business.blockedReason,
+        blockedAt: business.blockedAt,
+        businessCategory,
+        categoryId: business.categoryId,
+        category: business.category,
+        enableStaffModule: business.enableStaffModule,
+        enablePackagesModule: business.enablePackagesModule,
+        tenantName: business.tenant.name,
+        tenantEmail: business.tenant.email,
+        subdomain: business.tenant.subdomain,
+        appointmentsCount: business._count.appointments,
+        servicesCount: business._count.services,
+        staffCount: business._count.staff,
+        createdAt: business.createdAt,
+        updatedAt: business.updatedAt
+      }
+    })
 
     return NextResponse.json(formattedBusinesses)
   } catch (error) {

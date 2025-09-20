@@ -96,10 +96,6 @@ export default function StaffPage() {
     return initialSchedule
   })
 
-  useEffect(() => {
-    void checkAuthAndLoadData()
-  }, [checkAuthAndLoadData])
-
   const checkAuthAndLoadData = useCallback(async () => {
     try {
       const authRes = await fetch('/api/auth/me')
@@ -125,6 +121,10 @@ export default function StaffPage() {
       setLoading(false)
     }
   }, [loadStaff, router])
+
+  useEffect(() => {
+    void checkAuthAndLoadData()
+  }, [checkAuthAndLoadData])
 
   const loadStaff = useCallback(async () => {
     try {
