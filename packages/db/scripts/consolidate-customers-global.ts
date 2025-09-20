@@ -32,15 +32,18 @@ function scoreCustomer(c: CustomerLite, rel: { bc: number; apt: number; pkg: num
   return fieldScore + relScore
 }
 
-async function pickCanonical(email: string) {
+async function pickCanonical(email: string): Promise<{ canonical: CustomerLite | null; duplicates: CustomerLite[] }> {
   const customers = await prisma.customer.findMany({
     where: { email: email.toLowerCase() },
     orderBy: { createdAt: 'asc' }
-  })
-  if (customers.length <= 1) return { canonical: customers[0] || null, duplicates: [] as typeof customers }
+  }) as CustomerLite[]
+  if (customers.length <= 1) {
+    return { canonical: customers[0] || null, duplicates: [] }
+  }
 
   const scores: Record<string, number> = {}
-  for (const c of customers) {
+  for (const customer of customers) {
+    const c = customer as CustomerLite
     const [bc, apt, pkg] = await Promise.all([
       prisma.businessCustomer.count({ where: { customerId: c.id } }),
       prisma.appointment.count({ where: { customerId: c.id } }),
@@ -139,12 +142,13 @@ async function consolidate(apply: boolean) {
     const { canonical, duplicates: dups } = await pickCanonical(email)
     if (!canonical || dups.length === 0) continue
     console.log(`Email ${email}: canonical ${canonical.id}, merging ${dups.length} duplicates`)
-    for (const d of dups) {
-      await reassignFKs(d.id, canonical.id, dryRun)
+    for (const duplicate of dups) {
+      await reassignFKs(duplicate.id, canonical.id, dryRun)
     }
-    await enrichCanonical(canonical.id, dups.map(d => d.id), dryRun)
+    const duplicateIds = dups.map((duplicate) => duplicate.id)
+    await enrichCanonical(canonical.id, duplicateIds, dryRun)
     if (!dryRun) {
-      await prisma.customer.deleteMany({ where: { id: { in: dups.map(d => d.id) } } })
+      await prisma.customer.deleteMany({ where: { id: { in: duplicateIds } } })
     }
   }
 }
