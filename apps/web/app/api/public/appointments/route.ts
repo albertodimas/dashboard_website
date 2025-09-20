@@ -7,6 +7,8 @@ import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { getAppointmentConfirmationEmailTemplate } from '@/lib/email-templates'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 const appointmentSchema = z.object({
   businessId: z.string().uuid(),
   serviceId: z.string().uuid(),

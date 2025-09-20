@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx'
 import { format as formatDate } from 'date-fns'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // Export reports as Excel or CSV
 export async function GET(request: NextRequest) {
   try {

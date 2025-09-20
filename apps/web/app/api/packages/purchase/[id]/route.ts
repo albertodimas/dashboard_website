@@ -4,6 +4,8 @@ import { prisma } from '@dashboard/db'
 import { sendEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // DELETE endpoint para eliminar paquetes pendientes
 export async function DELETE(
   request: NextRequest,

@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { trackError } from '@/lib/observability'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 const reviewSchema = z.object({
   appointmentId: z.string().uuid(),
   rating: z.number().min(1).max(5),

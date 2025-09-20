@@ -6,6 +6,8 @@ import { checkRateLimit, setCode } from '@/lib/verification-redis'
 import { sendEmail, getVerificationEmailTemplate } from '@/lib/email'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const schema = z.object({

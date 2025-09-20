@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET all categories
 export async function GET() {
   try {

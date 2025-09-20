@@ -4,6 +4,8 @@ import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format } from 'date-fns'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET business metrics and reports
 export async function GET(request: NextRequest) {
   try {

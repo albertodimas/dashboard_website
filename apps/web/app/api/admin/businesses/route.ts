@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
-import type { Prisma } from '@dashboard/db'
+import type { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
+
+export const dynamic = 'force-dynamic'
 
 const businessInclude = {
   tenant: {
@@ -43,7 +45,7 @@ export async function GET() {
     })
 
     // Format businesses with additional info
-    const formattedBusinesses = businesses.map(business => {
+    const formattedBusinesses = businesses.map((business: BusinessWithRelations) => {
       const businessCategory = business.businessCategory ?? business.category?.name ?? null
 
       return {

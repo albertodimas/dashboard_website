@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCode } from '@/lib/verification-redis'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // Restrict endpoint: only available in development or with valid internal key

@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // Unify client token secret with middleware/lib behavior
 const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
 const REFRESH_SECRET = process.env.REFRESH_SECRET

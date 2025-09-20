@@ -4,6 +4,8 @@ import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { fail } from '@/lib/api-utils'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET all services for the business
 export async function GET(request: NextRequest) {
   try {

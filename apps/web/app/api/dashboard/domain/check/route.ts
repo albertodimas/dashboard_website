@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import dns from 'node:dns/promises'
 
+export const dynamic = 'force-dynamic'
+
 function isValidDomain(domain: string) {
   // Basic FQDN validation (no protocol, no path)
   // allows subdomains: foo.bar.com

@@ -7,6 +7,8 @@ import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const schema = z.object({

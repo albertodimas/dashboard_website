@@ -1,18 +1,27 @@
 'use client'
 
 import { logger } from '@/lib/logger'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+type Status = 'loading' | 'success' | 'error' | 'already_confirmed'
+
 export default function ConfirmPage() {
+  return (
+    <Suspense fallback={<ConfirmFallback />}>
+      <ConfirmPageContent />
+    </Suspense>
+  )
+}
+
+function ConfirmPageContent() {
   const searchParams = useSearchParams()
   const { t } = useLanguage()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already_confirmed'>('loading')
+  const [status, setStatus] = useState<Status>('loading')
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null)
 
   useEffect(() => {
-    // Check if we have booking confirmation data (from booking page)
     const dataParam = searchParams.get('data')
     if (dataParam) {
       try {
@@ -25,16 +34,13 @@ export default function ConfirmPage() {
       }
       return
     }
-    
-    // Otherwise check for appointment ID (from email confirmation)
+
     const appointmentId = searchParams.get('id')
-    
     if (!appointmentId) {
       setStatus('error')
       return
     }
 
-    // Confirm appointment via API
     fetch('/api/confirm-appointment', {
       method: 'POST',
       headers: {
@@ -97,36 +103,7 @@ export default function ConfirmPage() {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('alreadyConfirmed')}</h1>
             <p className="text-gray-600 mb-4">{t('appointmentAlreadyConfirmed')}</p>
-            {appointmentDetails && (
-              <div className="mt-6 text-left bg-gray-50 p-4 rounded">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('date')}:</span> {
-                    appointmentDetails.date 
-                      ? appointmentDetails.date.includes('T') 
-                        ? new Date(appointmentDetails.date).toLocaleDateString('en-GB')
-                        : appointmentDetails.date
-                      : ''
-                  }
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('time')}:</span> {
-                    appointmentDetails.time
-                      ? appointmentDetails.time.includes('T')
-                        ? new Date(appointmentDetails.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-                        : appointmentDetails.time
-                      : ''
-                  }
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName || appointmentDetails.service}
-                </p>
-                {appointmentDetails.staffName && (
-                  <p className="text-sm text-gray-600">
-                    <span className="font-semibold">Professional:</span> {appointmentDetails.staffName}
-                  </p>
-                )}
-              </div>
-            )}
+            {appointmentDetails && <AppointmentDetails t={t} details={appointmentDetails} />}
           </div>
         </div>
       </div>
@@ -144,38 +121,50 @@ export default function ConfirmPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('appointmentConfirmed')}</h1>
           <p className="text-gray-600 mb-4">Thanks for your confirmation!</p>
-          {appointmentDetails && (
-            <div className="mt-6 text-left bg-gray-50 p-4 rounded">
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('date')}:</span> {
-                  appointmentDetails.date 
-                    ? appointmentDetails.date.includes('T') 
-                      ? new Date(appointmentDetails.date).toLocaleDateString('en-GB')
-                      : appointmentDetails.date
-                    : ''
-                }
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('time')}:</span> {
-                  appointmentDetails.time
-                    ? appointmentDetails.time.includes('T')
-                      ? new Date(appointmentDetails.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-                      : appointmentDetails.time
-                    : ''
-                }
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold">{t('service')}:</span> {appointmentDetails.serviceName || appointmentDetails.service}
-              </p>
-              {appointmentDetails.staffName && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">Professional:</span> {appointmentDetails.staffName}
-                </p>
-              )}
-            </div>
-          )}
+          {appointmentDetails && <AppointmentDetails t={t} details={appointmentDetails} />}
         </div>
       </div>
+    </div>
+  )
+}
+
+function AppointmentDetails({ t, details }: { t: (key: string) => string; details: any }) {
+  const formatDate = (value?: string) => {
+    if (!value) return ''
+    return value.includes('T') ? new Date(value).toLocaleDateString('en-GB') : value
+  }
+
+  const formatTime = (value?: string) => {
+    if (!value) return ''
+    return value.includes('T')
+      ? new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      : value
+  }
+
+  return (
+    <div className="mt-6 text-left bg-gray-50 p-4 rounded">
+      <p className="text-sm text-gray-600">
+        <span className="font-semibold">{t('date')}:</span> {formatDate(details.date)}
+      </p>
+      <p className="text-sm text-gray-600">
+        <span className="font-semibold">{t('time')}:</span> {formatTime(details.time)}
+      </p>
+      <p className="text-sm text-gray-600">
+        <span className="font-semibold">{t('service')}:</span> {details.serviceName || details.service}
+      </p>
+      {details.staffName && (
+        <p className="text-sm text-gray-600">
+          <span className="font-semibold">Professional:</span> {details.staffName}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ConfirmFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center text-gray-600">Loading...</div>
     </div>
   )
 }

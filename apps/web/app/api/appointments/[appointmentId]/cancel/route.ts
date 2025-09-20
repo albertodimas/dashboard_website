@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import jwt from 'jsonwebtoken'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 export async function POST(

@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import { jwtVerify, SignJWT } from 'jose'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // Use same client token secret as other cliente endpoints
 const CLIENT_JWT_SECRET = process.env.CLIENT_JWT_SECRET || process.env.JWT_SECRET
 if (!CLIENT_JWT_SECRET) {

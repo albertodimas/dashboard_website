@@ -5,6 +5,8 @@ import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // Config de seguridad básica para el endpoint
 const WINDOW_MINUTES = 15
 const MAX_ATTEMPTS = 10

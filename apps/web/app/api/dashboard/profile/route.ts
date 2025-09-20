@@ -4,6 +4,8 @@ import { getCurrentUser, createAuthResponse } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 const profileSchema = z.object({
   name: z.string().min(2).max(100),
   lastName: z.string().min(1).max(100).optional(),

@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET reviews for a specific staff member
 export async function GET(
   request: NextRequest,

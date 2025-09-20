@@ -6,6 +6,8 @@ import { sendEmail } from '@/lib/email'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 const packagePurchaseSchema = z.object({
   businessId: z.string().uuid(),
   packageId: z.string().uuid(),

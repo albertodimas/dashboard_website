@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 interface AppointmentDetails {
   id: string
   customerName: string

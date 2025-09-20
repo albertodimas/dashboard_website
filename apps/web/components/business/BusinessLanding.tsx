@@ -131,21 +131,6 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     return ['All', ...Array.from(categorySet)]
   }, [business.galleryItems])
 
-  // Check for customer session on mount
-  useEffect(() => {
-    void checkCustomerSession()
-    if (galleryCategories.length > 0) {
-      setActiveGalleryTab(galleryCategories[0])
-    }
-  }, [checkCustomerSession, galleryCategories])
-
-  // Fetch slots when date and service change
-  useEffect(() => {
-    if (selectedDate && selectedService) {
-      void fetchAvailableSlots()
-    }
-  }, [fetchAvailableSlots, selectedDate, selectedService, selectedStaff])
-
   const checkCustomerSession = useCallback(async () => {
     try {
       const response = await fetch('/api/client/packages')
@@ -200,6 +185,21 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       setIsLoadingSlots(false)
     }
   }, [business.id, selectedDate, selectedService, selectedStaff])
+
+  // Check for customer session on mount
+  useEffect(() => {
+    void checkCustomerSession()
+    if (galleryCategories.length > 0) {
+      setActiveGalleryTab(galleryCategories[0])
+    }
+  }, [checkCustomerSession, galleryCategories])
+
+  // Fetch slots when date and service change
+  useEffect(() => {
+    if (selectedDate && selectedService) {
+      void fetchAvailableSlots()
+    }
+  }, [fetchAvailableSlots, selectedDate, selectedService, selectedStaff])
 
   const fetchStaffForService = async (serviceId: string) => {
     try {

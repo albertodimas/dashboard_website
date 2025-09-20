@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     // Check if tenant exists

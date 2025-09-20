@@ -5,6 +5,8 @@ import { getReviewRequestEmailTemplate } from '@/lib/email-templates'
 import { sendEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   

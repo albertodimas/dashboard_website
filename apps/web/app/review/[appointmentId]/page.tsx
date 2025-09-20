@@ -19,10 +19,6 @@ export default function ReviewPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    void fetchAppointmentDetails()
-  }, [fetchAppointmentDetails])
-
   const fetchAppointmentDetails = useCallback(async () => {
     try {
       const response = await fetch(`/api/review/appointment/${appointmentId}`)
@@ -46,6 +42,10 @@ export default function ReviewPage() {
       setLoading(false)
     }
   }, [appointmentId])
+
+  useEffect(() => {
+    void fetchAppointmentDetails()
+  }, [fetchAppointmentDetails])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

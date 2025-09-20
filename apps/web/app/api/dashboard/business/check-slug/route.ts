@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { getCurrentBusiness } from '@/lib/auth-utils'
 
+export const dynamic = 'force-dynamic'
+
 const RESERVED = new Set([
   'login','register','dashboard','api','admin','auth','business','settings','profile','logout','signup','signin',
   'forgot-password','reset-password','verify','confirm','public','static','_next','favicon.ico','robots.txt',

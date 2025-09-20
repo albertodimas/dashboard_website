@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // POST reassign gallery items from one category to another (gallery_items table)
 export async function POST(request: NextRequest) {
   try {

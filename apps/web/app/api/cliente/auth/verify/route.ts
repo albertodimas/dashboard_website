@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis } from '@/lib/verification-redis'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const schema = z.object({ code: z.string().min(4).max(12) })

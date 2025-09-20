@@ -7,6 +7,8 @@ import { verifyCode as verifyCodeRedis, clearCode as clearCodeRedis, getData as 
 import { generateClientToken } from '@/lib/client-auth'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const schema = z.object({

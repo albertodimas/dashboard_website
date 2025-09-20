@@ -4,6 +4,8 @@ import { prisma } from '@dashboard/db'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const sessionCookie = cookies().get('session')

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@dashboard/db'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET all active businesses for public directory
 export async function GET() {
   try {

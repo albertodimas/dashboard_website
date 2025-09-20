@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma, Prisma } from '@dashboard/db'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET available staff for a business/service
 export async function GET(
   request: NextRequest,

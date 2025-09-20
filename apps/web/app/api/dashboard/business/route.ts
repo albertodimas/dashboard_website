@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import { getCurrentUser, getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // Lista de rutas reservadas del sistema que no pueden ser usadas como slugs
 const RESERVED_ROUTES = [
   'login',

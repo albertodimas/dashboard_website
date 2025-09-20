@@ -4,6 +4,8 @@ import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { fail, ok } from '@/lib/api-utils'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET all gallery items for the business (from gallery_items table)
 export async function GET() {
   try {

@@ -96,6 +96,21 @@ export default function StaffPage() {
     return initialSchedule
   })
 
+  const loadStaff = useCallback(async () => {
+    try {
+      const response = await fetch('/api/dashboard/staff')
+      if (response.ok) {
+        const data = await response.json()
+        logger.info('Staff data loaded:', data)
+        setStaff(data)
+      } else {
+        logger.error('Staff API response not OK:', response.status)
+      }
+    } catch (error) {
+      logger.error('Error loading staff:', error)
+    }
+  }, [])
+
   const checkAuthAndLoadData = useCallback(async () => {
     try {
       const authRes = await fetch('/api/auth/me')
@@ -125,21 +140,6 @@ export default function StaffPage() {
   useEffect(() => {
     void checkAuthAndLoadData()
   }, [checkAuthAndLoadData])
-
-  const loadStaff = useCallback(async () => {
-    try {
-      const response = await fetch('/api/dashboard/staff')
-      if (response.ok) {
-        const data = await response.json()
-        logger.info('Staff data loaded:', data)
-        setStaff(data)
-      } else {
-        logger.error('Staff API response not OK:', response.status)
-      }
-    } catch (error) {
-      logger.error('Error loading staff:', error)
-    }
-  }, [])
 
   const handleAddSpecialty = () => {
     if (specialtyInput.trim() && !formData.specialties.includes(specialtyInput.trim())) {

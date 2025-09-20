@@ -4,6 +4,8 @@ import { trackError } from '@/lib/observability'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const schema = z.object({

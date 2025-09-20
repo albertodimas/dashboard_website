@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import { verifyClientToken } from '@/lib/client-auth'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // POST - Desregistrar cliente de un negocio
 export async function POST(request: NextRequest) {
   try {

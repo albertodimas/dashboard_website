@@ -4,6 +4,8 @@ import { sendEmail } from '@/lib/email'
 import { verifyClientToken } from '@/lib/client-auth'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // Verificar token

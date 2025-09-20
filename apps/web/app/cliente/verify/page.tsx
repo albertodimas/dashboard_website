@@ -1,12 +1,20 @@
 'use client'
 
 import { logger } from '@/lib/logger'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, ArrowRight, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/ToastProvider'
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerifyFallback />}>
+      <VerifyEmailContent />
+    </Suspense>
+  )
+}
+
+function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [code, setCode] = useState(['', '', '', '', '', ''])
@@ -20,15 +28,13 @@ export default function VerifyEmailPage() {
 
   const checkAuthStatus = useCallback(async () => {
     try {
-      // Obtener el ID temporal de la cookie de verificación
       const response = await fetch('/api/cliente/auth/check-verification-pending', {
-        credentials: 'include',
+        credentials: 'include'
       })
       if (response.ok) {
         const data = await response.json()
         setCustomerEmail(data.email)
       } else {
-        // Si no hay cookie de verificación pendiente, redirigir al login
         router.push('/cliente/login')
       }
     } catch (error) {
@@ -40,12 +46,10 @@ export default function VerifyEmailPage() {
   }, [router])
 
   useEffect(() => {
-    // Verificar si el usuario tiene una sesión activa
     void checkAuthStatus()
   }, [checkAuthStatus])
 
   useEffect(() => {
-    // Cooldown timer para reenviar código
     if (resendCooldown > 0) {
       const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000)
       return () => clearTimeout(timer)
@@ -54,34 +58,29 @@ export default function VerifyEmailPage() {
 
   const handleCodeChange = (index: number, value: string) => {
     if (value.length > 1) {
-      // Si pegan un código completo
       const pastedCode = value.slice(0, 6).split('')
       const newCode = [...code]
       pastedCode.forEach((digit, i) => {
         if (i < 6) newCode[i] = digit
       })
       setCode(newCode)
-      // Focus en el último input
-      const lastInput = document.getElementById('code-5')
-      if (lastInput) lastInput.focus()
+      const lastInput = document.getElementById('code-5') as HTMLInputElement | null
+      lastInput?.focus()
     } else {
-      // Input normal
       const newCode = [...code]
       newCode[index] = value
       setCode(newCode)
-
-      // Auto-focus al siguiente input
       if (value && index < 5) {
-        const nextInput = document.getElementById(`code-${index + 1}`)
-        if (nextInput) nextInput.focus()
+        const nextInput = document.getElementById(`code-${index + 1}`) as HTMLInputElement | null
+        nextInput?.focus()
       }
     }
   }
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
-      const prevInput = document.getElementById(`code-${index - 1}`)
-      if (prevInput) prevInput.focus()
+      const prevInput = document.getElementById(`code-${index - 1}`) as HTMLInputElement | null
+      prevInput?.focus()
     }
   }
 
@@ -100,9 +99,7 @@ export default function VerifyEmailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          code: verificationCode
-        })
+        body: JSON.stringify({ code: verificationCode })
       })
 
       const data = await response.json()
@@ -110,10 +107,9 @@ export default function VerifyEmailPage() {
       if (!response.ok) {
         throw new Error(data.error || 'Error al verificar código')
       }
-      
+
       setSuccess(true)
-      
-      // Redirigir al login después de 2 segundos, preservando "from" si existe
+
       setTimeout(() => {
         const from = searchParams.get('from')
         if (from) {
@@ -124,17 +120,14 @@ export default function VerifyEmailPage() {
       }, 2000)
     } catch (err: any) {
       setError(err.message)
-      // Limpiar el código en caso de error
       setCode(['', '', '', '', '', ''])
-      const firstInput = document.getElementById('code-0')
-      if (firstInput) firstInput.focus()
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleResendCode = async () => {
-    if (resendCooldown > 0) return
+    if (resendCooldown > 0 || isLoading) return
 
     setIsLoading(true)
     setError('')
@@ -143,19 +136,17 @@ export default function VerifyEmailPage() {
       const response = await fetch('/api/cliente/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({})
+        credentials: 'include'
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al reenviar código')
+        throw new Error(data.error || 'No se pudo reenviar el código')
       }
 
-      setResendCooldown(60) // 60 segundos de cooldown
-      setError('') // Limpiar errores
-      toast('Código reenviado. Revisa tu email.', 'success')
+      toast('Nuevo código enviado a tu correo', 'success')
+      setResendCooldown(60)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -180,12 +171,8 @@ export default function VerifyEmailPage() {
         <div className="max-w-md w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              ¡Email Verificado!
-            </h2>
-            <p className="text-gray-600">
-              Tu cuenta ha sido verificada exitosamente. Redirigiendo...
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Email verificado!</h2>
+            <p className="text-gray-600">Tu cuenta ha sido verificada exitosamente. Redirigiendo...</p>
           </div>
         </div>
       </div>
@@ -196,23 +183,15 @@ export default function VerifyEmailPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-4">
               <Mail className="text-white" size={32} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Verifica tu Email
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Hemos enviado un código de 6 dígitos a:
-            </p>
-            <p className="font-semibold text-gray-900 mt-1">
-              {customerEmail}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Verifica tu email</h1>
+            <p className="text-gray-600 mt-2">Hemos enviado un código de 6 dígitos a:</p>
+            <p className="font-semibold text-gray-900 mt-1">{customerEmail}</p>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
               <XCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -220,7 +199,6 @@ export default function VerifyEmailPage() {
             </div>
           )}
 
-          {/* Code Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Ingresa el código de verificación
@@ -242,7 +220,6 @@ export default function VerifyEmailPage() {
             </div>
           </div>
 
-          {/* Verify Button */}
           <button
             onClick={handleVerify}
             disabled={isLoading || code.join('').length !== 6}
@@ -252,29 +229,23 @@ export default function VerifyEmailPage() {
               <RefreshCw className="w-5 h-5 animate-spin" />
             ) : (
               <>
-                Verificar Email
+                Verificar email
                 <ArrowRight className="ml-2" size={20} />
               </>
             )}
           </button>
 
-          {/* Resend Code */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-2">
-              ¿No recibiste el código?
-            </p>
+            <p className="text-sm text-gray-600 mb-2">¿No recibiste el código?</p>
             <button
               onClick={handleResendCode}
               disabled={isLoading || resendCooldown > 0}
               className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
-              {resendCooldown > 0 
-                ? `Reenviar código en ${resendCooldown}s`
-                : 'Reenviar código'}
+              {resendCooldown > 0 ? `Reenviar código en ${resendCooldown}s` : 'Reenviar código'}
             </button>
           </div>
 
-          {/* Back to Login */}
           <div className="mt-4 text-center">
             <button
               onClick={() => router.push('/cliente/login')}
@@ -285,6 +256,14 @@ export default function VerifyEmailPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function VerifyFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center text-gray-600">
+      <span>Cargando...</span>
     </div>
   )
 }

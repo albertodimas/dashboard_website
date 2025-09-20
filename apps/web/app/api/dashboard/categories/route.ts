@@ -4,6 +4,8 @@ import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { ok, fail } from '@/lib/api-utils'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 // GET all categories for the business
 export async function GET() {
   try {

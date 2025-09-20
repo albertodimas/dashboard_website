@@ -3,6 +3,8 @@ import { prisma } from '@dashboard/db'
 import { cookies } from 'next/headers'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const sessionToken = cookies().get('admin-session')?.value
