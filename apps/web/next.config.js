@@ -13,6 +13,7 @@ const nextConfig = {
   env: {
     JWT_SECRET: process.env.JWT_SECRET ?? 'development-placeholder',
     CLIENT_JWT_SECRET: process.env.CLIENT_JWT_SECRET ?? process.env.JWT_SECRET ?? 'development-placeholder',
+    REFRESH_SECRET: process.env.REFRESH_SECRET ?? 'development-refresh',
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
