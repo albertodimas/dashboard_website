@@ -4,6 +4,43 @@ import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
+type BusinessWithRelations = {
+  id: string
+  name: string
+  slug: string
+  email: string
+  phone: string | null
+  city: string | null
+  state: string | null
+  isActive: boolean
+  isPremium: boolean
+  isBlocked: boolean
+  blockedReason: string | null
+  blockedAt: Date | null
+  businessCategory?: string | null
+  categoryId: string | null
+  category: {
+    id: string
+    name: string
+    slug: string
+    icon: string | null
+  } | null
+  enableStaffModule: boolean
+  enablePackagesModule: boolean
+  tenant: {
+    name: string
+    email: string
+    subdomain: string
+  }
+  _count: {
+    appointments: number
+    services: number
+    staff: number
+  }
+  createdAt: Date
+  updatedAt: Date
+}
+
 const businessInclude = {
   tenant: {
     select: {
@@ -32,10 +69,10 @@ const businessInclude = {
 // GET all businesses (admin only)
 export async function GET() {
   try {
-    const businesses = await prisma.business.findMany({
+    const businesses = (await prisma.business.findMany({
       include: businessInclude,
       orderBy: { createdAt: 'desc' }
-    })
+    })) as BusinessWithRelations[]
 
     // Format businesses with additional info
     const formattedBusinesses = businesses.map(business => {
