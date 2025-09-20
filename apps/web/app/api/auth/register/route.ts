@@ -9,6 +9,11 @@ import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
+type RegisterTransactionResult = {
+  tenant: { id: string }
+  user: { id: string; email: string; name: string }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const schema = z.object({
@@ -106,7 +111,7 @@ export async function POST(request: NextRequest) {
       settings: {}
     })
     
-    const { tenant, user } = await prisma.$transaction(async (tx) => {
+    const { tenant, user } = (await prisma.$transaction(async (tx: any) => {
       const tenant = await tx.tenant.create({
         data: {
           name: tenantName || name + "'s Business",
@@ -150,7 +155,7 @@ export async function POST(request: NextRequest) {
         })
         return { tenant, user }
       }
-    })
+    })) as unknown as RegisterTransactionResult
 
     // Note: Business and Membership models will be created when those tables are added to the schema
     if (process.env.NODE_ENV === 'development') {
