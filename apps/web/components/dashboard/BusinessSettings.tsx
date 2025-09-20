@@ -302,29 +302,32 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
           websiteUrl, 
           customSlug: cleanedSlug, 
           customDomain,
-          theme: {
-            primaryColor,
-            secondaryColor,
-            accentColor,
-            backgroundColor,
-            fontFamily,
-            buttonStyle
-          },
-          ui: {
-            chipsSticky,
-            paginationStyle,
-            heroOverlay,
-            heroButtonStyle,
-            useTranslucentHeroButtons,
-            heroButtons,
-            cardRadius,
-            shadowStyle,
-            typographyScale,
-            bodyScale,
-            useGradientButtons,
-            showMobileStickyCTA,
-            showDesktopFloatingDirection,
-            tagline: trimmedTagline
+          settings: {
+            ...(business.settings || {}),
+            theme: {
+              primaryColor,
+              secondaryColor,
+              accentColor,
+              backgroundColor,
+              fontFamily,
+              buttonStyle
+            },
+            ui: {
+              chipsSticky,
+              paginationStyle,
+              heroOverlay,
+              heroButtonStyle,
+              useTranslucentHeroButtons,
+              heroButtons,
+              cardRadius,
+              shadowStyle,
+              typographyScale,
+              bodyScale,
+              useGradientButtons,
+              showMobileStickyCTA,
+              showDesktopFloatingDirection,
+              tagline: trimmedTagline
+            }
           }
         })
         setTagline(trimmedTagline)

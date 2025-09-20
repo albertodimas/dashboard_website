@@ -422,7 +422,6 @@ export default function StaffPage() {
         </div>
 
         {/* Staff Grid */}
-        {console.log('Rendering staff list:', staff.length, 'members')}
         {staff.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-500 mb-4">

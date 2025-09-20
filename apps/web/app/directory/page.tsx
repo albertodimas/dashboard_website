@@ -23,6 +23,8 @@ interface Business {
   isPremium: boolean
   logo?: string
   coverImage?: string
+  image?: string | null
+  priceRange?: string | null
 }
 
 export default function DirectoryPage() {

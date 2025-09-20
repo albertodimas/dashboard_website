@@ -33,6 +33,7 @@ interface Package {
   validityDays: number | null
   maxPurchases: number | null
   displayOrder: number
+  sessionCount?: number | null
   services: PackageService[]
 }
 

@@ -1,4 +1,16 @@
-export const countries = [
+export interface CountryState {
+  code: string
+  name: string
+  cities?: string[]
+}
+
+export interface Country {
+  code: string
+  name: string
+  states: CountryState[]
+}
+
+export const countries: Country[] = [
   {
     code: 'US',
     name: 'United States',
@@ -237,7 +249,7 @@ export const countries = [
 ]
 
 // Ciudades principales por país
-export const cities = {
+export const cities: Record<string, string[]> = {
   US: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose'],
   DO: ['Santo Domingo', 'Santiago', 'San Pedro de Macorís', 'La Romana', 'San Francisco de Macorís', 'Puerto Plata', 'San Cristóbal', 'Higüey', 'Moca', 'Baní'],
   ES: ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao'],

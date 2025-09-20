@@ -765,9 +765,10 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
   }
 
   // Calcular rating promedio sin hooks para evitar problemas de parseo
-  const averageRating = reviews.length > 0
-    ? reviews.reduce((acc, r) => acc + ((r && r.rating) ? r.rating : 0), 0) / reviews.length
-    : 5;
+  const typedReviews: Array<{ rating?: number | null }> = Array.isArray(reviews) ? reviews : []
+  const averageRating = typedReviews.length > 0
+    ? typedReviews.reduce((acc, r) => acc + (typeof r?.rating === 'number' ? r.rating : 0), 0) / typedReviews.length
+    : 5
 
   const __jsx_root = (
     <div className="min-h-screen bg-gray-50" style={getFontFamilyStyle()}>
@@ -815,7 +816,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           {clientData?.name?.split(' ')[0] || clientData?.name}
                         </span>
                         {isRegistered && (
-                          <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} title={t('registeredInBusiness')} />
+                          <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} />
                         )}
                       </Link>
                     )})()
@@ -835,7 +836,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                           {clientData?.name?.split(' ')[0] || clientData?.name}
                         </span>
                         {isRegistered && (
-                          <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} title={t('registeredInBusiness')} />
+                          <Check className="w-4 h-4 ml-1" style={{ color: colors.accent }} />
                         )}
                       </Link>
                     )})()
@@ -1179,7 +1180,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       >
                         {t('all')}
                       </button>
-                      {categories.map((category) => (
+                      {categories.map((category: string) => (
                         <button
                           key={category}
                           onClick={() => {
@@ -1722,7 +1723,7 @@ export default function BusinessLandingEnhanced({ business }: BusinessLandingPro
                       >
                         {t('all')}
                       </button>
-                      {categories.map((category) => (
+                      {categories.map((category: string) => (
                         <button
                           key={category}
                           onClick={() => { setGalleryCategory(category); setGalleryPage(0) }}

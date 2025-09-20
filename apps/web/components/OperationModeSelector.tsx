@@ -39,7 +39,7 @@ export default function OperationModeSelector({
         >
           <div className="flex items-center gap-2">
             <span className="text-lg font-semibold">{c.title}</span>
-            <Info size={16} className="text-gray-400" title={c.desc} />
+            <Info size={16} className="text-gray-400" />
           </div>
           <p className="text-sm text-gray-600 mt-1">{c.desc}</p>
         </button>

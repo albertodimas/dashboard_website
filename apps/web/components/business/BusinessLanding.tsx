@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { 
   Phone, 
@@ -50,7 +50,13 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
     background: theme.backgroundColor || '#FFFFFF'
   }
   const fontFamily = theme.fontFamily || 'inter'
-  const buttonStyle = theme.buttonStyle || 'rounded'
+
+  const BUTTON_STYLES = ['rounded', 'square', 'pill', 'gradient', 'soft-rounded', 'outlined', 'shadow', '3d'] as const
+  type ButtonStyle = typeof BUTTON_STYLES[number]
+  const isButtonStyle = (value: unknown): value is ButtonStyle =>
+    typeof value === 'string' && (BUTTON_STYLES as readonly string[]).includes(value)
+
+  const buttonStyle: ButtonStyle = isButtonStyle(theme.buttonStyle) ? theme.buttonStyle : 'rounded'
   
   // Font family mapping
   const fontFamilyClasses: Record<string, string> = {
@@ -64,7 +70,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   
   // Button style mapping
   const getButtonClasses = (baseClasses: string = '') => {
-    const styleClasses = {
+    const styleClasses: Record<ButtonStyle, string> = {
       rounded: 'rounded-lg',
       square: 'rounded-none',
       pill: 'rounded-full',
@@ -74,7 +80,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
       shadow: 'rounded-lg shadow-lg',
       '3d': 'rounded-lg'
     }
-    return `${baseClasses} ${styleClasses[buttonStyle] || styleClasses.rounded}`
+    return `${baseClasses} ${styleClasses[buttonStyle]}`
   }
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -114,15 +120,24 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
   const [customerPackages, setCustomerPackages] = useState<any[]>([])
   const [customerSession, setCustomerSession] = useState<any>(null)
 
+  const galleryCategories = useMemo<string[]>(() => {
+    if (!Array.isArray(business.galleryItems) || business.galleryItems.length === 0) {
+      return ['All']
+    }
+    const categorySet = new Set<string>(
+      business.galleryItems.map((item: any) => item?.category || 'General')
+    )
+    return ['All', ...Array.from(categorySet)]
+  }, [business.galleryItems])
+
   // Check for customer session on mount
   useEffect(() => {
     checkCustomerSession()
     // fetchReviews() - Reviews ya vienen con los datos del business
-    if (business.galleryItems?.length > 0) {
-      const categories = ['All', ...new Set(business.galleryItems.map((item: any) => item.category || 'General'))]
-      setActiveGalleryTab(categories[0] || 'All')
+    if (galleryCategories.length > 0) {
+      setActiveGalleryTab(galleryCategories[0])
     }
-  }, [])
+  }, [galleryCategories])
 
   // Fetch slots when date and service change
   useEffect(() => {
@@ -718,7 +733,7 @@ export default function BusinessLanding({ business }: BusinessLandingProps) {
             
             {/* Category Tabs */}
             <div className="flex justify-center mb-8 gap-2 flex-wrap">
-              {['All', ...new Set(business.galleryItems.map((item: any) => item.category || 'General'))].map((category: any) => (
+              {galleryCategories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setActiveGalleryTab(category)}

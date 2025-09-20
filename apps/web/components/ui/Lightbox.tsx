@@ -106,7 +106,7 @@ export default function Lightbox({ items, index = 0, onClose }: LightboxProps) {
           }}
           onPointerDown={(e) => {
             ;(e.target as Element).setPointerCapture(e.pointerId)
-            pointersRef.current.set(e.pointerId, e)
+            pointersRef.current.set(e.pointerId, e.nativeEvent)
             if (pointersRef.current.size === 1) {
               setIsPanning(true)
               lastPosRef.current = { x: e.clientX, y: e.clientY }
@@ -120,7 +120,7 @@ export default function Lightbox({ items, index = 0, onClose }: LightboxProps) {
           }}
           onPointerMove={(e) => {
             if (!pointersRef.current.has(e.pointerId)) return
-            pointersRef.current.set(e.pointerId, e)
+            pointersRef.current.set(e.pointerId, e.nativeEvent)
             if (pointersRef.current.size === 2 && pinchRef.current) {
               const [a, b] = Array.from(pointersRef.current.values())
               const dx = a.clientX - b.clientX

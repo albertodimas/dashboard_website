@@ -438,8 +438,8 @@ export default function ProjectLanding({ business }: Props) {
                   <div className="flex justify-center mb-8 sticky top-24 z-10">
                     <div className="inline-flex flex-wrap gap-2 p-1 bg-gray-100 rounded-full overflow-x-auto no-scrollbar max-w-full">
                       <button onClick={() => { setGalleryCategory('all'); setGalleryPage(0) }} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${galleryCategory==='all'?'bg-white text-gray-900 shadow-sm':'text-gray-600 hover:text-gray-900'}`}>{t('all')}</button>
-                      {categories.map((c) => (
-                        <button key={c} onClick={() => { setGalleryCategory(c); setGalleryPage(0) }} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${galleryCategory===c?'bg-white text-gray-900 shadow-sm':'text-gray-600 hover:text-gray-900'}`}>{c}</button>
+                      {categories.map((category: string) => (
+                        <button key={category} onClick={() => { setGalleryCategory(category); setGalleryPage(0) }} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${galleryCategory===category?'bg-white text-gray-900 shadow-sm':'text-gray-600 hover:text-gray-900'}`}>{category}</button>
                       ))}
                     </div>
                   </div>

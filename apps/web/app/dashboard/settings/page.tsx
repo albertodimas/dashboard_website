@@ -10,9 +10,190 @@ import OperationModeSelector from '@/components/OperationModeSelector'
 import BusinessSettings from '@/components/dashboard/BusinessSettings'
 import { BusinessTypeSelector } from '@/components/business-type-selector'
 import { BusinessType } from '@/lib/business-types'
-import { countries, cities } from '@/lib/countries'
+import { countries, cities, type CountryState } from '@/lib/countries'
 import { Camera, User } from 'lucide-react'
 import { compressImage, formatFileSize } from '@/lib/image-resize-client'
+
+type OperationMode = 'RESERVA' | 'PROYECTO'
+
+interface UserProfileState {
+  name: string
+  lastName: string
+  email: string
+  phone: string
+  language: string
+  avatar: string
+}
+
+interface BusinessInfoState {
+  name: string
+  email: string
+  phone: string
+  address: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  website: string
+  description: string
+  businessType: string
+  businessCategory: string
+  logo: string
+  coverImage: string
+}
+
+interface NotificationSettingsState {
+  emailNotifications: boolean
+  smsNotifications: boolean
+  appointmentReminders: boolean
+}
+
+interface ScheduleSettingsState {
+  timeInterval: number
+  startTime: string
+  endTime: string
+  workingDays: number[]
+}
+
+interface BusinessThemeSettings {
+  primaryColor?: string
+  secondaryColor?: string
+  accentColor?: string
+  backgroundColor?: string
+  fontFamily?: string
+  buttonStyle?: string
+}
+
+interface BusinessUiSettings {
+  chipsSticky?: boolean
+  paginationStyle?: string
+  heroOverlay?: string
+  heroButtonStyle?: string
+  useTranslucentHeroButtons?: boolean
+  heroButtons?: {
+    showPrimary?: boolean
+    primaryText?: string
+    showServices?: boolean
+    servicesText?: string
+    showGallery?: boolean
+    galleryText?: string
+    showAuth?: boolean
+  }
+  cardRadius?: string
+  shadowStyle?: string
+  typographyScale?: string
+  bodyScale?: string
+  useGradientButtons?: boolean
+  showMobileStickyCTA?: boolean
+  showDesktopFloatingDirection?: boolean
+  tagline?: string
+}
+
+interface BusinessSettingsEnvelope {
+  theme?: BusinessThemeSettings | null
+  ui?: BusinessUiSettings | null
+  notifications?: Partial<NotificationSettingsState> | null
+  scheduleSettings?: Partial<ScheduleSettingsState> | null
+  operationMode?: OperationMode | string | null
+}
+
+interface BusinessSettingsResponse extends BusinessInfoState {
+  id?: string
+  slug: string
+  websiteUrl?: string
+  customSlug?: string | null
+  customDomain?: string | null
+  settings?: BusinessSettingsEnvelope | null
+}
+
+interface AuthResponse {
+  user: {
+    name?: string | null
+    lastName?: string | null
+    email?: string | null
+    phone?: string | null
+    language?: string | null
+    avatar?: string | null
+  }
+}
+
+const defaultUserProfile: UserProfileState = {
+  name: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  language: 'en',
+  avatar: ''
+}
+
+const defaultBusinessInfo: BusinessInfoState = {
+  name: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: '',
+  website: '',
+  description: '',
+  businessType: BusinessType.OTHER,
+  businessCategory: '',
+  logo: '',
+  coverImage: ''
+}
+
+const defaultBusinessData: BusinessSettingsResponse = {
+  ...defaultBusinessInfo,
+  slug: '',
+  websiteUrl: undefined,
+  customSlug: null,
+  customDomain: null,
+  settings: null,
+}
+
+const defaultNotifications: NotificationSettingsState = {
+  emailNotifications: true,
+  smsNotifications: false,
+  appointmentReminders: true
+}
+
+const defaultScheduleSettings: ScheduleSettingsState = {
+  timeInterval: 30,
+  startTime: '',
+  endTime: '',
+  workingDays: []
+}
+
+const normalizeBusiness = (data?: Partial<BusinessSettingsResponse>): BusinessSettingsResponse => {
+  const merged = {
+    ...defaultBusinessData,
+    ...data,
+    slug: data?.slug ?? defaultBusinessData.slug,
+    websiteUrl: typeof data?.websiteUrl === 'string' ? data.websiteUrl : undefined,
+    customSlug: data?.customSlug ?? null,
+    customDomain: data?.customDomain ?? null,
+    settings: data?.settings ?? null,
+  }
+
+  return {
+    ...merged,
+    name: merged.name ?? '',
+    email: merged.email ?? '',
+    phone: merged.phone ?? '',
+    address: merged.address ?? '',
+    city: merged.city ?? '',
+    state: merged.state ?? '',
+    postalCode: merged.postalCode ?? '',
+    country: merged.country ?? '',
+    website: merged.website ?? '',
+    description: merged.description ?? '',
+    businessType: merged.businessType ?? BusinessType.OTHER,
+    businessCategory: merged.businessCategory ?? '',
+    logo: merged.logo ?? '',
+    coverImage: merged.coverImage ?? '',
+  }
+}
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -21,70 +202,42 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
   const toast = useToast()
-  const [userProfile, setUserProfile] = useState({
-    name: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    language: 'en',
-    avatar: ''
-  })
+  const [userProfile, setUserProfile] = useState<UserProfileState>(() => ({ ...defaultUserProfile }))
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
-  const [businessInfo, setBusinessInfo] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    country: '',
-    website: '',
-    description: '',
-    businessType: BusinessType.OTHER as string,
-    logo: '',
-    coverImage: ''
-  })
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    smsNotifications: false,
-    appointmentReminders: true
-  })
-  const [scheduleSettings, setScheduleSettings] = useState({
-    timeInterval: 30,
-    startTime: '',
-    endTime: '',
-    workingDays: []
-  })
-  const [operationMode, setOperationMode] = useState<'RESERVA'|'PROYECTO'>('RESERVA')
-  const [businessData, setBusinessData] = useState<any>(null)
-  const [availableStates, setAvailableStates] = useState<any[]>([])
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfoState>(() => ({ ...defaultBusinessInfo }))
+  const [notifications, setNotifications] = useState<NotificationSettingsState>(() => ({ ...defaultNotifications }))
+  const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettingsState>(() => ({ ...defaultScheduleSettings }))
+  const [operationMode, setOperationMode] = useState<OperationMode>('RESERVA')
+  const [businessData, setBusinessData] = useState<BusinessSettingsResponse | null>(null)
+  const [availableStates, setAvailableStates] = useState<CountryState[]>([])
   const [availableCities, setAvailableCities] = useState<string[]>([])
+
+  const getCitiesForCountry = (countryCode: string) => cities[countryCode] ?? []
 
   // Handle country change
   const handleCountryChange = (countryCode: string) => {
-    setBusinessInfo({...businessInfo, country: countryCode, state: '', city: ''})
+    setBusinessInfo((prev) => ({ ...prev, country: countryCode, state: '', city: '' }))
     const country = countries.find(c => c.code === countryCode)
-    setAvailableStates(country?.states || [])
-    setAvailableCities(cities[countryCode as keyof typeof cities] || [])
+    setAvailableStates(country?.states ?? [])
+    setAvailableCities(getCitiesForCountry(countryCode))
   }
 
-  // Handle state change  
+  // Handle state change
   const handleStateChange = (stateCode: string) => {
-    setBusinessInfo({...businessInfo, state: stateCode, city: ''})
-    
-    // Find the selected state and load its cities
-    const country = countries.find(c => c.code === businessInfo.country)
+    setBusinessInfo((prev) => ({ ...prev, state: stateCode, city: '' }))
+
+    const currentCountryCode = businessInfo.country
+    const country = countries.find(c => c.code === currentCountryCode)
     const state = country?.states.find(s => s.code === stateCode)
-    
-    if (state && 'cities' in state) {
+
+    if (state?.cities && Array.isArray(state.cities)) {
       setAvailableCities(state.cities)
     } else {
       // Fallback to general country cities if state doesn't have specific cities
-      setAvailableCities(cities[businessInfo.country as keyof typeof cities] || [])
+      setAvailableCities(getCitiesForCountry(currentCountryCode))
     }
   }
 
@@ -95,64 +248,78 @@ export default function SettingsPage() {
         if (!res.ok) throw new Error('Not authenticated')
         return res.json()
       })
-      .then(async (authData) => {
+      .then(async (authData: AuthResponse) => {
         // Set user profile from auth data
+        const user = authData?.user ?? {}
         setUserProfile({
-          name: authData.user.name || '',
-          lastName: authData.user.lastName || '',
-          email: authData.user.email || '',
-          phone: authData.user.phone || '',
-          language: authData.user.language || 'en',
-          avatar: authData.user.avatar || ''
+          ...defaultUserProfile,
+          name: user.name ?? '',
+          lastName: user.lastName ?? '',
+          email: user.email ?? '',
+          phone: user.phone ?? '',
+          language: user.language ?? 'en',
+          avatar: user.avatar ?? ''
         })
         
         try {
           const response = await fetch('/api/dashboard/business')
           if (response.ok) {
-            const data = await response.json()
-            setBusinessData(data)
+            const rawData = await response.json() as Partial<BusinessSettingsResponse>
+            const normalizedBusiness = normalizeBusiness(rawData)
+            setBusinessData(normalizedBusiness)
             setBusinessInfo({
-              name: data.name || '',
-              email: data.email || '',
-              phone: data.phone || '',
-              address: data.address || '',
-              city: data.city || '',
-              businessType: data.businessType || BusinessType.OTHER,
-              businessCategory: data.businessCategory || '',
-              state: data.state || '',
-              postalCode: data.postalCode || '',
-              country: data.country || '',
-              website: data.website || '',
-              description: data.description || '',
-              logo: data.logo || '',
-              coverImage: data.coverImage || ''
+              ...defaultBusinessInfo,
+              name: normalizedBusiness.name,
+              email: normalizedBusiness.email,
+              phone: normalizedBusiness.phone,
+              address: normalizedBusiness.address,
+              city: normalizedBusiness.city,
+              state: normalizedBusiness.state,
+              postalCode: normalizedBusiness.postalCode,
+              country: normalizedBusiness.country,
+              website: normalizedBusiness.website,
+              description: normalizedBusiness.description,
+              businessType: normalizedBusiness.businessType,
+              businessCategory: normalizedBusiness.businessCategory,
+              logo: normalizedBusiness.logo,
+              coverImage: normalizedBusiness.coverImage
             })
 
             // Set available states and cities based on current country and state
-            if (data.country) {
-              const country = countries.find(c => c.code === data.country)
-              setAvailableStates(country?.states || [])
+            if (normalizedBusiness.country) {
+              const country = countries.find(c => c.code === normalizedBusiness.country)
+              setAvailableStates(country?.states ?? [])
               
               // If there's also a state selected, load cities for that state
-              if (data.state && country) {
-                const state = country.states.find(s => s.code === data.state)
-                if (state && 'cities' in state) {
+              if (normalizedBusiness.state && country) {
+                const state = country.states.find(s => s.code === normalizedBusiness.state)
+                if (state?.cities && Array.isArray(state.cities)) {
                   setAvailableCities(state.cities)
                 } else {
-                  setAvailableCities(cities[data.country as keyof typeof cities] || [])
+                  setAvailableCities(getCitiesForCountry(normalizedBusiness.country))
                 }
               } else {
-                setAvailableCities(cities[data.country as keyof typeof cities] || [])
+                setAvailableCities(getCitiesForCountry(normalizedBusiness.country))
               }
             }
             
             // Load settings from the business settings field
-            const settings = data.settings || {}
+            const settings = normalizedBusiness.settings ?? {}
             if (settings.notifications) {
-              setNotifications(settings.notifications)
+              setNotifications({
+                ...defaultNotifications,
+                ...settings.notifications,
+              })
             }
             if (settings.scheduleSettings) {
-              setScheduleSettings(settings.scheduleSettings)
+              const normalizedSchedule: ScheduleSettingsState = {
+                ...defaultScheduleSettings,
+                ...settings.scheduleSettings,
+              }
+              normalizedSchedule.workingDays = Array.isArray(settings.scheduleSettings.workingDays)
+                ? settings.scheduleSettings.workingDays.filter((day): day is number => typeof day === 'number')
+                : defaultScheduleSettings.workingDays
+              setScheduleSettings(normalizedSchedule)
             }
             if (settings.operationMode) {
               setOperationMode(settings.operationMode === 'PROYECTO' ? 'PROYECTO' : 'RESERVA')
@@ -217,9 +384,9 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       const businessResponse = await fetch('/api/dashboard/business')
-      const businessData = await businessResponse.json()
+      const businessPayload = await businessResponse.json() as BusinessSettingsResponse
       const updatedSettings = {
-        ...(businessData.settings || {}),
+        ...(businessPayload.settings ?? {}),
         operationMode
       }
       const response = await fetch('/api/dashboard/business', {
@@ -327,11 +494,18 @@ export default function SettingsPage() {
         throw new Error('Failed to save business info')
       }
       
-      const result = await response.json()
+      const result = await response.json() as { business?: Partial<BusinessSettingsResponse> }
       
       // Update businessData with new values
       if (result.business) {
-        setBusinessData(result.business)
+        const update = result.business
+        setBusinessData((prev) => {
+          const combined = {
+            ...(prev ?? {}),
+            ...update,
+          } as Partial<BusinessSettingsResponse>
+          return normalizeBusiness(combined)
+        })
         
         // Show success message with new URL if name changed
         if (result.business.customSlug) {
@@ -354,11 +528,11 @@ export default function SettingsPage() {
     try {
       // Get current business settings
       const businessResponse = await fetch('/api/dashboard/business')
-      const businessData = await businessResponse.json()
+      const businessPayload = await businessResponse.json() as BusinessSettingsResponse
       
       // Update settings with notifications
       const updatedSettings = {
-        ...(businessData.settings || {}),
+        ...(businessPayload.settings ?? {}),
         notifications
       }
       
@@ -391,11 +565,11 @@ export default function SettingsPage() {
     try {
       // Get current business settings
       const businessResponse = await fetch('/api/dashboard/business')
-      const businessData = await businessResponse.json()
+      const businessPayload = await businessResponse.json() as BusinessSettingsResponse
       
       // Update settings with schedule
       const updatedSettings = {
-        ...(businessData.settings || {}),
+        ...(businessPayload.settings ?? {}),
         scheduleSettings
       }
       
@@ -424,10 +598,12 @@ export default function SettingsPage() {
   }
 
   const toggleWorkingDay = (day: number) => {
-    const updatedDays = scheduleSettings.workingDays.includes(day)
-      ? scheduleSettings.workingDays.filter(d => d !== day)
-      : [...scheduleSettings.workingDays, day].sort()
-    setScheduleSettings({...scheduleSettings, workingDays: updatedDays})
+    setScheduleSettings((prev) => {
+      const updatedDays = prev.workingDays.includes(day)
+        ? prev.workingDays.filter(d => d !== day)
+        : [...prev.workingDays, day].sort((a, b) => a - b)
+      return { ...prev, workingDays: updatedDays }
+    })
   }
 
   const handleClearData = async () => {
@@ -954,8 +1130,22 @@ export default function SettingsPage() {
           {/* Website Settings */}
           {businessData && (
             <BusinessSettings 
-              business={businessData} 
-              onUpdate={(data) => setBusinessData({...businessData, ...data})}
+              business={{
+                ...businessData,
+                settings: businessData.settings
+                  ? {
+                      theme: businessData.settings.theme ?? undefined,
+                      ui: businessData.settings.ui ?? undefined,
+                    }
+                  : undefined,
+              }} 
+              onUpdate={(data) => setBusinessData((prev) => {
+                const combined = {
+                  ...(prev ?? {}),
+                  ...data,
+                } as Partial<BusinessSettingsResponse>
+                return normalizeBusiness(combined)
+              })}
             />
           )}
 
