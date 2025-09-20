@@ -45,37 +45,7 @@ export async function GET() {
     })
 
     // Format businesses with additional info
-    const formattedBusinesses = businesses.map((business: BusinessWithRelations) => {
-      const businessCategory = business.businessCategory ?? business.category?.name ?? null
-
-      return {
-        id: business.id,
-        name: business.name,
-        slug: business.slug,
-        email: business.email,
-        phone: business.phone,
-        city: business.city,
-        state: business.state,
-        isActive: business.isActive,
-        isPremium: business.isPremium,
-        isBlocked: business.isBlocked,
-        blockedReason: business.blockedReason,
-        blockedAt: business.blockedAt,
-        businessCategory,
-        categoryId: business.categoryId,
-        category: business.category,
-        enableStaffModule: business.enableStaffModule,
-        enablePackagesModule: business.enablePackagesModule,
-        tenantName: business.tenant.name,
-        tenantEmail: business.tenant.email,
-        subdomain: business.tenant.subdomain,
-        appointmentsCount: business._count.appointments,
-        servicesCount: business._count.services,
-        staffCount: business._count.staff,
-        createdAt: business.createdAt,
-        updatedAt: business.updatedAt
-      }
-    })
+    const formattedBusinesses = businesses.map(formatBusinessWithRelations)
 
     return NextResponse.json(formattedBusinesses)
   } catch (error) {
@@ -84,6 +54,38 @@ export async function GET() {
       { error: 'Failed to fetch businesses' },
       { status: 500 }
     )
+  }
+}
+
+function formatBusinessWithRelations(business: BusinessWithRelations) {
+  const businessCategory = business.businessCategory ?? business.category?.name ?? null
+
+  return {
+    id: business.id,
+    name: business.name,
+    slug: business.slug,
+    email: business.email,
+    phone: business.phone,
+    city: business.city,
+    state: business.state,
+    isActive: business.isActive,
+    isPremium: business.isPremium,
+    isBlocked: business.isBlocked,
+    blockedReason: business.blockedReason,
+    blockedAt: business.blockedAt,
+    businessCategory,
+    categoryId: business.categoryId,
+    category: business.category,
+    enableStaffModule: business.enableStaffModule,
+    enablePackagesModule: business.enablePackagesModule,
+    tenantName: business.tenant.name,
+    tenantEmail: business.tenant.email,
+    subdomain: business.tenant.subdomain,
+    appointmentsCount: business._count.appointments,
+    servicesCount: business._count.services,
+    staffCount: business._count.staff,
+    createdAt: business.createdAt,
+    updatedAt: business.updatedAt
   }
 }
 

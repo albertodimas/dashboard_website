@@ -1,10 +1,13 @@
 {
   "root": true,
+  "extends": ["next/core-web-vitals"],
   "ignorePatterns": ["node_modules", "dist", "build", "**/.turbo", "**/.next"],
+  "rules": {
+    "@next/next/no-page-custom-font": "off"
+  },
   "overrides": [
     {
       "files": ["apps/web/**/*.{ts,tsx}"]
     }
   ]
 }
-
