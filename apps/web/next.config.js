@@ -10,6 +10,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  env: {
+    JWT_SECRET: process.env.JWT_SECRET ?? 'development-placeholder',
+    CLIENT_JWT_SECRET: process.env.CLIENT_JWT_SECRET ?? process.env.JWT_SECRET ?? 'development-placeholder',
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Fixes for Prisma on Windows with pnpm
