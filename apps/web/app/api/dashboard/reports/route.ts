@@ -329,7 +329,24 @@ export async function GET(request: NextRequest) {
       .map(([hour]) => parseInt(hour))
 
     // Get staff reports if staff module is enabled
-    let staffReports = null
+    type StaffReport = {
+      id: string
+      name: string
+      photo: string | null
+      metrics: {
+        revenue: number
+        previousRevenue: number
+        revenueChange: number
+        appointments: number
+        completedAppointments: number
+        cancelledAppointments: number
+        hoursWorked: number
+        averageTicket: number
+        services: Array<{ name: string; count: number; revenue: number }>
+      }
+    }
+
+    let staffReports: StaffReport[] = []
     if (staffModuleEnabled) {
       // Get all staff members
       const staffMembers = await prisma.staff.findMany({

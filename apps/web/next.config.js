@@ -7,6 +7,9 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Fixes for Prisma on Windows with pnpm

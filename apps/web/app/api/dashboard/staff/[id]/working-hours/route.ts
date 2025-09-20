@@ -43,7 +43,14 @@ export async function POST(
     })
 
     // Create new working hours
-    const workingHours = []
+    const workingHours: Array<{
+      businessId: string
+      staffId: string
+      dayOfWeek: number
+      startTime: string
+      endTime: string
+      isActive: boolean
+    }> = []
     for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
       const dayData = scheduleData[dayOfWeek]
       if (dayData && dayData.isActive) {

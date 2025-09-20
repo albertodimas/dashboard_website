@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate expiry date from today if validity days are set
-    let expiryDate = null
+    let expiryDate: Date | null = null
     if (purchase.package.validityDays) {
       expiryDate = new Date()
       expiryDate.setDate(expiryDate.getDate() + purchase.package.validityDays)

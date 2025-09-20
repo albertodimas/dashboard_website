@@ -211,7 +211,7 @@ export async function PATCH(
       }
 
       // Calcular fecha de expiración desde la activación
-      let expiryDate = null
+      let expiryDate: Date | null = null
       if (packagePurchase.package.validityDays) {
         expiryDate = new Date()
         expiryDate.setDate(expiryDate.getDate() + packagePurchase.package.validityDays)
