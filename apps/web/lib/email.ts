@@ -33,18 +33,19 @@ export async function sendEmail({
       const fromEnv = normalizeFrom(process.env.RESEND_FROM_EMAIL)
       const fromEmail = normalizeFrom(from) || fromEnv || 'onboarding@resend.dev'
 
-      const result = await resend.emails.send({
+      const payload: any = {
         from: fromEmail,
         to,
         subject,
         html,
-        text,
         attachments: attachments?.map((a) => ({
           filename: a.filename,
           // Resend accepts Buffer; convert strings to Buffer for safety
           content: typeof a.content === 'string' ? Buffer.from(a.content) : a.content,
         })),
-      })
+      }
+      if (text) payload.text = text
+      const result = await resend.emails.send(payload)
 
       // Newer SDKs return { data, error }; handle both patterns defensively
       const anyRes: any = result as any
