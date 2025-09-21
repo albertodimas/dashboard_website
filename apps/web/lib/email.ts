@@ -1,4 +1,5 @@
 import { logger } from './logger'
+import { Resend } from 'resend'
 export async function sendEmail({
   to,
   subject,
@@ -15,6 +16,54 @@ export async function sendEmail({
   attachments?: Array<{ filename: string; content: string | Buffer; contentType?: string }>
 }) {
   const nodemailer = require('nodemailer')
+
+  // Prefer Resend if configured (works in dev/prod)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const normalizeFrom = (v?: string) => {
+        if (!v) return undefined
+        const trimmed = v.trim()
+        // Strip wrapping quotes if present: "Name <email>"
+        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+          return trimmed.slice(1, -1)
+        }
+        return trimmed
+      }
+      const fromEnv = normalizeFrom(process.env.RESEND_FROM_EMAIL)
+      const fromEmail = normalizeFrom(from) || fromEnv || 'onboarding@resend.dev'
+
+      const result = await resend.emails.send({
+        from: fromEmail,
+        to,
+        subject,
+        html,
+        text,
+        attachments: attachments?.map((a) => ({
+          filename: a.filename,
+          // Resend accepts Buffer; convert strings to Buffer for safety
+          content: typeof a.content === 'string' ? Buffer.from(a.content) : a.content,
+        })),
+      })
+
+      // Newer SDKs return { data, error }; handle both patterns defensively
+      const anyRes: any = result as any
+      const err = anyRes?.error
+      if (err) throw err
+
+      logger.info('Email sent via Resend')
+      logger.info('To:', to)
+      logger.info('Subject:', subject)
+
+      return {
+        success: true,
+        data: result,
+      }
+    } catch (error) {
+      logger.error('Failed to send via Resend', error)
+      // Fall through to SMTP/MailHog as a fallback
+    }
+  }
   
   // For development, check if we have Gmail credentials first
   if (process.env.NODE_ENV === 'development' && !process.env.EMAIL_USER) {

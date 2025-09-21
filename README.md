@@ -141,3 +141,78 @@ pnpm db:seed
 ## 📄 License
 
 MIT
+
+---
+
+## Local env using the same cloud .env (Supabase + Upstash)
+
+Use this path when you want your local app to point to the same remote services used in production (Supabase Postgres via pool, Upstash Redis, shared JWT/CLIENT/REFRESH secrets).
+
+1) Copy your production secrets
+- Root env: duplicate `.env.example` to `.env` and fill with your production values (do not commit).
+- App env: ensure `apps/web/.env.local` exists; you can keep it minimal if the root `.env` already has the values.
+- DB package env: update `packages/db/.env` to point Prisma to Supabase (use the pooled connection for `DATABASE_URL` and `DIRECT_URL`). Example placeholders:
+  - `DATABASE_URL=postgresql://<user>:<pass>@<supabase-host>:6543/postgres?schema=public&pgbouncer=true`
+  - `DIRECT_URL=postgresql://<user>:<pass>@<supabase-host>:5432/postgres?schema=public`
+
+Required variables to mirror from production:
+- Postgres: `DATABASE_URL`, `DIRECT_URL`
+- Redis (Upstash): `REDIS_URL`
+- Auth secrets: `JWT_SECRET`, `CLIENT_JWT_SECRET`, `REFRESH_SECRET`
+- App URLs: `NEXTAUTH_URL`, `APP_BASE_URL`
+- Email: either Gmail SMTP (`EMAIL_*`) or Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) depending on the path you use (see Email notes below)
+
+2) Push schema and seed against Supabase
+Run Prisma commands scoped to the DB package so they read `packages/db/.env`:
+```bash
+pnpm --filter @dashboard/db db:push
+pnpm --filter @dashboard/db db:seed
+```
+
+Notes:
+- The schema uses Postgres extensions `postgis` and `uuid-ossp`. Supabase supports both. If `db:push` warns, enable them from SQL:
+  - `create extension if not exists postgis;`
+  - `create extension if not exists "uuid-ossp";`
+- `db:seed` creates demo tenants, businesses and owners. Admin user can be created with the helper script below.
+
+3) Start the app locally (pointing to cloud services)
+```bash
+pnpm --filter @dashboard/web dev
+```
+
+---
+
+## Email delivery (dev and remote)
+
+Current implementation uses Nodemailer with two modes:
+- Development (no Gmail configured): sends to local MailHog at `localhost:1025` and logs a hint to open http://localhost:8025
+- Production/remote: uses SMTP credentials from `EMAIL_*`. The `resend` package is present but not wired yet.
+
+Endpoints involved:
+- `apps/web/app/api/auth/send-verification/route.ts` (owner register)
+- `apps/web/app/api/cliente/auth/send-verification/route.ts` (client register)
+
+Observability while testing:
+- Terminal logs are JSON lines from `apps/web/lib/logger.ts`
+- Dev helper to inspect the current code stored in Redis:
+  - GET `/api/get-verification-code?email=<email>` (works in dev; in prod requires header `x-internal-key: $INTERNAL_API_KEY`)
+
+To switch to Resend later:
+- Provide `RESEND_API_KEY` and `RESEND_FROM_EMAIL` and replace `sendEmail(...)` in `apps/web/lib/email.ts` with a Resend client call. For now, SMTP/MailHog is the active path.
+
+---
+
+## Admin login (local validation)
+
+Ensure the default admin exists and verify login in a browser before focusing on email flows:
+
+1) Create/ensure admin user (email/password below):
+```bash
+node create-admin-user.js
+```
+
+2) Open http://localhost:3000/admin/login and use:
+- Email: `admin@dashboard.com`
+- Password: `password123`
+
+If login succeeds you will be redirected to `/admin/dashboard` and an `admin-session` cookie is set server-side.

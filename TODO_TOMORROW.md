@@ -175,7 +175,27 @@ Punto de reanudación sugerido:
 Para retomar: retoma desde 5a7c349
 ## Sesión 2025-09-21 - Pendientes próximos
 
-- Documentar setup local: .env con secrets remotos (Supabase pool, Redis Upstash, JWT/CLIENT/REFRESH secrets) y atajo para seed remoto.
-- Coordinar flujo producción/local: script para `pnpm --filter @dashboard/db db:push` + `db:seed` contra Supabase usando nuevas credenciales.
-- Revisar envío de email (Resend): confirmar env vars en Vercel, revisar logs de /api/auth/send-verification cuando se registra usuario.
-- Reprobar registro remoto: validar que llega código por correo y el login redirige al dashboard.
+- Documentar setup local con el mismo .env remoto (Supabase/Upstash) y atajo de seed contra Supabase.
+  - Copiar `.env.example` → `.env` y completar con valores reales (no commitear).
+  - Ajustar `packages/db/.env` para apuntar a Supabase:
+    - `DATABASE_URL=postgresql://<user>:<pass>@<supabase-host>:6543/postgres?schema=public&pgbouncer=true`
+    - `DIRECT_URL=postgresql://<user>:<pass>@<supabase-host>:5432/postgres?schema=public`
+  - Variables clave a espejar: `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL` (Upstash), `JWT_SECRET`, `CLIENT_JWT_SECRET`, `REFRESH_SECRET`, `NEXTAUTH_URL`, `APP_BASE_URL`.
+  - Empujar schema y seed contra Supabase:
+    - `pnpm --filter @dashboard/db db:push`
+    - `pnpm --filter @dashboard/db db:seed`
+
+- Validar login admin antes de email:
+  - `node create-admin-user.js`
+  - Abrir `http://localhost:3000/admin/login` → `admin@dashboard.com` / `password123`.
+
+- Revisar envío de email (Resend/SMTP):
+  - Por ahora `apps/web/lib/email.ts` usa Nodemailer (SMTP) + MailHog en dev.
+  - Endpoints: `/api/auth/send-verification` y `/api/cliente/auth/send-verification`.
+  - Observar logs JSON en terminal. En dev, ver MailHog: `http://localhost:8025`.
+  - Dev helper: `GET /api/get-verification-code?email=<email>` (en prod requiere `x-internal-key`).
+
+- Reprobar registro/login remoto:
+  - Registro: completar formulario → verificar que llega el código → `Complete Registration` ok.
+  - Login: tras verificar, abrir sesión y recibir cookies (cliente o admin según flujo).
+  - En Vercel/Supabase comprobar que `RESEND_API_KEY` o `EMAIL_*` estén completos si se desea email real.

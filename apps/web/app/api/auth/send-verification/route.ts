@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Send verification email
     try {
-      await sendEmail({
+      const result = await sendEmail({
         to: email,
         subject: 'Verify your email - Dashboard',
         html: `
@@ -81,6 +81,13 @@ export async function POST(request: NextRequest) {
           </div>
         `
       })
+      if (!result?.success) {
+        logger.error('Failed to send verification email (owner)', result)
+        return NextResponse.json(
+          { error: 'Failed to send verification email. Please try again.' },
+          { status: 500 }
+        )
+      }
     } catch (emailError) {
       logger.error('Failed to send verification email:', emailError)
       return NextResponse.json(
