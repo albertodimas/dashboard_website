@@ -173,3 +173,9 @@ Punto de reanudación sugerido:
 - Fix LanguageSelector y copys de Settings/Packages/Purchases.
 
 Para retomar: retoma desde 5a7c349
+## Sesión 2025-09-21 - Pendientes próximos
+
+- Documentar setup local: .env con secrets remotos (Supabase pool, Redis Upstash, JWT/CLIENT/REFRESH secrets) y atajo para seed remoto.
+- Coordinar flujo producción/local: script para `pnpm --filter @dashboard/db db:push` + `db:seed` contra Supabase usando nuevas credenciales.
+- Revisar envío de email (Resend): confirmar env vars en Vercel, revisar logs de /api/auth/send-verification cuando se registra usuario.
+- Reprobar registro remoto: validar que llega código por correo y el login redirige al dashboard.
