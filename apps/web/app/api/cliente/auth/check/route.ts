@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyClientToken } from '@/lib/client-auth'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'

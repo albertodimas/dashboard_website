@@ -3,7 +3,7 @@
 ## 🎯 Objetivos Completados
 
 ### 1. ✅ Configuración Inicial
-- **Problema**: Errores de path en Claude settings (`Path D:\d\dashboard_website\apps was not found`)
+- **Problema**: Errores de path en Claude settings (`Path D:\d\nexodash\apps was not found`)
 - **Solución**: Corregido `.claude\settings.local.json` eliminando paths inválidos
 - **Estado**: Funcionando correctamente
 
@@ -163,7 +163,7 @@ http://localhost:3004
 
 # Reiniciar servidor:
 Ctrl+C y luego:
-cd D:\dashboard_website && pnpm dev
+cd D:\nexodash && pnpm dev
 
 # Ver logs de Docker:
 docker-compose logs -f

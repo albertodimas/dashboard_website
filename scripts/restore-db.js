@@ -64,7 +64,7 @@ rl.question('\n📝 Enter the number of the backup to restore (or "q" to quit): 
     console.log(`\n🔄 Restoring from: ${selectedBackup.name}`);
     
     // First, clean the database
-    const cleanCommand = `docker exec dashboard_website-postgres-1 psql -U dashboard -d dashboard -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`;
+    const cleanCommand = `docker exec nexodash-postgres-1 psql -U nexodash -d nexodash -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`;
     
     exec(cleanCommand, (error) => {
       if (error) {
@@ -74,7 +74,7 @@ rl.question('\n📝 Enter the number of the backup to restore (or "q" to quit): 
       }
       
       // Then restore from backup
-      const restoreCommand = `docker exec -i dashboard_website-postgres-1 psql -U dashboard -d dashboard < "${selectedBackup.path}"`;
+      const restoreCommand = `docker exec -i nexodash-postgres-1 psql -U nexodash -d nexodash < "${selectedBackup.path}"`;
       
       exec(restoreCommand, (error, stdout, stderr) => {
         if (error) {

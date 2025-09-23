@@ -1,4 +1,4 @@
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 
 async function debugCustomer() {
   try {

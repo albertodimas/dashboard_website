@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo    Dashboard Setup Script
+echo    Nexodash Setup Script
 echo ========================================
 echo.
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'

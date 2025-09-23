@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma, PurchaseStatus } from '@dashboard/db'
+import { prisma, PurchaseStatus } from '@nexodash/db'
 import { z } from 'zod'
 import { getClientIP, limitByIP } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'

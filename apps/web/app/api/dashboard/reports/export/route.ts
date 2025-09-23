@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { getCurrentBusiness } from '@/lib/auth-utils'
 import * as XLSX from 'xlsx'
 import { format as formatDate } from 'date-fns'

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@dashboard/db'],
+  transpilePackages: ['@nexodash/db'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

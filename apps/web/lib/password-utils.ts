@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 
 export async function validatePasswordHistory(
   customerId: string, 

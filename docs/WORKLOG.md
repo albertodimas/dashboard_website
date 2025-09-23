@@ -62,7 +62,7 @@ Formato por sesión: fecha/hora, resumen, cambios, validación, próximos pasos.
 - Cambios aplicados:
   - lib/upload-utils-server: sanitiza `id` y `type`, elimina directorios legacy si existen, asegura base `apps/web/public`, y usa nombres `avatars/`, `gallery/`, `service/`, `business/` coherentes.
   - api/upload: ya tenía validaciones de auth, mime y tamaño; mantiene mapping de URL por tipo y tamaños válidos.
-  - scripts/cleanup-invalid-image-dirs.js: script manual para limpiar directorios como `D:dashboard_websiteappswebpublicavatars` etc.
+  - scripts/cleanup-invalid-image-dirs.js: script manual para limpiar directorios como `D:nexodashappswebpublicavatars` etc.
 - Validación pendiente: subir imagen por cada tipo y verificar que los archivos aparecen en `apps/web/public/<carpeta>` y que la URL devuelta responde.
 - Próximos pasos: ejecutar `node scripts/cleanup-invalid-image-dirs.js` si detectas carpetas residuales.
 

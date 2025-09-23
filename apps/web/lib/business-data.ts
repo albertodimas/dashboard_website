@@ -1,4 +1,4 @@
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { logger } from './logger'
 
 export async function getBusinessDataBySlug(slug: string) {

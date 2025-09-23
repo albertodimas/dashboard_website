@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +17,7 @@ export async function GET() {
         data: {
           name: 'Default Tenant',
           subdomain: 'default',
-          email: 'admin@dashboard.com',
+          email: 'admin@nexodash.com',
           phone: '555-0100',
           timezone: 'America/New_York',
           currency: 'USD',
@@ -30,7 +30,7 @@ export async function GET() {
     let user = await prisma.user.findFirst({
       where: { 
         tenantId: tenant.id,
-        email: 'admin@dashboard.com'
+        email: 'admin@nexodash.com'
       }
     })
 
@@ -39,7 +39,7 @@ export async function GET() {
       user = await prisma.user.create({
         data: {
           tenantId: tenant.id,
-          email: 'admin@dashboard.com',
+          email: 'admin@nexodash.com',
           name: 'Admin User',
           passwordHash: 'temp_password_hash', // Will be handled by auth later
           emailVerified: new Date()

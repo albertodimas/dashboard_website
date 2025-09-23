@@ -34,7 +34,7 @@ function generateICSFile(appointment: AppointmentDetails): string {
     const ss = String(date.getSeconds()).padStart(2, '0')
     return `${y}${m}${d}T${hh}${mm}${ss}`
   }
-  const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Dashboard Website//Appointment//EN\nCALSCALE:GREGORIAN\nMETHOD:REQUEST\nBEGIN:VEVENT\nUID:${Date.now()}@dashboard-website.com\nDTSTART:${formatDateLocal(startDate)}\nDTEND:${formatDateLocal(endDate)}\nSUMMARY:${appointment.service} - ${appointment.businessName}\nDESCRIPTION:Appointment for ${appointment.service} at ${appointment.businessName}\nLOCATION:${appointment.businessAddress || appointment.businessName}\nSTATUS:CONFIRMED\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR`
+  const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Nexodash//Appointment//EN\nCALSCALE:GREGORIAN\nMETHOD:REQUEST\nBEGIN:VEVENT\nUID:${Date.now()}@nexodash.com\nDTSTART:${formatDateLocal(startDate)}\nDTEND:${formatDateLocal(endDate)}\nSUMMARY:${appointment.service} - ${appointment.businessName}\nDESCRIPTION:Appointment for ${appointment.service} at ${appointment.businessName}\nLOCATION:${appointment.businessAddress || appointment.businessName}\nSTATUS:CONFIRMED\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR`
   return icsContent
 }
 
@@ -99,10 +99,10 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const confirmationUrl = `${baseUrl}/api/confirm-appointment?id=${body.id}`
     const html = generateEmailHTML(body, confirmationUrl)
-    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@dashboard-website.com'
+    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@nexodash.com'
 
     const res = await sendEmail({
-      from: `"${body.businessName || 'Dashboard Website'}" <${fromEmail}>`,
+      from: `"${body.businessName || 'Nexodash'}" <${fromEmail}>`,
       to: body.customerEmail,
       subject: ({ en: `Appointment Confirmation - ${body.service}`, es: `Confirmación de Cita - ${body.service}` } as Record<string,string>)[(body.language||'en')] || `Appointment Confirmation - ${body.service}`,
       html,

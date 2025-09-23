@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { getCurrentBusiness } from '@/lib/auth-utils'
 
 export const dynamic = 'force-dynamic'

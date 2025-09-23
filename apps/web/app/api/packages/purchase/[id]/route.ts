@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { sendEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 

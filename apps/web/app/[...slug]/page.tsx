@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import BusinessLandingEnhanced from '@/components/business/BusinessLandingEnhanced'
 import ProjectLanding from '@/components/project/ProjectLanding'
 import { getOperationMode } from '@/lib/operation-mode'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { logger } from '@/lib/logger'
 
 interface CatchAllPageProps {

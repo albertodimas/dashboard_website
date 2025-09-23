@@ -61,7 +61,7 @@
 ## 📁 **ARCHIVOS MODIFICADOS**
 
 ### **Archivo Principal:**
-- `D:/dashboard_website/apps/web/components/business/BusinessLanding.tsx`
+- `D:/nexodash/apps/web/components/business/BusinessLanding.tsx`
   - **Líneas modificadas:** 451-985 (secciones Reviews, Booking, Contact, Footer)
   - **Mejoras:** Rediseño visual completo manteniendo toda la funcionalidad
 
@@ -70,7 +70,7 @@
 ## 🛡️ **BACKUP Y SEGURIDAD**
 
 ### **✅ Backups Creados:**
-- 📁 Carpeta `D:/dashboard_website/backup/` creada
+- 📁 Carpeta `D:/nexodash/backup/` creada
 - 📄 `schema_backup.prisma` - Esquema de base de datos
 - 📄 `database_export_instructions.md` - Instrucciones para backup completo
 - 📄 `SESSION_IMPROVEMENTS_SUMMARY.md` - Este resumen
@@ -102,11 +102,11 @@
 
 ```bash
 # Para reiniciar el servidor de desarrollo:
-cd D:/dashboard_website/apps/web
+cd D:/nexodash/apps/web
 pnpm dev
 
 # Para verificar la base de datos:
-cd D:/dashboard_website/packages/db
+cd D:/nexodash/packages/db
 pnpm prisma studio
 ```
 

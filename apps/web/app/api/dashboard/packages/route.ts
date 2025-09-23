@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 

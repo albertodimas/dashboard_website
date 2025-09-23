@@ -23,10 +23,10 @@ async function main() {
   }
 
   const legacy = [
-    'D:dashboard_websiteappswebpublicavatars',
-    'D:dashboard_websiteappswebpublicgallery',
-    'D:dashboard_websiteappswebpublicservices',
-    'D:dashboard_websiteappswebpublicbusiness'
+    'D:nexodashappswebpublicavatars',
+    'D:nexodashappswebpublicgallery',
+    'D:nexodashappswebpublicservices',
+    'D:nexodashappswebpublicbusiness'
   ]
   for (const d of legacy) {
     const abs = path.join(cwd, d)

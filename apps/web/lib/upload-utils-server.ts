@@ -57,7 +57,7 @@ export async function processAndSaveImage(
     const basePublic = existsSync(appPublic) ? appPublic : (existsSync(rootPublic) ? rootPublic : appPublic)
     const publicDir = path.join(basePublic, safeType === 'avatar' ? 'avatars' : safeType)
     // Cleanup legacy directories created by incorrect Windows paths
-    for (const legacy of ['D:dashboard_websiteappswebpublicavatars', 'D:dashboard_websiteappswebpublicgallery', 'D:dashboard_websiteappswebpublicservices', 'D:dashboard_websiteappswebpublicbusiness']) {
+    for (const legacy of ['D:nexodashappswebpublicavatars', 'D:nexodashappswebpublicgallery', 'D:nexodashappswebpublicservices', 'D:nexodashappswebpublicbusiness']) {
       const abs = path.join(process.cwd(), legacy)
       if (existsSync(abs)) {
         await rm(abs, { recursive: true, force: true })

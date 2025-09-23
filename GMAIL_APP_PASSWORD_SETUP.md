@@ -20,7 +20,7 @@ Gmail está rechazando el login porque necesitas usar una **Contraseña de Aplic
 
 3. En "Seleccionar app", elige **"Otra (nombre personalizado)"**
 
-4. Escribe un nombre descriptivo como: **"Dashboard Website Email"**
+4. Escribe un nombre descriptivo como: **"Nexodash Email"**
 
 5. Haz clic en **"Generar"**
 

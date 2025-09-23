@@ -1,4 +1,4 @@
-# Dashboard - Multi-Tenant Service Management Platform
+# Nexodash - Multi-Tenant Service Management Platform
 
 ## 🚀 Quick Start Guide
 
@@ -81,7 +81,7 @@ After seeding the database, you can login with:
 ## 📦 Project Structure
 
 ```
-dashboard-website/
+nexodash/
 ├── apps/
 │   └── web/           # Next.js application
 ├── packages/
@@ -165,8 +165,8 @@ Required variables to mirror from production:
 2) Push schema and seed against Supabase
 Run Prisma commands scoped to the DB package so they read `packages/db/.env`:
 ```bash
-pnpm --filter @dashboard/db db:push
-pnpm --filter @dashboard/db db:seed
+pnpm --filter @nexodash/db db:push
+pnpm --filter @nexodash/db db:seed
 ```
 
 Notes:
@@ -177,7 +177,7 @@ Notes:
 
 3) Start the app locally (pointing to cloud services)
 ```bash
-pnpm --filter @dashboard/web dev
+pnpm --filter @nexodash/web dev
 ```
 
 ---
@@ -212,7 +212,7 @@ node create-admin-user.js
 ```
 
 2) Open http://localhost:3000/admin/login and use:
-- Email: `admin@dashboard.com`
+- Email: `admin@nexodash.com`
 - Password: `password123`
 
 If login succeeds you will be redirected to `/admin/dashboard` and an `admin-session` cookie is set server-side.

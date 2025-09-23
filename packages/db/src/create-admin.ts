@@ -11,7 +11,7 @@ async function createAdmin() {
         id: '00000000-0000-0000-0000-000000000000',
         name: 'System',
         subdomain: 'admin',
-        email: 'admin@dashboard.com',
+        email: 'admin@nexodash.com',
         settings: {
           features: {
             multiTenant: true,
@@ -30,7 +30,7 @@ async function createAdmin() {
       where: {
         tenantId_email: {
           tenantId: systemTenant.id,
-          email: 'admin@dashboard.com'
+          email: 'admin@nexodash.com'
         }
       },
       update: {
@@ -41,7 +41,7 @@ async function createAdmin() {
       },
       create: {
         tenantId: systemTenant.id,
-        email: 'admin@dashboard.com',
+        email: 'admin@nexodash.com',
         passwordHash: hashedPassword,
         name: 'System Administrator',
         emailVerified: new Date(),
@@ -51,7 +51,7 @@ async function createAdmin() {
     })
 
     console.log('✅ Admin user created/updated:')
-    console.log('   Email: admin@dashboard.com')
+    console.log('   Email: admin@nexodash.com')
     console.log('   Password: Admin123!')
     console.log('   Access: http://localhost:3000/admin/login')
     

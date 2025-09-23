@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { sendEmail } from '@/lib/email'
 import { checkRateLimit, setCode } from '@/lib/verification-redis'
 import { z } from 'zod'

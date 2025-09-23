@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
 import { logger } from '@/lib/logger'

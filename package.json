@@ -1,5 +1,5 @@
 {
-  "name": "dashboard-website",
+  "name": "nexodash",
   "private": true,
   "scripts": {
     "i18n:check": "node scripts/check-i18n.js",
@@ -15,7 +15,7 @@
     "db:push": "turbo db:push",
     "db:migrate": "turbo db:migrate",
     "db:seed": "turbo db:seed",
-    "postinstall": "pnpm --filter @dashboard/db db:generate"
+    "postinstall": "pnpm --filter @nexodash/db db:generate"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { z } from 'zod'
 import { addMinutes, parseISO } from 'date-fns'
 import { sendEmail } from '@/lib/email'

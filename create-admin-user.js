@@ -13,7 +13,7 @@ async function createAdminUser() {
         data: {
           name: 'System Admin',
           subdomain: 'admin',
-          email: 'admin@dashboard.com',
+          email: 'admin@nexodash.com',
           phone: '1234567890',
           timezone: 'America/New_York',
           currency: 'USD',
@@ -32,7 +32,7 @@ async function createAdminUser() {
     // Check if admin user already exists
     const existingAdmin = await prisma.user.findFirst({
       where: {
-        email: 'admin@dashboard.com'
+        email: 'admin@nexodash.com'
       }
     });
 
@@ -59,7 +59,7 @@ async function createAdminUser() {
       const adminUser = await prisma.user.create({
         data: {
           tenantId: tenant.id,
-          email: 'admin@dashboard.com',
+          email: 'admin@nexodash.com',
           emailVerified: new Date(),
           passwordHash: hashedPassword,
           name: 'System Administrator',
@@ -80,7 +80,7 @@ async function createAdminUser() {
     console.log('\n✅ Admin login credentials:');
     console.log('============================');
     console.log('URL: http://localhost:3000/admin/login');
-    console.log('Email: admin@dashboard.com');
+    console.log('Email: admin@nexodash.com');
     console.log('Password: password123');
     console.log('============================\n');
     

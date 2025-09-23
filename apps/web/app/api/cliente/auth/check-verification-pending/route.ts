@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'

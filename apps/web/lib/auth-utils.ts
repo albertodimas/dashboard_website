@@ -1,4 +1,4 @@
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { NextResponse } from 'next/server'
 import { getAuthFromCookie } from './jwt-auth'
 import { logger } from './logger'

@@ -182,12 +182,12 @@ Para retomar: retoma desde 5a7c349
     - `DIRECT_URL=postgresql://<user>:<pass>@<supabase-host>:5432/postgres?schema=public`
   - Variables clave a espejar: `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL` (Upstash), `JWT_SECRET`, `CLIENT_JWT_SECRET`, `REFRESH_SECRET`, `NEXTAUTH_URL`, `APP_BASE_URL`.
   - Empujar schema y seed contra Supabase:
-    - `pnpm --filter @dashboard/db db:push`
-    - `pnpm --filter @dashboard/db db:seed`
+    - `pnpm --filter @nexodash/db db:push`
+    - `pnpm --filter @nexodash/db db:seed`
 
 - Validar login admin antes de email:
   - `node create-admin-user.js`
-  - Abrir `http://localhost:3000/admin/login` → `admin@dashboard.com` / `password123`.
+  - Abrir `http://localhost:3000/admin/login` → `admin@nexodash.com` / `password123`.
 
 - Revisar envío de email (Resend/SMTP):
   - Por ahora `apps/web/lib/email.ts` usa Nodemailer (SMTP) + MailHog en dev.

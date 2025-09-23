@@ -1,4 +1,4 @@
-# Dashboard Setup Script for PowerShell
+# Nexodash Setup Script for PowerShell
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "    Dashboard Setup Script" -ForegroundColor Cyan

@@ -102,7 +102,7 @@
 ## 📁 Estructura del Proyecto
 
 ```
-dashboard_website/
+nexodash/
 ├── apps/
 │   └── web/                    # Aplicación Next.js
 │       ├── app/                # App Router
@@ -185,8 +185,8 @@ dashboard_website/
 
 ### Variables de Entorno (.env.local)
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dashboard
-DIRECT_URL=postgresql://postgres:postgres@localhost:5432/dashboard
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nexodash
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/nexodash
 JWT_SECRET=[configurado]
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587

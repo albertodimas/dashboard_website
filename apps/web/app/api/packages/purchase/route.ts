@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { prisma, PackagePaymentStatus, PurchaseStatus } from '@dashboard/db'
+import { prisma, PackagePaymentStatus, PurchaseStatus } from '@nexodash/db'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 

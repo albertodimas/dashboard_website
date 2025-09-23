@@ -1,6 +1,6 @@
 -- Consolidate Customers to global unique by email
 -- IMPORTANT: Before applying this migration, run the consolidation script to remove duplicates:
---   pnpm -F @dashboard/db tsx packages/db/scripts/consolidate-customers-global.ts --apply
+--   pnpm -F @nexodash/db tsx packages/db/scripts/consolidate-customers-global.ts --apply
 
 -- Drop previous tenant-scoped unique if exists
 ALTER TABLE "customers" DROP CONSTRAINT IF EXISTS "customers_tenantId_email_key";

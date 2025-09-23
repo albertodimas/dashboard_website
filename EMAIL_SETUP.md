@@ -14,7 +14,7 @@ El sistema está configurado para usar **Ethereal Email** (servicio de prueba) p
 2. **Generar contraseña de aplicación:**
    - Ve a https://myaccount.google.com/apppasswords
    - Selecciona "Correo" y "Otro"
-   - Nombra la aplicación (ej: "Dashboard Website")
+   - Nombra la aplicación (ej: "Nexodash")
    - Copia la contraseña generada (16 caracteres)
 
 3. **Actualizar el archivo `.env.local`:**

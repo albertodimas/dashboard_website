@@ -1,4 +1,4 @@
-# Dashboard Docker Setup Script
+# Nexodash Docker Setup Script
 $dockerPath = "C:\Program Files\Docker\Docker\resources\bin\docker.exe"
 $dockerComposePath = "C:\Program Files\Docker\Docker\resources\bin\docker-compose.exe"
 
@@ -48,15 +48,15 @@ services:
   postgres:
     image: postgis/postgis:15-3.3
     environment:
-      POSTGRES_USER: dashboard
-      POSTGRES_PASSWORD: dashboard
-      POSTGRES_DB: dashboard
+      POSTGRES_USER: nexodash
+      POSTGRES_PASSWORD: nexodash
+      POSTGRES_DB: nexodash
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dashboard"]
+      test: ["CMD-SHELL", "pg_isready -U nexodash"]
       interval: 10s
       timeout: 5s
       retries: 5

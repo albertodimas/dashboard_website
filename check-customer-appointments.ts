@@ -1,4 +1,4 @@
-import { PrismaClient } from '@dashboard/db'
+import { PrismaClient } from '@nexodash/db'
 
 const prisma = new PrismaClient()
 

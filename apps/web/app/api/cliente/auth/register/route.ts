@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { sendEmail, getVerificationEmailTemplate, generateVerificationCode } from '@/lib/email'

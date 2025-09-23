@@ -1,4 +1,4 @@
-# 📊 Dashboard Website - Resumen del Proyecto
+# 📊 Nexodash - Resumen del Proyecto
 
 ## 🎯 Estado Actual del Proyecto
 **Fecha:** 17 de Agosto, 2025
@@ -80,7 +80,7 @@
 ## 📁 Estructura de Archivos Clave
 
 ```
-D:\dashboard_website\
+D:\nexodash\
 ├── apps/web/
 │   ├── app/
 │   │   ├── api/
@@ -109,8 +109,8 @@ D:\dashboard_website\
 
 ### Base de Datos
 - PostgreSQL con Docker
-- Usuario: `dashboard`
-- Contraseña: `dashboard`
+- Usuario: `nexodash`
+- Contraseña: `nexodash`
 - Puerto: `5432`
 
 ### Email (Modo Prueba)

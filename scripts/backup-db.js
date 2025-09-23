@@ -12,7 +12,7 @@ if (!fs.existsSync(backupDir)) {
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const backupFile = path.join(backupDir, `backup-${timestamp}.sql`);
 
-const command = `docker exec dashboard_website-postgres-1 pg_dump -U dashboard -d dashboard > "${backupFile}"`;
+const command = `docker exec nexodash-postgres-1 pg_dump -U nexodash -d nexodash > "${backupFile}"`;
 
 console.log('🔄 Creating database backup...');
 console.log(`📁 Backup file: ${backupFile}`);

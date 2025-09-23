@@ -1,6 +1,6 @@
 # 📋 Resumen de Sesión - Sistema de Módulos por Tipo de Negocio
 **Fecha**: 25 de Agosto de 2024
-**Proyecto**: Dashboard Website - Sistema Modular
+**Proyecto**: Nexodash - Sistema Modular
 
 ## 🎯 Objetivo Principal
 Implementar un sistema de módulos configurable por tipo de negocio, permitiendo que diferentes tipos de negocios (gimnasios, barberías, entrenadores personales, etc.) tengan funcionalidades específicas sin afectar el sistema base.

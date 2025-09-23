@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@dashboard/db'
+import { prisma } from '@nexodash/db'
 import { getCurrentBusiness, createAuthResponse } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
           data: {
             businessId: business.id,
             name: 'Default Staff',
-            email: 'staff@dashboard.com'
+            email: 'staff@nexodash.com'
           }
         })
       }
