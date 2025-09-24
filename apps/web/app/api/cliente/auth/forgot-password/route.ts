@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         subject: tpl.subject,
         html: tpl.html,
         text: tpl.text,
-        from: `"Sistema de Reservas" <${process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@localhost'}>`
+        from: `"Nexodash" <${process.env.RESEND_FROM_EMAIL || 'noreply@nexodash.com'}>`
       })
     } catch (err) {
       // Do not reveal failures; log server-side only

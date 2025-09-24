@@ -190,9 +190,9 @@ Para retomar: retoma desde 5a7c349
   - Abrir `http://localhost:3000/admin/login` → `admin@nexodash.com` / `password123`.
 
 - Revisar envío de email (Resend/SMTP):
-  - Por ahora `apps/web/lib/email.ts` usa Nodemailer (SMTP) + MailHog en dev.
+  - El módulo `apps/web/lib/email.ts` envía todas las notificaciones a través de Resend.
   - Endpoints: `/api/auth/send-verification` y `/api/cliente/auth/send-verification`.
-  - Observar logs JSON en terminal. En dev, ver MailHog: `http://localhost:8025`.
+  - Observar logs JSON en terminal y revisar el dashboard de Resend para validar la entrega.
   - Dev helper: `GET /api/get-verification-code?email=<email>` (en prod requiere `x-internal-key`).
 
 - Reprobar registro/login remoto:

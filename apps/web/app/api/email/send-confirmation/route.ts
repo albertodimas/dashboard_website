@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const confirmationUrl = `${baseUrl}/api/confirm-appointment?id=${body.id}`
     const html = generateEmailHTML(body, confirmationUrl)
-    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@nexodash.com'
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@nexodash.com'
 
     const res = await sendEmail({
       from: `"${body.businessName || 'Nexodash'}" <${fromEmail}>`,

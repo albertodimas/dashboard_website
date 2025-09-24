@@ -116,9 +116,9 @@ D:\nexodash\
 ### Email (Modo Prueba)
 ```env
 USE_TEST_EMAIL=true  # Cambiar a false para emails reales
-EMAIL_HOST=smtp.gmail.com
-EMAIL_USER=tu-email@gmail.com
-EMAIL_PASSWORD=xxxx-xxxx-xxxx-xxxx
+RESEND_API_KEY=...
+RESEND_FROM_EMAIL=notificaciones@nexodash.com
+
 ```
 
 ## 🐛 Problemas Resueltos

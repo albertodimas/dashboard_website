@@ -111,7 +111,7 @@ pnpm db:studio
 
 ## 📧 Email Testing
 
-View test emails at: http://localhost:8025 (Mailhog)
+Monitor outbound email in the Resend dashboard (https://resend.com) or your configured inbox.
 
 ## 🔧 Troubleshooting
 
@@ -160,7 +160,7 @@ Required variables to mirror from production:
 - Redis (Upstash): `REDIS_URL`
 - Auth secrets: `JWT_SECRET`, `CLIENT_JWT_SECRET`, `REFRESH_SECRET`
 - App URLs: `NEXTAUTH_URL`, `APP_BASE_URL`
-- Email: either Gmail SMTP (`EMAIL_*`) or Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) depending on the path you use (see Email notes below)
+- Email: Resend (all environments)
 
 2) Push schema and seed against Supabase
 Run Prisma commands scoped to the DB package so they read `packages/db/.env`:
@@ -184,24 +184,16 @@ pnpm --filter @nexodash/web dev
 
 ## Email delivery (dev and remote)
 
-Current implementation uses Nodemailer with two modes:
-- Development (no Gmail configured): sends to local MailHog at `localhost:1025` and logs a hint to open http://localhost:8025
-- Production/remote: uses SMTP credentials from `EMAIL_*`. The `resend` package is present but not wired yet.
+All outbound email is sent via Resend. To deliver messages:
 
-Endpoints involved:
-- `apps/web/app/api/auth/send-verification/route.ts` (owner register)
-- `apps/web/app/api/cliente/auth/send-verification/route.ts` (client register)
+- Verify your domain in the Resend dashboard and add the required DNS records (MX/TXT/DKIM).
+- Provide `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in your environment (`.env`, Vercel env vars, etc.).
+- Optional: use a Resend test domain (e.g. `onboarding@resend.dev`) while verifying your custom domain.
 
 Observability while testing:
-- Terminal logs are JSON lines from `apps/web/lib/logger.ts`
-- Dev helper to inspect the current code stored in Redis:
-  - GET `/api/get-verification-code?email=<email>` (works in dev; in prod requires header `x-internal-key: $INTERNAL_API_KEY`)
-
-To switch to Resend later:
-- Provide `RESEND_API_KEY` and `RESEND_FROM_EMAIL` and replace `sendEmail(...)` in `apps/web/lib/email.ts` with a Resend client call. For now, SMTP/MailHog is the active path.
-
----
-
+- Check the Resend dashboard (https://resend.com) for delivery logs and message previews.
+- Dev helper to inspect the verification code stored in Redis:
+  - GET `/api/get-verification-code?email=<email>` (works in dev; in prod requires header `x-internal-key: $INTERNAL_API_KEY`).
 ## Admin login (local validation)
 
 Ensure the default admin exists and verify login in a browser before focusing on email flows:

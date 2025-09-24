@@ -1,3 +1,5 @@
+# Nota
+Este flujo ya no se utiliza: el proyecto envía correos exclusivamente con Resend. Mantén este archivo solo como referencia histórica.
 # 📧 Configuración de Contraseña de Aplicación de Gmail
 
 ## ⚠️ Problema Actual

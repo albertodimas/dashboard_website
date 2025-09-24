@@ -188,10 +188,10 @@ nexodash/
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nexodash
 DIRECT_URL=postgresql://postgres:postgres@localhost:5432/nexodash
 JWT_SECRET=[configurado]
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=appointmentlab@gmail.com
-EMAIL_PASSWORD=[configurado]
+RESEND_API_KEY=[configurado]
+RESEND_FROM_EMAIL=notificaciones@nexodash.com
+
+
 ```
 
 ### Servicios Docker Activos

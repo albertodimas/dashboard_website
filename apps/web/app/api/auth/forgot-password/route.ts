@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         subject: tpl.subject,
         html: tpl.html,
         text: tpl.text,
-        from: `"Dashboard" <${process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@localhost'}>`
+        from: `"Nexodash" <${process.env.RESEND_FROM_EMAIL || 'noreply@nexodash.com'}>`
       })
     } catch (err) {
       // Log only; do not reveal failures to caller
