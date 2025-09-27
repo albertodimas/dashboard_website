@@ -5,6 +5,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+const rawDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || process.env.NEXT_PUBLIC_BASE_URL || 'localhost:3000'
+const displayDomain = rawDomain.replace(/^https?:\/\//, '').replace(/\/$/, '')
+const previewProtocol = /localhost|127\.0\.0\.1/.test(displayDomain) ? 'http' : 'https'
+
 export default function RegisterPage() {
   const router = useRouter()
   const [step, setStep] = useState<'register' | 'verify'>('register')
@@ -328,14 +332,14 @@ export default function RegisterPage() {
               <label htmlFor="subdomain" className="block text-sm font-medium text-gray-700">
                 Subdomain
               </label>
-              <div className="mt-1 flex rounded-md shadow-sm">
+              <div className="mt-1">
                 <input
                   id="subdomain"
                   name="subdomain"
                   type="text"
                   required
                   pattern="[a-z0-9-]+"
-                  className={`flex-1 appearance-none relative block w-full px-3 py-2 border ${subStatus === 'taken' ? 'border-red-500' : 'border-gray-300'} placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm`}
+                  className={`appearance-none relative block w-full px-3 py-2 border ${subStatus === 'taken' ? 'border-red-500' : 'border-gray-300'} placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm`}
                   placeholder="mybusiness"
                   value={formData.subdomain}
                   onChange={async (e) => {
@@ -349,12 +353,12 @@ export default function RegisterPage() {
                     }
                   }}
                 />
-                <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                  .localhost:3000
-                </span>
               </div>
               <p className="mt-1 text-xs text-gray-500">
                 Only lowercase letters, numbers, and hyphens
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Your business URL will be {`${previewProtocol}://${(formData.subdomain || 'mybusiness')}.${displayDomain}`}
               </p>
               {subStatus === 'checking' && (
                 <p className="mt-1 text-xs text-gray-500">Checking subdomain availability…</p>
