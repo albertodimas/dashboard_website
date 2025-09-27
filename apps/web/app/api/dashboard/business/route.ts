@@ -131,7 +131,6 @@ export async function PUT(request: NextRequest) {
     // Merge settings (preserve existing + allow updating operationMode and others)
     const currentSettings: any = (business.settings as any) || {}
     let mergedSettings: any = { ...currentSettings }
-    if (body.customDomain !== undefined) mergedSettings.customDomain = body.customDomain
     if (body.theme !== undefined) mergedSettings.theme = body.theme
     if (body.ui !== undefined) mergedSettings.ui = body.ui
     // If caller provided a settings object, merge it on top of current settings
@@ -240,10 +239,9 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Prepare merged settings (theme, ui, customDomain)
+    // Prepare merged settings (theme, ui)
     const existingSettings: any = (business.settings as any) || {}
     const shouldUpdateSettings = (
-      body.customDomain !== undefined ||
       body.theme !== undefined ||
       body.ui !== undefined
     )
@@ -251,7 +249,6 @@ export async function PATCH(request: NextRequest) {
     const mergedSettings = shouldUpdateSettings
       ? {
           ...existingSettings,
-          ...(body.customDomain !== undefined && { customDomain: body.customDomain }),
           ...(body.theme !== undefined && { theme: body.theme }),
           ...(body.ui !== undefined && { ui: { ...(existingSettings.ui || {}), ...(body.ui || {}) } })
         }
@@ -290,3 +287,4 @@ export async function PATCH(request: NextRequest) {
     return createAuthResponse('Failed to update business settings', 500)
   }
 }
+

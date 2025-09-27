@@ -103,7 +103,6 @@ interface BusinessSettingsResponse extends BusinessInfoState {
   slug: string
   websiteUrl?: string
   customSlug?: string | null
-  customDomain?: string | null
   settings?: BusinessSettingsEnvelope | null
 }
 
@@ -149,7 +148,6 @@ const defaultBusinessData: BusinessSettingsResponse = {
   slug: '',
   websiteUrl: undefined,
   customSlug: null,
-  customDomain: null,
   settings: null,
 }
 
@@ -173,7 +171,6 @@ const normalizeBusiness = (data?: Partial<BusinessSettingsResponse>): BusinessSe
     slug: data?.slug ?? defaultBusinessData.slug,
     websiteUrl: typeof data?.websiteUrl === 'string' ? data.websiteUrl : undefined,
     customSlug: data?.customSlug ?? null,
-    customDomain: data?.customDomain ?? null,
     settings: data?.settings ?? null,
   }
 
@@ -1212,3 +1209,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+

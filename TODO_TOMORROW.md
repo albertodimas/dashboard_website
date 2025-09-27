@@ -7,7 +7,6 @@ Resumen de hoy:
 - Modelo de datos: `customers.email` único global + CITEXT (case-insensitive). Script de consolidación de duplicados por email.
 - Dashboard cliente: fallback por email, reemisión de token, y `BusinessCustomer` multi-tenant.
 - Registro de dueño (/register): nombre y apellidos; disponibilidad en vivo de email/subdominio; creación transaccional de tenant+user; manejo de errores P2002.
-- Settings negocio: verificación en vivo de `customSlug` con sugerencias; validación básica de `customDomain` para futura verificación DNS.
 
 Pendientes prioridad alta (para retomar):
 1) Registro de dueño falla en “Complete Registration” en algunos casos aunque disponibilidad sea OK.
@@ -18,16 +17,11 @@ Pendientes prioridad alta (para retomar):
      - `SELECT id,subdomain FROM tenants WHERE subdomain='<subdomain>'`.
    - Revisar `send-verification`: bloquea si email ya existe (409). Confirmar flujo cuando envías el código y luego cambias el email.
 
-2) Settings negocio — completar “Custom Domain” (futuro):
-   - Añadir verificación DNS opcional (CNAME/A) detrás de flag.
-   - Persistir estado de verificación en `business.settings.customDomainVerified`.
-   - Endpoint POST `/api/dashboard/domain/verify` (pendiente) con comprobación DNS y marcas de tiempo.
-
-3) UI ajustes menores:
+2) UI ajustes menores:
    - Mostrar `lastName` del dueño en `/dashboard/settings` → cabeceras si aplica.
    - Deshabilitar “Save Settings” si slug/domain inválidos (ya hecho); revisar copy de ayuda.
 
-4) Pruebas rápidas a cubrir mañana:
+3) Pruebas rápidas a cubrir mañana:
    - Registro dueño con email nuevo y subdominio disponible → creación ok.
    - Registro dueño con email duplicado → inline error y bloqueo del submit.
    - Cambiar `customSlug` a uno ocupado → UI muestra sugerencia y bloquea guardar.
@@ -199,3 +193,4 @@ Para retomar: retoma desde 5a7c349
   - Registro: completar formulario → verificar que llega el código → `Complete Registration` ok.
   - Login: tras verificar, abrir sesión y recibir cookies (cliente o admin según flujo).
   - En Vercel/Supabase comprobar que `RESEND_API_KEY` o `EMAIL_*` estén completos si se desea email real.
+

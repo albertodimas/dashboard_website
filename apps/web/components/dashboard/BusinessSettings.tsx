@@ -50,7 +50,6 @@ interface Business {
   slug: string
   websiteUrl?: string
   customSlug?: string | null
-  customDomain?: string | null
   description?: string | null
   settings?: BusinessSettingsObject
 }
@@ -65,9 +64,6 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
   const { t } = useLanguage()
   const [websiteUrl, setWebsiteUrl] = useState(business.websiteUrl || '')
   const [customSlug, setCustomSlug] = useState(business.customSlug || '')
-  const [customDomain, setCustomDomain] = useState(business.customDomain || '')
-  const [domainStatus, setDomainStatus] = useState<'idle'|'checking'|'valid'|'invalid'>('idle')
-  const [domainMsg, setDomainMsg] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [slugError, setSlugError] = useState('')
@@ -260,7 +256,6 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
       const requestBody = {
         websiteUrl,
         customSlug: cleanedSlug || null,
-        customDomain,
         theme: {
           primaryColor,
           secondaryColor,
@@ -301,8 +296,7 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
       if (response.ok) {
         onUpdate({ 
           websiteUrl, 
-          customSlug: cleanedSlug, 
-          customDomain,
+          customSlug: cleanedSlug,
           settings: {
             ...(business.settings || {}),
             theme: {
@@ -446,43 +440,6 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         </div>
 
         {/* Custom Domain (Future Feature) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Custom Domain (Optional)
-          </label>
-          <input
-            type="text"
-            value={customDomain}
-            onChange={async (e) => {
-              const v = e.target.value.trim().toLowerCase()
-              setCustomDomain(v)
-              if (!v) { setDomainStatus('idle'); setDomainMsg(''); return }
-              setDomainStatus('checking'); setDomainMsg('')
-              try {
-                const res = await fetch(`/api/dashboard/domain/check?domain=${encodeURIComponent(v)}`)
-                const data = await res.json()
-                if (data.valid) { setDomainStatus('valid'); setDomainMsg('Looks good. Configure DNS and save.') }
-                else { setDomainStatus('invalid'); setDomainMsg(data.message || 'Invalid domain') }
-              } catch {
-                setDomainStatus('invalid'); setDomainMsg('Failed to validate domain')
-              }
-            }}
-            placeholder="e.g., mybusiness.com"
-            className="w-full p-3 border border-gray-300 rounded-lg"
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            Configure a custom domain for your landing page (requires DNS configuration)
-          </p>
-          {domainStatus === 'checking' && (
-            <p className="text-xs text-gray-500 mt-1">Checking domain…</p>
-          )}
-          {domainStatus === 'valid' && (
-            <div className="text-xs text-green-600 mt-1">{domainMsg}</div>
-          )}
-          {domainStatus === 'invalid' && (
-            <div className="text-xs text-red-600 mt-1">{domainMsg}</div>
-          )}
-        </div>
 
         {/* Theme Customization */}
         <div className="border-t pt-6">
@@ -1055,13 +1012,13 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
         <div className="flex justify-end">
           <button
             onClick={handleSave}
-            disabled={isSaving || slugStatus==='checking' || slugStatus==='taken' || !!slugError || domainStatus==='invalid'}
+            disabled={isSaving || slugStatus==='checking' || slugStatus==='taken' || !!slugError}
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={20} />
             {isSaving
               ? 'Saving...'
-              : (slugStatus==='taken' || slugError || domainStatus==='invalid'
+              : (slugStatus==='taken' || slugError
                 ? 'Fix errors to save'
                 : 'Save Settings')}
           </button>
@@ -1070,3 +1027,4 @@ export default function BusinessSettings({ business, onUpdate }: BusinessSetting
     </div>
   )
 }
+
